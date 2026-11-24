@@ -1,13 +1,28 @@
 spring:
   datasource:
     driver-class-name: org.h2.Driver
-    url: jdbc:h2:mem:consumer-pat;DB_CLOSE_DELAY=-1
+    # LOCK_TIMEOUT é o teto, em ms, da espera por uma trava de cartão. É o mecanismo do H2: a dica
+    # javax.persistence.lock.timeout é ignorada por ele em silêncio, e um teto que não dispara não é
+    # teto. Tem de ser MENOR que a espera por conexão (hikari abaixo). Um teste prova que dispara.
+    url: jdbc:h2:mem:consumer-pat;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=3000
     username: sa
     password: sa
+    # Toda fronteira de I/O tem teto explícito. O padrão de 30 s só adia o esgotamento do pool.
+    hikari:
+      connection-timeout: 5000
+      maximum-pool-size: 10
+      # Sem isto, estourar a espera por trava fecha a conexão e o erro chega como falha de rollback.
+      exception-override-class-name:
+        br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.ErroDeTravaNaoDescartaConexao
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
+      # O schema nasce só das anotações das entidades e some com a aplicação: sem migração, que
+      # seria dependência nova. Nunca `update` fora de um banco descartável.
       ddl-auto: create-drop
+    properties:
+      # Instantes gravados e lidos em UTC, qualquer que seja o fuso da máquina.
+      hibernate.jdbc.time_zone: UTC
   h2:
     console.enabled: true
     console.path: /h2-console

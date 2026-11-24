@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 /**
@@ -92,13 +93,27 @@ class CartaoPortaFakeTeste {
     @Test
     void deve_contar_a_gravacao_quando_salvar() {
         // Preparar
+        var existente = FabricaDeCartoes.doTipo(TipoCartao.COMBUSTIVEL).construir();
+        var porta = new CartaoPortaFake(existente);
+        var novo = FabricaDeCartoes.doTipo(TipoCartao.COMBUSTIVEL).comSaldo("5.00").construir();
+
+        // Agir
+        porta.salvar(novo);
+
+        // Verificar
+        assertThat(porta.gravados()).containsExactly(novo);
+    }
+
+    @Test
+    void deve_lancar_sem_gravar_quando_salvar_um_cartao_que_nao_existe() {
+        // Preparar
         var porta = new CartaoPortaFake();
         var cartao = FabricaDeCartoes.doTipo(TipoCartao.COMBUSTIVEL).construir();
 
-        // Agir
-        porta.salvar(cartao);
-
-        // Verificar
-        assertThat(porta.gravados()).containsExactly(cartao);
+        // Agir e Verificar
+        assertThatThrownBy(() -> porta.salvar(cartao)).isInstanceOf(IllegalStateException.class)
+                .hasMessageNotContaining(FabricaDeCartoes.NUMERO_PADRAO);
+        assertThat(porta.gravados()).isEmpty();
+        assertThat(porta.estado(NUMERO, TipoCartao.COMBUSTIVEL)).isEmpty();
     }
 }

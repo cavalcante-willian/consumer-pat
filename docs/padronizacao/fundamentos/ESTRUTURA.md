@@ -274,32 +274,51 @@ infraestrutura/                            # implementa as portas de dominio; co
 │   └── SaudeDoBancoAdaptador.java         # Connection.isValid(timeout) no DataSource — sem expor internals
 └── persistencia/                          # organizada por agregado (conceito), não por tipo técnico
     ├── ErroDeTravaNaoDescartaConexao.java # ligada ao pool: estourar a espera por trava não fecha a conexão (qualidade/PERFORMANCE.md §9)
-    └── consumidor/                        # o agregado: o consumidor, os cartões e o extrato — as FKs exigem que as entidades se vejam
-        ├── CartaoEntidade.java            # unique(numero), @Version, @Check(saldo >= 0), auditoria
-        ├── ExtratoEntidade.java           # imutável: sem versão e sem data de atualização
-        ├── CartaoRepositorioJpa.java      # consulta com @Lock(PESSIMISTIC_WRITE); só JPQL
-        ├── ExtratoRepositorioJpa.java
-        ├── CartaoDeEntidade.java          # linha → cartão do domínio (função pura, pacote-privada)
-        ├── AtualizadorDeEntidadeDeCartao.java # leva o saldo novo para a linha que já existe
-        ├── EntidadeDeExtrato.java         # extrato do domínio → linha a gravar
-        ├── ComRepositorioDeCartoes.java   # operação-base dos papéis dos adaptadores
-        ├── ComRepositorioDeExtratos.java  # idem, para o extrato
-        ├── BuscaDeCartaoNoBanco.java      # papel: busca travando para escrever
-        ├── GravacaoDeCartaoNoBanco.java   # papel: atualiza o saldo de um cartão que existe
-        ├── RegistroDeExtratoNoBanco.java  # papel: só insere
-        ├── CartaoAdaptador.java           # único tipo público do cartão: implementa CartaoPorta
-        ├── ExtratoAdaptador.java          # único tipo público do extrato: implementa ExtratoPorta
-        ├── ConsumidorEntidade.java        # @Entity — package-private: ninguém fora daqui a vê
-        ├── ConsumidorRepositorioJpa.java  # Spring Data — package-private
+    ├── consumidor/                        # a folha: a tabela do consumidor; não depende de ninguém daqui
+    │   ├── ConsumidorEntidade.java        # @Entity pública: unique(documento), @Version, auditoria
+    │   ├── ConsumidorRepositorioJpa.java  # Spring Data: só pergunta se o documento existe
+    │   ├── ComRepositorioDeConsumidores.java  # operação-base dos papéis do adaptador
+    │   ├── ConsumidorDeEntidade.java      # linha + cartões do domínio → consumidor (função pura)
+    │   └── AtualizadorDeEntidadeDeConsumidor.java # leva os dados cadastrais para a linha
+    ├── cartao/                            # depende de consumidor (o dono, pela FK)
+    │   ├── CartaoEntidade.java            # unique(numero), unique(consumidor, tipo), @Version, @Check(saldo >= 0)
+    │   ├── CartaoRepositorioJpa.java      # consulta com @Lock(PESSIMISTIC_WRITE); só JPQL
+    │   ├── CartaoDeEntidade.java          # linha → cartão do domínio (função pura)
+    │   ├── AtualizadorDeEntidadeDeCartao.java # leva o saldo novo para a linha que já existe
+    │   ├── EntidadeDeCartao.java          # cartão do domínio, com o dono → linha a gravar
+    │   ├── ComRepositorioDeCartoes.java   # operação-base dos papéis dos adaptadores
+    │   ├── BuscaDeCartaoNoBanco.java      # papel: busca travando para escrever
+    │   ├── GravacaoDeCartaoNoBanco.java   # papel: atualiza o saldo de um cartão que existe
+    │   └── CartaoAdaptador.java           # único tipo público do cartão: implementa CartaoPorta
+    ├── extrato/                           # depende de cartao (o cartão a que o extrato pertence)
+    │   ├── ExtratoEntidade.java           # imutável: sem versão e sem data de atualização
+    │   ├── ExtratoRepositorioJpa.java
+    │   ├── EntidadeDeExtrato.java         # extrato do domínio → linha a gravar
+    │   ├── ComRepositorioDeExtratos.java  # operação-base dos papéis dos adaptadores
+    │   ├── RegistroDeExtratoNoBanco.java  # papel: só insere
+    │   └── ExtratoAdaptador.java          # único tipo público do extrato: implementa ExtratoPorta
+    └── cadastro/                          # compõe consumidor e cartão: o adaptador do consumidor
         ├── ConsumidorAdaptador.java       # único tipo público do consumidor: implementa ConsumidorPorta
-        └── …                              # os mapeadores e os papéis do consumidor, um por arquivo
+        ├── ConsumidorDasLinhas.java       # junta a linha do consumidor e as dos cartões
+        ├── BuscaDeConsumidorNoBanco.java  # papel: a linha e os cartões dela
+        ├── CriacaoDeConsumidorNoBanco.java    # papel: conflito ou grava
+        ├── ConflitoDeNovoConsumidorNoBanco.java   # papel: documento e número, conferidos antes de gravar
+        ├── NumeroDeCartaoRepetidoNoBanco.java     # papel: o número já é de outro cartão
+        ├── GravacaoDoNovoConsumidorNoBanco.java   # papel: o consumidor, depois os cartões
+        ├── AtualizacaoDeConsumidorNoBanco.java    # papel: só os dados, com a versão conferida
+        ├── DocumentoLivreNoBanco.java     # papel: o documento novo não é de outro consumidor
+        └── VersaoDaLinhaConfirmada.java   # a versão do cliente é a da linha
 ```
 
-> **O pacote é do agregado, e não de uma tabela**: o cartão e o extrato moram
-> junto do consumidor porque as chaves estrangeiras (`fk_cartoes_consumidores` e
-> `fk_extratos_cartoes`) exigem que as entidades se enxerguem, e todas são
-> pacote-privadas. O mapeador manual é uma peça por direção (`CartaoDeEntidade`,
-> `AtualizadorDeEntidadeDeCartao`, `EntidadeDeExtrato`), como o resto do projeto.
+> **A persistência divide-se por conceito, e o grafo de pacotes não tem ciclo**:
+> `consumidor` é a folha, `cartao` depende dele, `extrato` do cartão, e `cadastro`
+> compõe `consumidor` e `cartao`. Por isso `ConsumidorDeEntidade` recebe os cartões
+> já convertidos, e não as linhas deles. As chaves estrangeiras
+> (`fk_cartoes_consumidores` e `fk_extratos_cartoes`) exigem que as entidades se
+> enxerguem entre pacotes, então **entidades e repositórios são públicos**, e a
+> barreira, a de que nada fora da persistência os importe, é um teste
+> (`RegraDeDependenciaDaPersistenciaTeste`), e não o compilador. O mapeador manual
+> é uma peça por direção, como o resto do projeto.
 
 ### `…consumerpat.api`
 
@@ -491,10 +510,15 @@ na cabeça de ninguém. Três mecanismos, do mais forte ao mais fraco:
    Um teste por linha da tabela de camadas (domínio, aplicação,
    infraestrutura, api fora de `configuracao`).
 
-2. **Visibilidade de pacote.** Dentro de `infraestrutura.persistencia.*`,
-   entidade, repositório Spring Data e mapeador são **package-private**;
-   só o `*Adaptador` é `public`. Nada fora da infraestrutura *consegue*
-   referenciar uma `@Entity` — o compilador impede, sem teste.
+2. **Fronteira da persistência.** Dentro de `infraestrutura.persistencia.*`,
+   entidade e repositório Spring Data são `public`, porque a persistência se
+   divide em pacotes por conceito e as chaves estrangeiras os fazem se
+   enxergar. Nada fora de `infraestrutura.persistencia` pode importá-los, e
+   quem impõe isso é um **teste**, que lê os imports
+   (`RegraDeDependenciaDaPersistenciaTeste`): o que sai da persistência são
+   os `*Adaptador`. É a troca de um mecanismo por outro, no mesmo modelo da
+   regra de dependência do domínio; a razão da regra, a de que nenhuma outra
+   camada dependa da JPA, não mudou.
 
 3. **Revisão.** O revisor confronta cada `import` novo com a tabela de
    camadas.
@@ -1017,7 +1041,7 @@ Este projeto é um módulo único de um desafio técnico. As escolhas abaixo sã
 | Imposição da regra | teste de arquitetura + visibilidade de pacote + revisão | o módulo único não bloqueia `import` |
 | Validação técnica | Bean Validation nas `Mensagem*`, sem pasta `validadores/` | `spring-boot-starter-validation` já está no projeto; nível 10 de [`CONDICIONAIS.md`](../codigo/CONDICIONAIS.md) |
 | Organização de `api` | por conceito (`consumidor/`, `cartao/`, `comum/`) | princípio 2: o que muda junto mora junto |
-| Organização de `infraestrutura` | por agregado, com entidade e repositório package-private | princípio 2 + esconde a JPA do resto do código |
+| Organização de `infraestrutura` | por conceito, em pacotes sem ciclo, com entidade e repositório públicos e a barreira num teste | princípio 2; as FKs exigem que as entidades se vejam, e o teste esconde a JPA do resto do código |
 | Log | SLF4J/Logback, já presentes | proibido adicionar dependência no desafio |
 | Banco | só H2 em memória | é o que o desafio usa; sem fila nem armazenamento externo |
 | Composição | `ConsumerTestApplication` só inicia; composição em `api.configuracao` | Spring Boot não tem ponto de entrada com DI manual |
@@ -1063,7 +1087,7 @@ Antes de abrir um PR que cria ou move arquivo:
 - [ ] Algum pacote plano acumulou arquivos? Se sim, a análise de subpacotes foi feita no PR — e manter plano tem motivo explícito?
 - [ ] Nenhum tipo de domínio/caso de uso nasceu em classe de configuração, adaptador ou controller?
 - [ ] Nenhum `@Component`/`@Service`/`@Repository` fora de `api.configuracao`?
-- [ ] Entidade JPA, repositório e mapeador continuam package-private?
+- [ ] Nada fora de `infraestrutura.persistencia` importa entidade JPA nem repositório, e os pacotes da persistência continuam sem ciclo?
 - [ ] Controller devolve `Mensagem*`, nunca domínio nem entidade?
 - [ ] Fake/fixture ficou em `src/test`, nunca em `src/main`?
 - [ ] **A árvore deste documento foi atualizada no mesmo PR**, se a estrutura mudou?

@@ -226,21 +226,23 @@ tem índice correspondente — e o índice nasce **com a consulta**, no mesmo
 PR, não depois do primeiro relato de lentidão.
 
 ```java
-// infraestrutura/persistencia/consumidor/CartaoEntidade.java
+// infraestrutura/persistencia/cartao/CartaoEntidade.java
 @Entity
 // nomes seguem a convenção de BANCO.md §3: tabela plural, uk_/idx_/fk_
+// sem índice só por consumidor_id: a unicidade (consumidor_id, tipo) já o tem como primeira coluna
 @Table(
     name = "cartoes",
-    uniqueConstraints = @UniqueConstraint(name = "uk_cartoes_numero", columnNames = "numero"),
-    indexes           = @Index(name = "idx_cartoes_consumidor_id", columnList = "consumidor_id"))
-class CartaoEntidade { /* ... */ }
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_cartoes_numero", columnNames = "numero"),
+        @UniqueConstraint(name = "uk_cartoes_consumidor_tipo", columnNames = { "consumidor_id", "tipo" }) })
+public class CartaoEntidade { /* ... */ }
 
 // infraestrutura/persistencia/consumidor/ConsumidorEntidade.java
 @Table(
     name = "consumidores",
     uniqueConstraints = @UniqueConstraint(name = "uk_consumidores_documento", columnNames = "documento"),
     indexes           = @Index(name = "idx_consumidores_nome_id", columnList = "nome, id"))   // ORDER BY nome, id
-class ConsumidorEntidade { /* ... */ }
+public class ConsumidorEntidade { /* ... */ }
 ```
 
 **Regras:**

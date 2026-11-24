@@ -10,11 +10,12 @@ próprio domínio — ver `docs/padronizacao/fundamentos/ESTRUTURA.md`.
 
 ## Propósito
 
-Dá ao resto do sistema quatro coisas que ele não pode inventar sozinho: uma
+Dá ao resto do sistema as coisas que ele não pode inventar sozinho: uma
 maneira de dizer que uma operação falhou **sem lançar exceção**, uma maneira de
 dizer **por que** ela falhou, um tipo para **dinheiro** que não perde fração de
 centavo, e o **cartão**: o tipo, o número e o próprio cartão, que debita e
-credita sem deixar o saldo ficar negativo. Nenhum código de negócio usa `double`, `float` nem `BigDecimal` solto
+credita sem deixar o saldo ficar negativo, o **extrato** da compra e as **portas**
+por onde o cartão e o extrato chegam ao banco. Nenhum código de negócio usa `double`, `float` nem `BigDecimal` solto
 para dinheiro, e nenhuma regra de negócio devolve `null` para dizer "não achei".
 
 - **`resultado`** — o resultado de uma operação que pode falhar, como dado.
@@ -53,6 +54,12 @@ para dinheiro, e nenhuma regra de negócio devolve `null` para dizer "não achei
   selada e dá a categoria, e `ErroSaldoInsuficiente` (`CPT-REG-CRT-001`) é a
   variante: o saldo não cobre o valor. Carrega o saldo e o valor para o log, mas
   a mensagem não os repete, porque ela vai para quem fez o pedido.
+- **`erros.naoencontrado`** — a categoria dos erros em que o recurso nomeado não
+  existe, com status 404. `ErroNaoEncontrado` é selada, e `ErroCartaoNaoEncontrado`
+  (`CPT-NEN-CRT-001`) é a variante: não existe cartão com aquele número e tipo. Um
+  cartão de outro tipo com o mesmo número também conta como não encontrado, para
+  não revelar a quem pergunta quais cartões existem. Carrega o `NumeroDeCartao`, de
+  modo que a mensagem só mostra a forma mascarada.
 - **`dinheiro`** — quantias em reais. `Dinheiro` guarda a quantia com **seis casas
   decimais**, para não perder a fração de centavo que os cálculos produzem (10% de
   desconto sobre 33,33 é 29,997), e garante a escala: um valor com casas a mais é
@@ -88,10 +95,24 @@ para dinheiro, e nenhuma regra de negócio devolve `null` para dizer "não achei
   `Mascaravel`, sobre `ComDigitos`. `NumeroDeCartaoDeTexto` lê o número de texto
   vindo de fora, sem lançar exceção: tira espaços e hífens, e recusa qualquer outro
   caractere em vez de descartá-lo.
+- **`extrato`** — o registro de uma compra efetivada. `Extrato` é um record
+  imutável sem operação nenhuma: guarda o estabelecimento, o produto, o instante,
+  o cartão (número e tipo) e **os dois valores**, o informado e o cobrado, porque a
+  diferença entre eles é o ajuste do tipo, e só com o cobrado um desconto de 10%
+  sobre 33,33 seria indistinguível de uma compra de 29,997. O instante vem de quem
+  registra, e não do relógio, para o extrato ser um dado que o teste possa fixar.
+- **`portas`** — os contratos que o domínio exige do mundo de fora; a
+  infraestrutura os implementa, e a dependência aponta sempre para o domínio.
+  Cada operação é um papel em seu arquivo, e a porta só os compõe: `CartaoPorta`
+  junta `BuscadorDeCartaoParaAtualizacao` (devolve o cartão travado até o fim da
+  transação, ou `ErroCartaoNaoEncontrado`) e `GravadorDeCartao` (`salvar`).
+  `ExtratoPorta` só oferece `registrar`: extrato é registro financeiro, nunca
+  atualizado nem apagado, e o que nenhuma interface oferece ninguém chama por
+  engano.
 
-Uma categoria de erro só nasce junto do primeiro erro que a usa. Por isso só existe
-`VALIDACAO` e `REGRA_DE_NEGOCIO` por enquanto; não encontrado e conflito entram
-com os casos de uso que os produzem.
+Uma categoria de erro só nasce junto do primeiro erro que a usa. Por isso existem
+`VALIDACAO`, `REGRA_DE_NEGOCIO` e `NAO_ENCONTRADO` por enquanto; conflito entra
+com o caso de uso que o produz.
 
 ## Estrutura
 
@@ -145,6 +166,10 @@ dominio
 │   ├── ComCodigo.java                # o código estável da variante
 │   ├── ComMensagem.java              # o texto para uma pessoa
 │   ├── ErroDominio.java              # só compõe os quatro papéis
+│   ├── naoencontrado
+│   │   ├── ErroCartaoNaoEncontrado.java  # não existe cartão com aquele número e tipo
+│   │   ├── ErroNaoEncontrado.java    # categoria: o recurso nomeado não existe (404)
+│   │   └── package-info.java
 │   ├── package-info.java
 │   ├── regradenegocio
 │   │   ├── ErroRegraDeNegocio.java   # categoria: a regra recusa diante do estado (422)
@@ -157,7 +182,16 @@ dominio
 │       ├── ErroValorMonetarioInvalido.java   # o texto não é uma quantia válida
 │       ├── ErroValorNaoPositivo.java # a quantia é zero ou negativa
 │       └── package-info.java
+├── extrato
+│   ├── Extrato.java                  # a compra efetivada, com o valor informado e o cobrado
+│   └── package-info.java
 ├── package-info.java
+├── portas
+│   ├── BuscadorDeCartaoParaAtualizacao.java  # papel: buscar o cartão travando para escrever
+│   ├── CartaoPorta.java              # só compõe os dois papéis do cartão
+│   ├── ExtratoPorta.java             # só registrar
+│   ├── GravadorDeCartao.java         # papel: salvar o cartão
+│   └── package-info.java
 └── resultado
     ├── AusenciaComoErro.java         # converter Optional em resultado
     ├── Encadeavel.java               # encadear uma operação que também pode falhar
@@ -236,6 +270,10 @@ inventário. Atualize-a a cada PR que mudar a árvore.
 | `ErroValorNaoPositivo` | `ErroValorNaoPositivoTeste` |
 | `Cartao`, `Debitavel`, `Creditavel`, `ComSaldo` | `CartaoTeste` (débito até o saldo exato, e um milionésimo a mais; crédito; valor não positivo e nulo; saldo negativo no construtor; o original não muda) |
 | `ErroSaldoInsuficiente` | `ErroSaldoInsuficienteTeste` (categoria 422, e a mensagem que não repete saldo nem valor) |
+| `ErroCartaoNaoEncontrado` | `ErroCartaoNaoEncontradoTeste` (categoria 404, e a mensagem que só mostra o número mascarado) |
+| `Extrato` | `ExtratoTeste` (os dois valores guardados, componente nulo lança, `toString` que não vaza) |
+| `ExtratoPorta` | `ExtratoPortaTeste` (só oferece `registrar`: não há atualizar nem excluir) |
+| `CartaoPorta`, `BuscadorDeCartaoParaAtualizacao`, `GravadorDeCartao` | `CartaoPortaTeste` (compõe os dois papéis e não declara operação própria) |
 | Códigos de erro (formato e unicidade) | `CodigosDeErroTeste`, que percorre a hierarquia |
 | Regra de dependência do domínio | `RegraDeDependenciaTeste`, na raiz de `src/test` |
 
@@ -245,7 +283,7 @@ Peças sem teste próprio, cobertas junto de quem as torna observáveis:
 |---|---|---|
 | `Somavel`, `Subtraivel`, `Multiplicavel`, `ComparavelPorQuantia`, `ComQuantia` | `DinheiroTeste` | existem só como partes do `Dinheiro`; o único caminho até elas é `mais`, `menos`, `vezes` e `compareTo` |
 | `Resolvivel` | `SucessoTeste`, `FalhaTeste` | é a operação-base, e o único caminho até ela é o `resolver` das variantes |
-| `ComCategoria`, `ComCodigo`, `ComMensagem`, `ComCamposComErro`, `ErroDominio`, `ErroValidacao`, `ErroRegraDeNegocio`, `CategoriaErro` | os testes das variantes de erro | só existem como contrato de uma variante, e cada variante os exercita |
+| `ComCategoria`, `ComCodigo`, `ComMensagem`, `ComCamposComErro`, `ErroDominio`, `ErroValidacao`, `ErroRegraDeNegocio`, `ErroNaoEncontrado`, `CategoriaErro` | os testes das variantes de erro | só existem como contrato de uma variante, e cada variante os exercita |
 
 ## Evolução
 
@@ -254,3 +292,4 @@ Peças sem teste próprio, cobertas junto de quem as torna observáveis:
 | `#6` | Cria a camada: `resultado` (`Resultado`, `Sucesso`, `Falha`, os papéis `Resolvivel`, `Transformavel` e `Encadeavel`, e `AusenciaComoErro`), `erros` (`ErroDominio` e os papéis `ComCategoria`, `ComCodigo`, `ComMensagem` e `ComCamposComErro`, `CategoriaErro`), `erros.validacao` (`ErroValidacao` e `ErroValorMonetarioInvalido`) e `dinheiro` (`Dinheiro`, os papéis `Somavel`, `Subtraivel`, `Multiplicavel`, `ComparavelPorQuantia` e `ComQuantia`, `DinheiroDeTexto` e `ApresentacaoDeDinheiro`). Nenhum código do legado depende ainda dela. |
 | `#8` | Acrescenta o pacote `cartao` (`TipoCartao`, os papéis `Cobravel`, `ComAjusteDoValor` e `ComCodigoDeEstabelecimento`, `TipoCartaoDoEstabelecimento`, `NumeroDeCartao`, os papéis `Mascaravel` e `ComDigitos`, e `NumeroDeCartaoDeTexto`) e duas variantes de `ErroValidacao`: `ErroTipoEstabelecimentoInvalido` (`CPT-VAL-CRT-001`) e `ErroNumeroDeCartaoInvalido` (`CPT-VAL-CRT-002`). O `CodigosDeErroTeste` passa a instanciar as variantes por reflexão. Nenhum código do legado depende ainda dos tipos novos. |
 | `#11` | Acrescenta o `Cartao` (record imutável de número, tipo e saldo, que não aceita saldo negativo) e os papéis `ComSaldo`, `Debitavel` e `Creditavel`, `DinheiroPositivo`, a categoria `REGRA_DE_NEGOCIO` (422) com `erros.regradenegocio` (`ErroRegraDeNegocio` e `ErroSaldoInsuficiente`, `CPT-REG-CRT-001`) e `ErroValorNaoPositivo` (`CPT-VAL-DIN-002`) em `ErroValidacao`. O `CodigosDeErroTeste` passa a percorrer as duas categorias. Nenhum código do legado depende ainda do cartão. |
+| `#12` | Acrescenta o `Extrato` (compra efetivada, com o valor informado e o cobrado) e o pacote `portas`: `CartaoPorta`, que compõe os papéis `BuscadorDeCartaoParaAtualizacao` e `GravadorDeCartao`, e `ExtratoPorta`, que só registra. Acrescenta também a categoria `NAO_ENCONTRADO` (404) com `erros.naoencontrado` (`ErroNaoEncontrado` e `ErroCartaoNaoEncontrado`, `CPT-NEN-CRT-001`); o `CodigosDeErroTeste` passa a percorrer as três categorias. Nenhum código do legado depende ainda das portas. |

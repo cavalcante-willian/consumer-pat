@@ -34,11 +34,37 @@ grava o cartão e o extrato, tudo numa transação.
     resposta) e `GravadorDaCompra` (o que uma compra grava: o cartão debitado e o
     extrato). As três primeiras são funções puras, e o instante da compra entra como
     argumento, lido do `Clock` pelo caso de uso.
+- **`casosdeuso.consumidor`** — os três casos de uso do consumidor, **um subpacote
+  por operação**: `criar`, `atualizar` e `obter`. Aqui a operação **não mora na classe
+  do caso de uso**: a classe (`CriarConsumidorCaso`, `AtualizarConsumidorCaso`,
+  `ObterConsumidorCaso`) só guarda as portas e declara o papel, e a operação, com o
+  `@Transactional`, é um método `default` de uma interface em arquivo próprio
+  (`CadastroDeConsumidor`, `AtualizacaoDeCadastro`, `LeituraDeConsumidor`), escrito em
+  cima de uma operação-base que expõe a porta (`ComGravadorDeNovoConsumidor`,
+  `ComAtualizadorDeConsumidor`, `ComBuscadorDeConsumidor`), como `Somavel` sobre
+  `ComQuantia` no `Dinheiro`. A de buscar fica na raiz do pacote, porque a atualização
+  e a leitura a compartilham.
+  - `criar` monta o consumidor com `NovoConsumidorDoPedido` e o entrega à porta, que
+    grava o consumidor e os cartões numa só transação. Os cartões nascem de
+    `CartoesIniciais`: um por tipo, com **saldo zero**, porque quem pede o cadastro
+    não escolhe o saldo.
+  - `atualizar` busca, confere a versão com `VersaoConfirmada`, troca os dados com
+    `comDados` e grava. O pedido (`DtoAtualizacaoDeConsumidor`) não carrega cartão nem
+    saldo, e uma compra feita entre a leitura e a atualização não é desfeita. Uma
+    versão velha é recusada aqui, antes de gravar; dois clientes que leem a mesma
+    versão ao mesmo tempo passam desta conferência, e o segundo perde na gravação,
+    pela versão de linha do banco.
+  - `obter` lê por id, numa transação só de leitura, e devolve a versão que a
+    atualização exige de volta.
+  - Os três devolvem o próprio `Consumidor` do domínio, e a API o converte na sua
+    mensagem: ele já é imutável, e um DTO de saída só repetiria os campos.
 - **`dtos`** — a transferência entre a API e os casos de uso. Os de entrada,
   `DtoCompra` e `DtoCredito`, **já trazem os tipos do domínio** (`TipoCartao`,
   `NumeroDeCartao`, `Dinheiro`): a borda converte o que recebeu de fora com as
   leituras do domínio e só então monta o pedido, e uma conversão que falha é recusada
-  lá. Os de saída, `DtoComprovanteCompra` e `DtoComprovanteCredito`, carregam
+  lá. Os do consumidor seguem o mesmo critério: `DtoNovoConsumidor` (o cadastro e o
+  número do cartão de cada tipo) e `DtoAtualizacaoDeConsumidor` (o id, a versão que o
+  cliente leu e o cadastro). Os de saída, `DtoComprovanteCompra` e `DtoComprovanteCredito`, carregam
   `NumeroDeCartao`, cujo texto é mascarado, de modo que um comprovante nunca revela o
   cartão. Nunca são o contrato REST: a API tem os seus próprios tipos.
 
@@ -62,19 +88,41 @@ Saída real de `tree` (regenerar e colar aqui a cada PR que mudar a árvore — 
 ```text
 aplicacao
 ├── casosdeuso
-│   └── cartao
-│       ├── ComprovanteDaCompra.java      # extrato + cartão debitado → comprovante da compra
-│       ├── ComprovanteDoCredito.java     # pedido + cartão creditado → comprovante do crédito
-│       ├── CreditarCartaoCaso.java       # só orquestra o crédito
-│       ├── ExtratoDaCompra.java          # pedido + valor cobrado + instante → extrato
-│       ├── GravadorDaCompra.java         # grava o cartão debitado e o extrato
-│       ├── RegistrarCompraCaso.java      # só orquestra a compra
+│   ├── cartao
+│   │   ├── ComprovanteDaCompra.java      # extrato + cartão debitado → comprovante da compra
+│   │   ├── ComprovanteDoCredito.java     # pedido + cartão creditado → comprovante do crédito
+│   │   ├── CreditarCartaoCaso.java       # só orquestra o crédito
+│   │   ├── ExtratoDaCompra.java          # pedido + valor cobrado + instante → extrato
+│   │   ├── GravadorDaCompra.java         # grava o cartão debitado e o extrato
+│   │   ├── RegistrarCompraCaso.java      # só orquestra a compra
+│   │   └── package-info.java
+│   └── consumidor
+│       ├── ComBuscadorDeConsumidor.java  # operação-base: quem busca por id (atualizar e obter)
+│       ├── atualizar
+│       │   ├── AtualizacaoDeCadastro.java    # papel: a operação, com @Transactional
+│       │   ├── AtualizarConsumidorCaso.java  # só guarda as portas e declara o papel
+│       │   ├── ComAtualizadorDeConsumidor.java   # operação-base: quem grava os dados
+│       │   ├── VersaoConfirmada.java     # a versão do cliente é a atual, ou ErroVersaoDivergente
+│       │   └── package-info.java
+│       ├── criar
+│       │   ├── CadastroDeConsumidor.java # papel: a operação, com @Transactional
+│       │   ├── CartoesIniciais.java      # um cartão por tipo, com saldo zero
+│       │   ├── ComGravadorDeNovoConsumidor.java  # operação-base: quem grava o consumidor novo
+│       │   ├── CriarConsumidorCaso.java  # só guarda a porta e declara o papel
+│       │   ├── NovoConsumidorDoPedido.java   # pedido → consumidor a gravar
+│       │   └── package-info.java
+│       ├── obter
+│       │   ├── LeituraDeConsumidor.java  # papel: a operação, @Transactional(readOnly = true)
+│       │   ├── ObterConsumidorCaso.java  # só guarda a porta e declara o papel
+│       │   └── package-info.java
 │       └── package-info.java
 ├── dtos
+│   ├── DtoAtualizacaoDeConsumidor.java   # o pedido de atualizar: id, versão lida e cadastro
 │   ├── DtoCompra.java                    # o pedido de compra, com os tipos do domínio
 │   ├── DtoComprovanteCompra.java         # o comprovante: os dois valores, o saldo e o instante
 │   ├── DtoComprovanteCredito.java        # o comprovante do crédito: o valor e o saldo atual
 │   ├── DtoCredito.java                   # o pedido de crédito, com os tipos do domínio
+│   ├── DtoNovoConsumidor.java            # o pedido de cadastro: o cadastro e o número de cada cartão
 │   └── package-info.java
 └── package-info.java
 ```
@@ -134,21 +182,41 @@ inventário. Atualize-a a cada PR que mudar a árvore.
 | `ComprovanteDaCompra` | `ComprovanteDaCompraTeste` (valores e instante do extrato, saldo do cartão, número mascarado) |
 | `ComprovanteDoCredito` | `ComprovanteDoCreditoTeste` |
 | `GravadorDaCompra` | `GravadorDaCompraTeste` (grava o cartão, registra o extrato, devolve o cartão gravado) |
+| `CriarConsumidorCaso`, `CadastroDeConsumidor` | `CriarConsumidorCasoTeste` (cadastro sem cartões e com cartões de saldo zero, documento repetido e número repetido sem gravar, a anotação de transação) e `TransacaoDoCadastroTeste` |
+| `CartoesIniciais`, `NovoConsumidorDoPedido` | `CartoesIniciaisTeste` e `NovoConsumidorDoPedidoTeste` (um cartão por tipo, saldo zero, ordem pelo tipo, nenhum cartão) |
+| `AtualizarConsumidorCaso`, `AtualizacaoDeCadastro` | `AtualizarConsumidorCasoTeste` (troca só os dados, mantém cartões e saldo, versão velha e consumidor ausente sem gravar) e `TransacaoDaAtualizacaoTeste` |
+| `VersaoConfirmada` | `VersaoConfirmadaTeste` (a versão atual passa, qualquer outra é recusada, inclusive a zero) |
+| `ObterConsumidorCaso`, `LeituraDeConsumidor` | `ObterConsumidorCasoTeste` (devolve com cartões e versão, ausente, não grava, só de leitura) e `TransacaoDaLeituraTeste` |
 | Regra de dependência da aplicação | `RegraDeDependenciaDaAplicacaoTeste`, na raiz de `src/test/.../aplicacao` |
 
 Peças sem teste próprio, cobertas junto de quem as torna observáveis:
 
 | Peça sem teste próprio | Coberta junto de | Por quê |
 |---|---|---|
-| `DtoCompra`, `DtoCredito`, `DtoComprovanteCompra`, `DtoComprovanteCredito` | os testes dos casos de uso e das peças de comprovante | são só dados, sem operação; o único caminho até eles é o uso |
+| `DtoCompra`, `DtoCredito`, `DtoComprovanteCompra`, `DtoComprovanteCredito`, `DtoNovoConsumidor`, `DtoAtualizacaoDeConsumidor` | os testes dos casos de uso e das peças de comprovante | são só dados, sem operação; o único caminho até eles é o uso |
+| `ComGravadorDeNovoConsumidor`, `ComAtualizadorDeConsumidor`, `ComBuscadorDeConsumidor` | os testes dos casos de uso | são só a operação-base de um papel, e o único caminho até elas é a operação |
 
 Os fakes e a fábrica de cartões também seguem a regra de uma peça por arquivo, e têm
 os seus testes (`CartaoPortaFakeTeste`, `ExtratoPortaFakeTeste`,
 `ModeloDeCartaoTeste`): um fake que aceita o que a porta real recusa deixaria os
-testes dos casos de uso verdes por um motivo falso.
+testes dos casos de uso verdes por um motivo falso. O fake do consumidor mora em
+`fakes/consumidor`, já dividido por papel, e o `ConsumidorPortaFakeTeste` o confere
+contra o contrato da porta (consumidor ausente, documento e número repetidos, versão
+velha e o saldo que não muda na atualização). A conferência de versão do fake é própria
+dele, e não a do caso de uso: ele faz o papel da versão de linha do banco, e um teste só
+prova alguma coisa se as duas forem independentes.
+
+**A transação num método `default` é provada em contexto Spring**, e não só por
+reflexão: cada operação tem um teste (`TransacaoDoCadastroTeste`,
+`TransacaoDaAtualizacaoTeste` e `TransacaoDaLeituraTeste`) que sobe um contexto com
+`@EnableTransactionManagement` e um `GerenciadorDeTransacaoFake`, chama o bean e confere
+que a transação foi pedida, e só de leitura onde deve. O proxy é **por classe**, como o
+Spring Boot configura por padrão: com o padrão do Spring puro (proxy de interface), a
+classe, que agora implementa interfaces, não seria injetável pelo próprio tipo.
 
 ## Evolução
 
 | PR | Mudança no contrato desta camada |
 |---|---|
 | `#13` | Cria a camada: `RegistrarCompraCaso` e `CreditarCartaoCaso`, as peças `ExtratoDaCompra`, `ComprovanteDaCompra`, `ComprovanteDoCredito` e `GravadorDaCompra`, e os DTOs `DtoCompra`, `DtoCredito`, `DtoComprovanteCompra` e `DtoComprovanteCredito`. O crédito passa a identificar o cartão por número **e tipo**, e a compra passa a devolver comprovante (o legado devolvia vazio). Nenhum código do legado depende ainda dela. |
+| `#17` | Acrescenta `casosdeuso.consumidor`, em um subpacote por operação (`criar`, `atualizar` e `obter`): os casos `CriarConsumidorCaso`, `AtualizarConsumidorCaso` e `ObterConsumidorCaso`, cuja operação mora em um papel de método `default` (`CadastroDeConsumidor`, `AtualizacaoDeCadastro` e `LeituraDeConsumidor`) sobre uma operação-base, as peças `CartoesIniciais`, `NovoConsumidorDoPedido` e `VersaoConfirmada`, e os DTOs `DtoNovoConsumidor` e `DtoAtualizacaoDeConsumidor`. Os casos de uso do cartão continuam com a operação na classe. Nenhum código do legado depende ainda dos novos. |

@@ -222,11 +222,23 @@ aplicacao/                                 # depende só de dominio (+ @Transact
 ├── README.md
 ├── package-info.java
 ├── casosdeuso/
-│   ├── consumidor/
-│   │   ├── CriarConsumidorCaso.java       # DtoNovoConsumidor → Consumidor → Resultado<T, E>
-│   │   ├── AtualizarConsumidorCaso.java   # nunca altera saldo: só dados cadastrais
-│   │   ├── ObterConsumidorCaso.java       # leitura por id — alvo do Location do POST
-│   │   └── ListarConsumidoresCaso.java    # paginado
+│   ├── consumidor/                        # um subpacote por operação; a operação mora num papel (default), não na classe
+│   │   ├── ComBuscadorDeConsumidor.java   # operação-base: quem busca por id (atualizar e obter)
+│   │   ├── criar/
+│   │   │   ├── CriarConsumidorCaso.java   # só guarda a porta e declara o papel
+│   │   │   ├── CadastroDeConsumidor.java  # papel: criar(DtoNovoConsumidor), @Transactional
+│   │   │   ├── ComGravadorDeNovoConsumidor.java   # operação-base: quem grava o consumidor novo
+│   │   │   ├── NovoConsumidorDoPedido.java    # pedido → consumidor a gravar (função pura)
+│   │   │   └── CartoesIniciais.java       # um cartão por tipo, com saldo zero
+│   │   ├── atualizar/
+│   │   │   ├── AtualizarConsumidorCaso.java   # nunca altera saldo: só dados cadastrais
+│   │   │   ├── AtualizacaoDeCadastro.java # papel: atualizar(DtoAtualizacaoDeConsumidor), @Transactional
+│   │   │   ├── ComAtualizadorDeConsumidor.java    # operação-base: quem grava os dados
+│   │   │   └── VersaoConfirmada.java      # a versão do cliente é a atual, ou ErroVersaoDivergente
+│   │   ├── obter/
+│   │   │   ├── ObterConsumidorCaso.java   # leitura por id — alvo do Location do POST
+│   │   │   └── LeituraDeConsumidor.java   # papel: obter(id), @Transactional(readOnly = true)
+│   │   └── ListarConsumidoresCaso.java    # paginado — item 9
 │   ├── cartao/
 │   │   ├── CreditarCartaoCaso.java        # só orquestra: busca travando, credita, grava, monta o comprovante
 │   │   ├── ComprovanteDoCredito.java      # como o crédito vira comprovante (função pura)
@@ -237,8 +249,8 @@ aplicacao/                                 # depende só de dominio (+ @Transact
 │   └── saude/
 │       └── ConsultarSaudeCaso.java        # consulta a SaudePorta; o controller nunca toca o DataSource
 └── dtos/                                  # transferência interna entre camadas (nunca fronteira REST)
-    ├── DtoDadosCadastrais.java
-    ├── DtoNovoConsumidor.java
+    ├── DtoNovoConsumidor.java             # cadastro + número do cartão de cada tipo, nos tipos do domínio
+    ├── DtoAtualizacaoDeConsumidor.java    # id, versão lida e cadastro; sem por onde carregar saldo
     ├── DtoCompra.java                     # entrada já com os tipos do domínio: a borda converte antes
     ├── DtoComprovanteCompra.java
     ├── DtoCredito.java
@@ -374,7 +386,16 @@ src/test/java/…consumerpat/                # espelha produção, pacote a paco
 │       ├── GravacaoDeCartaoEmMemoria.java # papel: a gravação da porta
 │       ├── ConsultaDoEstadoDoCartao.java  # papel só de teste: estado(número, tipo)
 │       ├── ConsultaDasGravacoesDeCartao.java  # papel só de teste: gravados()
-│       ├── ConsumidorPortaFake.java
+│       ├── consumidor/                    # o fake do consumidor, já dividido por papel
+│       │   ├── ConsumidorPortaFake.java   # só guarda a memória e declara os papéis
+│       │   ├── ConsumidoresEmMemoria.java # o estado: os consumidores, as gravações e a sequência dos ids
+│       │   ├── ComConsumidoresEmMemoria.java  # operação-base dos papéis do fake: memoria()
+│       │   ├── BuscaDeConsumidorEmMemoria.java    # papel: a busca da porta
+│       │   ├── CriacaoDeConsumidorEmMemoria.java  # papel: a criação, com id e versão zero
+│       │   ├── ConflitoDeNovoConsumidorEmMemoria.java # papel: documento e número únicos, como o banco
+│       │   ├── AtualizacaoDeConsumidorEmMemoria.java  # papel: só os dados, com a versão conferida
+│       │   └── ConsultaDoEstadoDoConsumidor.java  # papel só de teste: estado(id) e gravados()
+│       ├── GerenciadorDeTransacaoFake.java    # registra as transações pedidas, para provar o @Transactional no proxy
 │       ├── SaidaDeLogFake.java            # captura eventos e campos: prova "o log não contém o número do cartão"
 │       ├── SaudePortaFake.java            # força SAUDAVEL/DEGRADADO no contrato do /api/v1/saude
 │       ├── ExtratoPortaFake.java          # só guarda a lista e declara os papéis

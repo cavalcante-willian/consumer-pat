@@ -21,7 +21,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 /**
- * Caracteriza o comportamento do saldo sob acesso simultâneo: a invariante é que cada compra
+ * Caracteriza o comportamento do saldo sob acesso simultâneo: a invariante é
+ * que cada compra
  * confirmada reduz o saldo, sem que uma sobrescreva a outra.
  */
 @SpringBootTest
@@ -40,8 +41,8 @@ class ConcorrenciaDeCompraTeste {
 
     @Test
     @Disabled("Defeito do legado: a compra lê o saldo, subtrai em memória e grava, sem transação nem "
-        + "lock, então compras simultâneas no mesmo cartão se sobrescrevem (lost update) e o saldo final "
-        + "fica acima do correto. Habilitar no commit que introduz o lock pessimista.")
+            + "lock, então compras simultâneas no mesmo cartão se sobrescrevem (lost update) e o saldo final "
+            + "fica acima do correto. Habilitar no commit que introduz o lock pessimista.")
     void deve_debitar_todas_as_compras_quando_chegam_simultaneamente_no_mesmo_cartao() throws Exception {
         var consumidor = new Consumer();
         consumidor.setName("Consumidor concorrente");
@@ -62,7 +63,7 @@ class ConcorrenciaDeCompraTeste {
                         .param("cardNumber", String.valueOf(CARTAO_DE_FARMACIA))
                         .param("productDescription", "Produto")
                         .param("value", "1.0"))
-                    .andReturn();
+                        .andReturn();
                 return null;
             }));
         }

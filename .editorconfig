@@ -1,5 +1,15 @@
+# EditorConfig do consumer-pat: a fonte única da formatação de texto do projeto.
+#
+# O editorconfig-checker confere este arquivo no CI e no pre-commit: indentação, largura de
+# linha, quebra de linha, espaço no fim da linha e nova linha final. O que o editorconfig não
+# expressa (quebra e alinhamento de código Java) fica no perfil do formatador, em
+# config/formatter/eclipse-java.xml, que repete os mesmos valores de indentação e de largura.
+#
+# Nada aqui é preferência de editor: toda regra é do projeto, e ninguém a contorna.
+
 root = true
 
+# Todo arquivo de texto
 [*]
 charset = utf-8
 end_of_line = lf
@@ -7,14 +17,60 @@ insert_final_newline = true
 trim_trailing_whitespace = true
 indent_style = space
 indent_size = 4
+tab_width = 4
+max_line_length = 100
 
+# Java: as propriedades ij_* são lidas pelo IntelliJ e repetem o perfil do formatador do
+# Eclipse. Os dois editores produzem o mesmo código.
+[*.java]
+ij_continuation_indent_size = 8
+ij_visual_guides = 100
+ij_wrap_on_typing = false
+ij_java_use_single_class_imports = true
+ij_java_class_count_to_use_import_on_demand = 999
+ij_java_names_count_to_use_import_on_demand = 999
+ij_java_imports_layout = *, |, javax.**, java.**, |, $*
+ij_java_keep_blank_lines_in_code = 1
+ij_java_keep_blank_lines_in_declarations = 1
+ij_java_keep_blank_lines_before_right_brace = 0
+ij_java_blank_lines_around_class = 1
+ij_java_blank_lines_around_method = 1
+ij_java_blank_lines_before_imports = 1
+ij_java_blank_lines_after_imports = 1
+ij_java_blank_lines_after_package = 1
+
+# Arquivos estruturados: dois espaços
 [*.{yml,yaml,json,xml}]
 indent_size = 2
 
-[*.md]
-# Markdown usa dois espaços no fim da linha como quebra forçada, e listas
-# numeradas alinham a continuação ao marcador — não se impõe indentação aqui.
+# O .ecrc é JSON, mas o nome não casa com a extensão
+[.ecrc]
+indent_size = 2
+
+# O perfil do formatador tem uma linha por ajuste, e a largura de cada uma não é decisão nossa
+[config/formatter/*.xml]
+max_line_length = off
+
+# Gerado pelo Gradle: o conteúdo não se edita à mão
+[gradle.lockfile]
+max_line_length = off
+
+# Arte de texto do banner: o alinhamento é o desenho, e não indentação
+[src/main/resources/banner.txt]
+indent_style = unset
+indent_size = unset
+max_line_length = off
 trim_trailing_whitespace = false
 
+# Markdown: dois espaços no fim da linha são quebra forçada, a continuação de lista numerada se
+# alinha ao marcador, e tabelas, links e blocos de código não seguem múltiplos de 4 nem cabem
+# em 100 colunas. Não há indentação a impor.
+[*.md]
+indent_style = unset
+indent_size = unset
+trim_trailing_whitespace = false
+max_line_length = off
+
+# Scripts do Windows exigem CRLF
 [*.bat]
 end_of_line = crlf

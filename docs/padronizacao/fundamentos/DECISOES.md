@@ -133,6 +133,10 @@ Detalhe em [`BUILD.md`](../qualidade/BUILD.md).
 | `-Xlint:all -Werror` e `-Xdoclint:missing` em produção | só o `-Xlint` padrão | warning é sinal; doc ausente é erro |
 | Versão por fonte única, sem hash de commit | `buildInfo()` com hash | não há pipeline de release; custo maior que benefício |
 | `.editorconfig` e testes de arquitetura, sem plugin de formatação ou análise | Spotless, Checkstyle, PMD, JaCoCo | baixam artefatos: dependência nova |
+| Perfil do formatador Java versionado (`config/formatter/eclipse-java.xml`) e `.vscode/settings.json` que o aplica | deixar o padrão da extensão do editor decidir | sem o perfil, a quebra de linha do Java muda conforme a ferramenta de cada pessoa |
+| Largura de **100 colunas** para código e comentário | 80 ou 120 | cabe a assinatura genérica do `Resultado` sem quebrar, e é estreito o bastante para revisão lado a lado |
+| Verificação de **indentação ligada** no `editorconfig-checker`, com exceções declaradas no `.editorconfig` | manter a indentação desligada | desligada, o `.editorconfig` declararia a regra e só o editor a aplicaria |
+| Formatação do código aplicada a **todo** o Java, o legado inclusive | formatar só o código novo | sem uma exceção para o que será removido, a árvore inteira segue uma regra só |
 | `--scan` proibido | build scans | envia dados de build a terceiro |
 
 ## CI/CD

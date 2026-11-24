@@ -414,15 +414,36 @@ build no mesmo lugar do resto da padronização.
 
 ## 9. Formatação e Análise Estática
 
-**Formatação não se discute em review — mas aqui não há ferramenta que a
-imponha.** O que é possível **sem dependência nova**:
+**Formatação não se discute em review, e nada dela fica por conta do que o
+editor decide sozinho.** Como não há plugin de formatação no build, a regra vive
+em dois arquivos versionados e é conferida por uma terceira ferramenta, tudo
+**sem dependência nova**:
 
-- **`.editorconfig` versionado**: `indent_style = space`, `indent_size = 4`,
-  `charset = utf-8`, `end_of_line = lf`, `insert_final_newline = true`. O
-  legado mistura tabulação (`ConsumerTestApplication`) e 4 espaços — o
-  `.editorconfig` fixa uma decisão que as IDEs respeitam.
-- **Lacuna declarada:** nada **verifica** a formatação no build. É uma
-  limitação reconhecida, não uma omissão silenciosa.
+- **`.editorconfig`** é a fonte da formatação de texto de **todo** arquivo:
+  `charset = utf-8`, `end_of_line = lf`, `insert_final_newline`,
+  `trim_trailing_whitespace`, `indent_style = space`, `indent_size = 4` (2 para
+  yml, yaml, json e xml), `tab_width = 4` e **`max_line_length = 100`**. As
+  exceções são declaradas e têm motivo: Markdown (dois espaços no fim da linha
+  são quebra forçada, e tabelas e blocos de código não seguem múltiplos de 4), o
+  banner, o `gradle.lockfile` (gerado) e o perfil do formatador. O arquivo traz
+  também as propriedades `ij_*`, que o IntelliJ lê e que repetem o perfil abaixo.
+- **`config/formatter/eclipse-java.xml`** é a fonte da formatação do **código
+  Java**, o que o `.editorconfig` não expressa: quebra de linha, continuação de 8
+  espaços, Javadoc com tags alinhadas, linhas em branco, chaves e uma instrução
+  por linha. É o perfil do formatador do Eclipse, o motor da extensão
+  `redhat.java` do VS Code, e o `.vscode/settings.json` faz a extensão usá-lo, em
+  vez do padrão dela, e organizar os imports em ordem fixa (os demais, `javax`,
+  `java` e os estáticos). Um id de ajuste errado é **ignorado em silêncio** pelo
+  Eclipse, então todo id do perfil foi conferido contra o formatador, e o perfil
+  é **idempotente**: formatar um arquivo já formatado não o altera.
+- **`editorconfig-checker` confere o `.editorconfig` no CI e no pre-commit**,
+  com **todas** as verificações ligadas, a indentação inclusive: largura de
+  linha, indentação, espaço no fim da linha, fim de arquivo e quebra de linha.
+- **Lacuna declarada:** o CI **não** confere o que só o perfil expressa, como a
+  quebra de linha do Java, porque isso exigiria baixar o formatador. Quem usa o
+  VS Code com as extensões recomendadas recebe isso pronto ao salvar; quem usa
+  outro editor aplica o perfil ou o espelho `ij_*`. É uma limitação reconhecida,
+  não uma omissão silenciosa, e a revisão cobre o que sobra.
 
 **Por que não Checkstyle, PMD, Spotless ou JaCoCo**: o `checkstyle`, o `pmd`
 e o `jacoco` **acompanham o Gradle** como plugins nativos, mas **baixam** as

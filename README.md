@@ -29,13 +29,17 @@ basta clicar [aqui](https://github.dev/alelo-dev/consumer-pat) para acessar.
 
 ## Executando
 Ambiente Linux/macOS:
+
 ```bash
 ./gradlew bootRun
 ```
+
 Ambiente Windows:
+
 ```cmd
 gradlew bootRun
 ```
+
 ## Documentação da API (Swagger)
 
 * URL: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)

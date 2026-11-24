@@ -31,9 +31,11 @@ antes de otimização, timeouts e limites e compressão.
 **O ponto de partida do legado** (que este documento existe para impedir
 que se repita): `GET /consumer/consumerList` executa `select * from Consumer`
 e devolve **~50.000 consumidores de uma vez**, todos os campos, incluindo
-telefones, endereço e saldos; as três buscas por cartão fazem varredura de
-tabela; e o fluxo ler → somar → salvar mantém a transação aberta sem
-controle algum.
+telefones, endereço e saldos — **medido em ~1,1 s e 23 MB numa só resposta**
+([seção 8](#linha-de-base-do-legado--medida)); as três buscas por cartão fazem
+varredura de tabela, mas **medidas em 0,2 ms** com 50.000 linhas no H2, então o
+custo está na listagem e não na busca; e o fluxo ler → somar → salvar mantém a
+transação aberta sem controle algum.
 
 ---
 
@@ -247,7 +249,11 @@ class ConsumidorEntidade { /* ... */ }
   `where FOOD_CARD_NUMBER = ?` (e `FUEL_`, `DRUGSTORE_`) **sem índice
   algum** — três varreduras de tabela por `setBalance`. O número do cartão
   é consultado em todo débito e todo crédito: `unique` + índice nascem
-  junto da consulta.
+  junto da consulta. **A medição do legado mostra o tamanho real do ganho:**
+  com 50.000 consumidores no H2 em memória a varredura custa ~0,2 ms (o plano
+  confirma `tableScan`), então o índice **não** é o que resolve a lentidão
+  deste projeto; ele se justifica pela integridade (`unique`), pela trava de
+  uma linha só e pelo dia em que o volume ou o banco forem outros.
 - **O `unique` cumpre dois papéis.** Garante a integridade (rede de
   segurança da porta 1 de [`ERROS.md`](ERROS.md#3-proibição-de-captura-genérica--e-as-duas-portas-de-conversão))
   **e** é o índice que o `@Lock(PESSIMISTIC_WRITE)` usa para travar
@@ -271,7 +277,9 @@ class ConsumidorEntidade { /* ... */ }
 **Por quê:** a diferença entre `WHERE numero = ?` com e sem índice é
 varredura de tabela inteira — de milhares de linhas contra uma. É o caso
 mais frequente de "ficou lento do nada": o volume cresceu, a consulta
-continuou a mesma.
+continuou a mesma. Mas a escala conta: num banco em memória e com dezenas de
+milhares de linhas, a varredura ainda é barata, e quem escolhe o que otimizar
+primeiro é a medição ([seção 8](#8-medir-antes-de-otimizar)), não a regra.
 
 ---
 
@@ -390,6 +398,33 @@ código.** Com a aplicação legada ainda intacta, meça `GET
 /consumer/consumerList` contra uma base de ~50.000 consumidores — é a linha
 de base de todo o PR. Depois da refatoração, esse número não pode ser
 reconstruído.
+
+### Linha de base do legado — medida
+
+Medida antes de qualquer mudança no código de produção, com 50.000
+consumidores gerados em código (`GeradorDeConsumidores`, só em `src/test`), em
+JDK 17, 12 CPUs, H2 em memória e `MockMvc`, **mediana de 10 chamadas depois de
+3 de aquecimento**, em três execuções com JVM nova:
+
+| Caminho | Resultado | O que significa |
+|---|---|---|
+| `GET /consumer/consumerList` | **1130 a 1145 ms**; resposta de **23 MB** | é o gargalo: devolve a tabela inteira, com todos os campos |
+| Busca por cartão (alimentação, combustível, farmácia) | 0,18 a 0,33 ms, igual no meio e no fim | varredura de tabela confirmada pelo plano, mas barata neste volume |
+| `GET /consumer/buy` | 5 a 7 ms | a compra inteira, com três buscas, atualização e extrato |
+
+Estes números são a referência a comparar depois da refatoração. **Vale o
+relativo, não o absoluto**: o H2 em memória não tem latência de rede nem de
+disco, e a máquina de medição não é a de produção. Para repetir:
+
+```bash
+_JAVA_OPTIONS=-Xmx2g MEDICAO=1 ./gradlew test --tests '*LinhaDeBaseDoLegadoTeste'
+```
+
+O relatório sai em `build/medicao/linha-de-base-do-legado.txt`. O `-Xmx2g` é
+necessário porque o JVM de teste do Gradle tem 512 MB por padrão, e a medição
+(que carrega a base inteira e respostas de 23 MB) não cabe nele. A variável
+`_JAVA_OPTIONS` é usada porque tem precedência sobre o `-Xmx` que o próprio
+Gradle passa ao worker.
 
 **Regras:**
 

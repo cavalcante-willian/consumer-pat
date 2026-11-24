@@ -400,7 +400,7 @@ CPT-<CATEGORIA>-<ÁREA>-<SEQUENCIAL>
 ```java
 // CORRETO — código como constante no próprio tipo; vira o `type` do corpo de erro:
 // "urn:consumer-pat:erro:CPT-REG-CRT-001"
-public record ErroSaldoInsuficiente(String numeroMascarado, BigDecimal saldo, BigDecimal cobrado)
+public record ErroSaldoInsuficiente(Dinheiro saldo, Dinheiro valor)
         implements ErroRegraDeNegocio {
     public static final String CODIGO = "CPT-REG-CRT-001";
     @Override public String codigo() { return CODIGO; }

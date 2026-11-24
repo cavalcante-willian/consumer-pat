@@ -62,24 +62,25 @@ um contrato de posse de recurso, um caso de borda.
 ```java
 // PROIBIDO — só repete o nome do método
 /** Debita o cartão. */
-Resultado<Cartao, ErroDominio> debitar(BigDecimal valorCobrado);
+Resultado<Cartao, ErroDominio> debitar(Dinheiro valor);
 
 // CORRETO — carrega o contrato que o nome não expressa
 /**
- * Debita {@code valorCobrado} do saldo e devolve o cartão com o novo saldo,
+ * Debita {@code valor} do saldo e devolve o cartão com o novo saldo,
  * sem alterar esta instância (o cartão é imutável).
  *
  * <p>O valor recebido já deve ter o ajuste do tipo de cartão aplicado
  * (ver {@link TipoCartao#valorCobrado(Dinheiro)}) — este método não
- * recalcula desconto nem acréscimo, apenas verifica o saldo.
+ * recalcula desconto nem acréscimo, apenas verifica o valor e o saldo.
  *
- * @param valorCobrado valor final a debitar; positivo, validado na borda
- *                     (ver {@code VALIDACAO.md})
- * @return o cartão com o saldo reduzido, ou falha
- *         {@link ErroSaldoInsuficiente} quando {@code valorCobrado} excede
- *         o saldo — saldo negativo nunca é permitido
+ * @param valor valor final a debitar; precisa ser maior que zero e não
+ *              passar do saldo
+ * @return o cartão com o saldo reduzido, ou falha:
+ *         {@link ErroValorNaoPositivo} para zero ou negativo, e
+ *         {@link ErroSaldoInsuficiente} quando {@code valor} excede o
+ *         saldo — saldo negativo nunca é permitido
  */
-Resultado<Cartao, ErroDominio> debitar(BigDecimal valorCobrado);
+Resultado<Cartao, ErroDominio> debitar(Dinheiro valor);
 ```
 
 ---
@@ -310,15 +311,14 @@ public interface ErroDominio {
 public record ErroCartaoNaoEncontrado(String numeroMascarado, TipoCartao tipo) implements ErroNaoEncontrado { /* ... */ }
 
 /**
- * O saldo do cartão não cobre o valor cobrado. O chamador deve informar o
- * saldo atual ao usuário, não tentar de novo — repetir a compra sem novo
- * crédito falha da mesma forma.
+ * O saldo do cartão não cobre o valor cobrado. Repetir a compra sem novo
+ * crédito falha da mesma forma. A mensagem não repete o saldo nem o valor:
+ * eles vão só para o log.
  *
- * @param numero  número do cartão
- * @param saldo   saldo no momento da tentativa
- * @param cobrado valor que não coube no saldo
+ * @param saldo saldo no momento da tentativa
+ * @param valor valor que não coube no saldo
  */
-public record ErroSaldoInsuficiente(String numeroMascarado, BigDecimal saldo, BigDecimal cobrado) implements ErroRegraDeNegocio { /* ... */ }
+public record ErroSaldoInsuficiente(Dinheiro saldo, Dinheiro valor) implements ErroRegraDeNegocio { /* ... */ }
 ```
 
 > Em `record`, os componentes são documentados com `@param` no Javadoc do

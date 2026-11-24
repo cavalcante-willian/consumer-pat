@@ -719,32 +719,36 @@ public void comprarErrado(MensagemRegistrarCompra m) {
 
 ```java
 // CORRETO — o ÚNICO condicional do método é um guard no topo; depois, linha reta
-// (valor positivo é pré-condição de entrada: validação na borda, nível 10 — não este método)
-public Resultado<Cartao, ErroDominio> debitar(BigDecimal valorCobrado) {
+// (valor positivo já foi exigido antes, por DinheiroPositivo — não é este método que decide)
+public Resultado<Cartao, ErroDominio> debitar(Dinheiro valorCobrado) {
     if (saldo.compareTo(valorCobrado) < 0)
-        return new Falha<>(new ErroSaldoInsuficiente(numero, saldo, valorCobrado));
+        return new Falha<>(new ErroSaldoInsuficiente(saldo, valorCobrado));
 
     // fluxo principal: sem aninhamento, sem distração
-    return new Sucesso<>(comSaldo(saldo.subtract(valorCobrado)));
+    return new Sucesso<>(comSaldo(saldo.menos(valorCobrado)));
 }
 
 // ERRADO — lógica principal aninhada dentro de ifs; o leitor precisa segurar
 // 4 caminhos na cabeça antes de entender a linha que realmente importa
-public Resultado<Cartao, ErroDominio> debitarErrado(BigDecimal valorCobrado) {
+public Resultado<Cartao, ErroDominio> debitarErrado(Dinheiro valorCobrado) {
     if (valorCobrado != null) {
-        if (valorCobrado.signum() > 0) {
+        if (valorCobrado.compareTo(Dinheiro.ZERO) > 0) {
             if (saldo.compareTo(valorCobrado) >= 0) {
-                return new Sucesso<>(comSaldo(saldo.subtract(valorCobrado)));
+                return new Sucesso<>(comSaldo(saldo.menos(valorCobrado)));
             } else {
-                return new Falha<>(new ErroSaldoInsuficiente(numero, saldo, valorCobrado));
+                return new Falha<>(new ErroSaldoInsuficiente(saldo, valorCobrado));
             }
         } else {
-            return new Falha<>(new ErroValorInvalido(valorCobrado));
+            return new Falha<>(new ErroValorNaoPositivo());
         }
     } else {
-        return new Falha<>(new ErroValorInvalido(null));
+        return new Falha<>(new ErroValorNaoPositivo());
     }
 }
+
+// NO CÓDIGO REAL — Debitavel.debitar resolve o mesmo caso sem nenhum `if`: o valor passa por
+// DinheiroPositivo.exigir (nível 4) e o saldo é um Optional filtrado convertido em erro por
+// AusenciaComoErro. O guard acima é o resíduo que sobraria sem essa conversão.
 ```
 
 ---

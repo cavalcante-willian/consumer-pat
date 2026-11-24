@@ -133,7 +133,10 @@ dominio/                                   # zero Spring, zero JPA, zero Lombok 
 │   ├── Contato.java                       # tipo de valor: celular, residencial, telefone, e-mail
 │   └── Endereco.java                      # tipo de valor: rua, número, cidade, país, CEP
 ├── cartao/
-│   ├── Cartao.java                        # saldo e regra de débito/crédito — record imutável
+│   ├── Cartao.java                        # número, tipo e saldo — record imutável; só guarda o dado e declara os papéis
+│   ├── ComSaldo.java                      # operação-base: saldo() e comSaldo(novo) — o cartão é imutável
+│   ├── Debitavel.java                     # papel: debitar — recusa valor não positivo e saldo insuficiente
+│   ├── Creditavel.java                    # papel: creditar — recusa valor não positivo
 │   ├── NumeroDeCartao.java                # tipo de valor: só dígitos (13–19), toString() mascarado — qualidade/BANCO.md §11
 │   ├── NumeroDeCartaoDeTexto.java         # ler o número de texto vindo de fora: forma canônica, sem lançar
 │   ├── Mascaravel.java                    # papel: mascarado() — os 4 últimos dígitos
@@ -144,7 +147,8 @@ dominio/                                   # zero Spring, zero JPA, zero Lombok 
 │   ├── ComAjusteDoValor.java              # operação-base do papel Cobravel
 │   └── ComCodigoDeEstabelecimento.java    # papel: o código de estabelecimento do tipo
 ├── dinheiro/
-│   └── Dinheiro.java                      # record com BigDecimal, escala fixa de 6 casas — codigo/VALORES.md §6
+│   ├── Dinheiro.java                      # record com BigDecimal, escala fixa de 6 casas — codigo/VALORES.md §6
+│   └── DinheiroPositivo.java              # exigir que a quantia seja maior que zero, sem lançar
 ├── extrato/
 │   └── Extrato.java                       # registro de uma compra efetivada
 ├── pagina/
@@ -171,7 +175,8 @@ dominio/                                   # zero Spring, zero JPA, zero Lombok 
 │   │   └── ErroVersaoDivergente.java
 │   └── validacao/
 │       ├── ErroValidacao.java
-│       └── ErroTipoEstabelecimentoInvalido.java
+│       ├── ErroTipoEstabelecimentoInvalido.java
+│       └── ErroValorNaoPositivo.java
 ├── log/                                   # vocabulário de log em português — sem tipo de biblioteca de log
 │   ├── SaidaDeLogPorta.java               # depuracao/informacao/aviso/erro/critico — runtime/OBSERVABILIDADE.md §1
 │   └── CampoDeLog.java                    # nome + valor; o dado separado do evento
@@ -449,7 +454,7 @@ que este princípio acrescenta é fechar a **brecha dos tipos aninhados**:
 // CORRETO
 dominio/cartao/Cartao.java                 → public record Cartao
 dominio/cartao/TipoCartao.java             → public enum TipoCartao
-dominio/erros/ErroSaldoInsuficiente.java   → public record ErroSaldoInsuficiente
+dominio/erros/regradenegocio/ErroSaldoInsuficiente.java → public record ErroSaldoInsuficiente
 
 // ERRADO — vários tipos "públicos" empilhados como aninhados
 dominio/erros/Erros.java                   → public final class Erros {
@@ -566,7 +571,7 @@ Por isso a regra é **dupla**:
 dominio/
   cartao/       Cartao.java, TipoCartao.java
   consumidor/   Consumidor.java, Contato.java, Endereco.java
-  erros/        ErroDominio.java, ErroSaldoInsuficiente.java
+  erros/        ErroDominio.java, regradenegocio/ErroSaldoInsuficiente.java
   portas/       CartaoPorta.java, ConsumidorPorta.java
 
 // ERRADO — organizado por tipo técnico (anátema) — é o que o legado faz
@@ -613,7 +618,7 @@ revisores não.
 // Arquivo: src/main/java/br/com/alelo/consumer/consumerpat/dominio/cartao/Cartao.java
 package br.com.alelo.consumer.consumerpat.dominio.cartao;
 
-public record Cartao(Long id, TipoCartao tipo, String numero, BigDecimal saldo) { /* ... */ }
+public record Cartao(NumeroDeCartao numero, TipoCartao tipo, Dinheiro saldo) { /* ... */ }
 ```
 
 Nomes de pacote: **minúsculas, sem acento, sem cedilha, sem sublinhado**

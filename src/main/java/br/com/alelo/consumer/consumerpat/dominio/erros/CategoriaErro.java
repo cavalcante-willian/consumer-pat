@@ -11,7 +11,10 @@ package br.com.alelo.consumer.consumerpat.dominio.erros;
 public enum CategoriaErro {
 
     /** A entrada tem forma inválida: não é um valor do tipo esperado. */
-    VALIDACAO(400);
+    VALIDACAO(400),
+
+    /** A entrada é válida, mas uma regra de negócio a recusa diante do estado atual. */
+    REGRA_DE_NEGOCIO(422);
 
     private final int statusHttp;
 

@@ -433,7 +433,7 @@ public final class AusenciaComoErro {
 ```java
 // CORRETO — propagação explícita, linha reta: cada etapa só roda se a anterior teve sucesso
 public Resultado<DtoComprovante, ErroDominio> registrar(DtoCompra compra) {
-    return TipoCartao.doCodigoDeEstabelecimento(compra.tipoEstabelecimento())
+    return TipoCartaoDoEstabelecimento.converter(compra.tipoEstabelecimento())
         .encadear(tipo -> cartaoPorta.buscarPorNumeroETipoParaAtualizacao(compra.numeroCartao(), tipo)
             .encadear(cartao -> cartao.debitar(tipo.valorCobrado(compra.valor())))
             .mapear(cartaoDebitado -> concluir(cartaoDebitado, compra)));

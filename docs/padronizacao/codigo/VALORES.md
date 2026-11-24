@@ -510,26 +510,40 @@ pela fração direto; só a apresentação multiplica por 100.
 ("desconto de 10%", "acréscimo de 35%"):
 
 ```java
-// dominio/cartao/TipoCartao.java
-public enum TipoCartao {
+// dominio/cartao/TipoCartao.java — o enum guarda o dado e declara os papéis
+public enum TipoCartao implements Cobravel, ComCodigoDeEstabelecimento {
     ALIMENTACAO(1, "-0.10"),    // desconto de 10%
     FARMACIA(2, "0.00"),        // sem ajuste
     COMBUSTIVEL(3, "0.35");     // acréscimo de 35%
 
-    private final int codigoEstabelecimento;
+    private final int codigoDeEstabelecimento;
     private final BigDecimal ajusteDoValor;      // fração, com sinal
 
-    TipoCartao(int codigoEstabelecimento, String ajusteDoValor) {
-        this.codigoEstabelecimento = codigoEstabelecimento;
+    TipoCartao(int codigoDeEstabelecimento, String ajusteDoValor) {
+        this.codigoDeEstabelecimento = codigoDeEstabelecimento;
         this.ajusteDoValor = new BigDecimal(ajusteDoValor);
     }
 
+    @Override public int codigoDeEstabelecimento() { return codigoDeEstabelecimento; }
+    @Override public BigDecimal ajusteDoValor() { return ajusteDoValor; }
+}
+
+// dominio/cartao/Cobravel.java — o cálculo, em arquivo próprio, sobre ComAjusteDoValor
+public interface Cobravel extends ComAjusteDoValor {
     /** valor × (1 + ajuste): 33.33 no cartão de alimentação → 29.997000, sem arredondar a fração. */
-    public Dinheiro valorCobrado(Dinheiro valorInformado) {
-        return valorInformado.vezes(BigDecimal.ONE.add(ajusteDoValor));
+    default Dinheiro valorCobrado(Dinheiro valorInformado) {
+        return valorInformado.vezes(BigDecimal.ONE.add(ajusteDoValor()));
     }
 }
+
+// dominio/cartao/TipoCartaoDoEstabelecimento.java — a leitura do código vindo de fora
+// TipoCartaoDoEstabelecimento.converter(99) → Falha(ErroTipoEstabelecimentoInvalido)
 ```
+
+O enum só guarda o dado e os dois acessores triviais; o cálculo e a leitura do
+código externo moram cada um em seu arquivo (uma peça por arquivo). A leitura
+transforma o código que não existe em erro, em vez de um `else` que cairia no
+combustível, como no legado.
 
 O legado fazia `value - (value/100)*10` em `double`: **divide antes de
 multiplicar**, em ponto flutuante — duas fontes de erro numa linha.

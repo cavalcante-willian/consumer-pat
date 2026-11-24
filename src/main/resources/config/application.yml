@@ -23,6 +23,38 @@ spring:
     properties:
       # Instantes gravados e lidos em UTC, qualquer que seja o fuso da máquina.
       hibernate.jdbc.time_zone: UTC
+    # A sessão do Hibernate fecha ao fim da transação do caso de uso, e não no fim da resposta: a
+    # fronteira de tipos passa a ser também a fronteira de transação.
+    open-in-view: false
+  # Mensagens de validação sempre em português, qualquer que seja o Accept-Language do cliente.
+  web:
+    locale: pt_BR
+    locale-resolver: fixed
+    resources:
+      # Sem isto, uma rota inexistente cai no tratador de arquivos estáticos, e não no 404
+      # padronizado.
+      add-mappings: false
+  mvc:
+    # Uma rota inexistente vira NoHandlerFoundException, que a API traduz para o 404 padronizado.
+    throw-exception-if-no-handler-found: true
+  # Mesma configuração de JSON em todos os endpoints, definida uma vez e nunca por controller.
+  jackson:
+    time-zone: UTC
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+      order-map-entries-by-keys: true
+    generator:
+      write-bigdecimal-as-plain: true
+    deserialization:
+      # Um campo desconhecido na entrada é recusado, e não ignorado em silêncio.
+      fail-on-unknown-properties: true
   h2:
     console.enabled: true
     console.path: /h2-console
+# Nada do que o framework sabe sobre uma falha vai ao corpo da resposta: a mensagem é da API.
+server:
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never

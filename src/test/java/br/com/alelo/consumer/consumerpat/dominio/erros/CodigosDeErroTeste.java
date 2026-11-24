@@ -1,5 +1,6 @@
 package br.com.alelo.consumer.consumerpat.dominio.erros;
 
+import br.com.alelo.consumer.consumerpat.dominio.erros.naoencontrado.ErroNaoEncontrado;
 import br.com.alelo.consumer.consumerpat.dominio.erros.regradenegocio.ErroRegraDeNegocio;
 import br.com.alelo.consumer.consumerpat.dominio.erros.validacao.ErroValidacao;
 import org.junit.jupiter.api.Test;
@@ -18,8 +19,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class CodigosDeErroTeste {
 
-    private static final List<Class<?>> CATEGORIAS = List.of(ErroRegraDeNegocio.class,
-            ErroValidacao.class);
+    private static final List<Class<?>> CATEGORIAS = List.of(ErroNaoEncontrado.class,
+            ErroRegraDeNegocio.class, ErroValidacao.class);
 
     private static final Pattern FORMATO = Pattern.compile("CPT-[A-Z]{3}-[A-Z]{3}-\\d{3}");
 

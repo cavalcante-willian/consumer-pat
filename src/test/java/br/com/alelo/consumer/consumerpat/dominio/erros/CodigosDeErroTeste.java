@@ -1,9 +1,9 @@
 package br.com.alelo.consumer.consumerpat.dominio.erros;
 
 import br.com.alelo.consumer.consumerpat.dominio.erros.validacao.ErroValidacao;
-import br.com.alelo.consumer.consumerpat.dominio.erros.validacao.ErroValorMonetarioInvalido;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -56,10 +56,28 @@ class CodigosDeErroTeste {
     @Test
     void deve_declarar_o_codigo_da_variante_na_constante_quando_consultar_o_erro() {
         // Agir
-        var codigosDasInstancias = List.of(new ErroValorMonetarioInvalido().codigo());
+        var codigosDasInstancias = variantes().stream().map(CodigosDeErroTeste::instanciar)
+                .map(ErroDominio::codigo).toList();
         var codigosDasConstantes = variantes().stream().map(CodigosDeErroTeste::codigoDe).toList();
 
         // Verificar
         assertThat(codigosDasInstancias).containsExactlyElementsOf(codigosDasConstantes);
+    }
+
+    /**
+     * Cria a variante com o valor padrão em cada componente (zero ou nulo): o código não depende
+     * dos dados do erro, então o teste não precisa saber como cada variante se constrói, e uma
+     * variante nova entra na verificação sem editar esta lista.
+     */
+    private static ErroDominio instanciar(Class<?> variante) {
+        try {
+            var construtor = variante.getDeclaredConstructors()[0];
+            var padroes = Arrays.stream(construtor.getParameterTypes())
+                    .map(tipo -> Array.get(Array.newInstance(tipo, 1), 0)).toArray();
+            return (ErroDominio) construtor.newInstance(padroes);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(
+                    "Não foi possível criar a variante " + variante.getSimpleName(), e);
+        }
     }
 }

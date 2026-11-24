@@ -274,12 +274,7 @@ infraestrutura/                            # implementa as portas de dominio; co
 │   └── SaudeDoBancoAdaptador.java         # Connection.isValid(timeout) no DataSource — sem expor internals
 └── persistencia/                          # organizada por agregado (conceito), não por tipo técnico
     ├── ErroDeTravaNaoDescartaConexao.java # ligada ao pool: estourar a espera por trava não fecha a conexão (qualidade/PERFORMANCE.md §9)
-    ├── consumidor/
-    │   ├── ConsumidorEntidade.java        # @Entity — package-private: ninguém fora daqui a vê
-    │   ├── ConsumidorRepositorioJpa.java  # Spring Data — package-private
-    │   ├── ConsumidorMapeador.java        # entidade ⇄ domínio, manual (sem MapStruct)
-    │   └── ConsumidorAdaptador.java       # único tipo público: implementa ConsumidorPorta
-    └── cartao/                            # o cartão e o seu extrato: a FK exige que as entidades se vejam
+    └── consumidor/                        # o agregado: o consumidor, os cartões e o extrato — as FKs exigem que as entidades se vejam
         ├── CartaoEntidade.java            # unique(numero), @Version, @Check(saldo >= 0), auditoria
         ├── ExtratoEntidade.java           # imutável: sem versão e sem data de atualização
         ├── CartaoRepositorioJpa.java      # consulta com @Lock(PESSIMISTIC_WRITE); só JPQL
@@ -293,14 +288,18 @@ infraestrutura/                            # implementa as portas de dominio; co
         ├── GravacaoDeCartaoNoBanco.java   # papel: atualiza o saldo de um cartão que existe
         ├── RegistroDeExtratoNoBanco.java  # papel: só insere
         ├── CartaoAdaptador.java           # único tipo público do cartão: implementa CartaoPorta
-        └── ExtratoAdaptador.java          # único tipo público do extrato: implementa ExtratoPorta
+        ├── ExtratoAdaptador.java          # único tipo público do extrato: implementa ExtratoPorta
+        ├── ConsumidorEntidade.java        # @Entity — package-private: ninguém fora daqui a vê
+        ├── ConsumidorRepositorioJpa.java  # Spring Data — package-private
+        ├── ConsumidorAdaptador.java       # único tipo público do consumidor: implementa ConsumidorPorta
+        └── …                              # os mapeadores e os papéis do consumidor, um por arquivo
 ```
 
-> **O extrato mora no pacote do cartão**, e não num pacote próprio: a chave
-> estrangeira `fk_extratos_cartoes` exige que `ExtratoEntidade` enxergue
-> `CartaoEntidade`, e as duas são pacote-privadas. O mapeador manual é uma
-> peça por direção (`CartaoDeEntidade`, `AtualizadorDeEntidadeDeCartao`,
-> `EntidadeDeExtrato`), como o resto do projeto.
+> **O pacote é do agregado, e não de uma tabela**: o cartão e o extrato moram
+> junto do consumidor porque as chaves estrangeiras (`fk_cartoes_consumidores` e
+> `fk_extratos_cartoes`) exigem que as entidades se enxerguem, e todas são
+> pacote-privadas. O mapeador manual é uma peça por direção (`CartaoDeEntidade`,
+> `AtualizadorDeEntidadeDeCartao`, `EntidadeDeExtrato`), como o resto do projeto.
 
 ### `…consumerpat.api`
 
@@ -413,9 +412,8 @@ src/test/java/…consumerpat/                # espelha produção, pacote a paco
 │   └── FabricaDeCompras.java
 ├── infraestrutura/
 │   └── persistencia/
-│       ├── cartao/
-│       │   └── CartaoAdaptadorTeste.java  # @DataJpaTest contra H2: trava, unicidade
 │       └── consumidor/
+│           ├── CartaoAdaptadorTeste.java  # @DataJpaTest contra H2: trava, unicidade
 │           ├── ListagemDeConsumidoresTeste.java  # conta comandos SQL da listagem — guarda contra N+1
 │           └── GeradorDeConsumidores.java        # 50 mil registros, só para medir — nunca em src/main
 ├── api/
@@ -760,7 +758,7 @@ public interface CartaoPorta extends BuscadorDeCartaoParaAtualizacao, GravadorDe
 }
 
 // Infraestrutura — implementa o contrato usando Spring Data JPA
-package br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cartao;
+package br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor;
 
 public class CartaoAdaptador implements CartaoPorta {
     private final CartaoRepositorioJpa repositorio;   // package-private: invisível fora daqui
@@ -825,7 +823,7 @@ classe de teste terminados em `Teste`.
 src/test/java/…consumerpat/
   dominio/cartao/CartaoTeste.java
   aplicacao/casosdeuso/cartao/RegistrarCompraCasoTeste.java
-  infraestrutura/persistencia/cartao/CartaoAdaptadorTeste.java
+  infraestrutura/persistencia/consumidor/CartaoAdaptadorTeste.java
   api/cartao/CartaoControllerContratoTeste.java
 ```
 

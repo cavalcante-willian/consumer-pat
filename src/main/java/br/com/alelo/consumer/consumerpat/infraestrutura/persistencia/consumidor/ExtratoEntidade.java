@@ -1,4 +1,4 @@
-package br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cartao;
+package br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;

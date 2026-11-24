@@ -1,4 +1,4 @@
-package br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cartao;
+package br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor;
 
 /**
  * O adaptador da porta do extrato: implementa o registro em cima do banco.

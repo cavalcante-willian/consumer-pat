@@ -14,7 +14,8 @@ Responde a uma pergunta que o domínio se recusa a responder: **como isso é
 gravado**. O domínio diz que um cartão se busca para atualizar e que um extrato só se
 registra; a infraestrutura diz com que tabela, com que restrição e com que trava.
 
-- **`persistencia.cartao`** — o cartão e o seu extrato. A entidade do cartão é a
+- **`persistencia.consumidor`** — o pacote do agregado: por ora o cartão e o seu
+  extrato, e o consumidor chega neste mesmo pacote. A entidade do cartão é a
   **única definição do schema**: o número é texto de dígitos e único
   (`uk_cartoes_numero`), o saldo é `NUMERIC(19,6)`, com a mesma escala do `Dinheiro`,
   e a restrição `saldo >= 0` fica no banco como última linha de defesa, mesmo que uma
@@ -22,8 +23,9 @@ registra; a infraestrutura diz com que tabela, com que restrição e com que tra
   versão de linha, e auditoria automática de `data_criacao` e `data_atualizacao`,
   com o instante do mesmo `Clock` do resto da aplicação. O extrato é imutável: só
   `data_criacao`, sem versão, e a chave estrangeira para o cartão nunca cascateia
-  exclusão. Mora no pacote do cartão porque a FK exige que as duas entidades, ambas
-  pacote-privadas, se vejam.
+  exclusão. Mora no pacote do agregado porque a FK exige que as entidades, todas
+  pacote-privadas, se vejam. O pacote já se chamou `persistencia.cartao`, e foi
+  renomeado quando o consumidor entrou: o cartão pertence a ele.
 - **A busca trava o cartão.** `BuscaDeCartaoNoBanco` lê com
   `@Lock(PESSIMISTIC_WRITE)`, e a trava dura até o fim da transação do caso de uso, de
   modo que dois débitos simultâneos no mesmo cartão se enfileiram em vez de
@@ -56,7 +58,7 @@ infraestrutura
 ├── package-info.java
 └── persistencia
     ├── ErroDeTravaNaoDescartaConexao.java    # estourar a espera por trava não fecha a conexão
-    ├── cartao
+    ├── consumidor
     │   ├── AtualizadorDeEntidadeDeCartao.java    # leva o saldo novo para a linha existente
     │   ├── BuscaDeCartaoNoBanco.java     # papel: busca com trava de escrita
     │   ├── CartaoAdaptador.java          # implementa CartaoPorta

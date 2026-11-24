@@ -226,7 +226,7 @@ tem índice correspondente — e o índice nasce **com a consulta**, no mesmo
 PR, não depois do primeiro relato de lentidão.
 
 ```java
-// infraestrutura/persistencia/cartao/CartaoEntidade.java
+// infraestrutura/persistencia/consumidor/CartaoEntidade.java
 @Entity
 // nomes seguem a convenção de BANCO.md §3: tabela plural, uk_/idx_/fk_
 @Table(

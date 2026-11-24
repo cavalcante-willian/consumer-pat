@@ -1,7 +1,7 @@
 package br.com.alelo.consumer.consumerpat.api.configuracao;
 
-import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cartao.CartaoAdaptador;
-import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cartao.ExtratoAdaptador;
+import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.CartaoAdaptador;
+import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.ExtratoAdaptador;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 

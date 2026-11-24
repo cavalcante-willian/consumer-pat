@@ -309,7 +309,7 @@ Entram junto com a autenticação, na mesma mudança.
 dependência nova**:
 
 ```java
-// infraestrutura/persistencia/cartao/CartaoEntidade.java
+// infraestrutura/persistencia/consumidor/CartaoEntidade.java
 @Entity
 @EntityListeners(AuditingEntityListener.class)
 class CartaoEntidade {

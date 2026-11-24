@@ -2,8 +2,8 @@ package br.com.alelo.consumer.consumerpat.api.configuracao;
 
 import br.com.alelo.consumer.consumerpat.dominio.portas.CartaoPorta;
 import br.com.alelo.consumer.consumerpat.dominio.portas.ExtratoPorta;
-import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cartao.CartaoAdaptador;
-import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cartao.ExtratoAdaptador;
+import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.CartaoAdaptador;
+import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.ExtratoAdaptador;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

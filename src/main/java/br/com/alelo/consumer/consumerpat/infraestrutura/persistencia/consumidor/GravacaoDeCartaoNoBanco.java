@@ -1,4 +1,4 @@
-package br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cartao;
+package br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor;
 
 import br.com.alelo.consumer.consumerpat.dominio.cartao.Cartao;
 import br.com.alelo.consumer.consumerpat.dominio.portas.GravadorDeCartao;

@@ -1,0 +1,10 @@
+{
+  // Extensões de que o projeto depende para o editor seguir as regras do repositório.
+  "recommendations": [
+    "redhat.java",
+    "editorconfig.editorconfig",
+    "vscjava.vscode-gradle",
+    "vscjava.vscode-java-test",
+    "davidanson.vscode-markdownlint"
+  ]
+}

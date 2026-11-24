@@ -1,0 +1,43 @@
+{
+  // Faz a extensão Java (redhat.java) usar o perfil do projeto em vez do padrão dela.
+  // O perfil é a fonte da formatação do código; o .editorconfig cobre o resto do texto.
+  "java.format.enabled": true,
+  "java.format.settings.url": "config/formatter/eclipse-java.xml",
+  "java.format.settings.profile": "consumer-pat",
+  "java.format.comments.enabled": true,
+  "java.format.onType.enabled": false,
+  // Ordem dos imports: os demais, depois javax e java, e por fim os estáticos.
+  "java.completion.importOrder": [
+    "",
+    "javax",
+    "java",
+    "#"
+  ],
+  "java.completion.favoriteStaticMembers": [],
+  // O formato vem do projeto, nunca de uma detecção do editor.
+  "editor.detectIndentation": false,
+  "editor.insertSpaces": true,
+  "editor.tabSize": 4,
+  "files.eol": "\n",
+  "files.encoding": "utf8",
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+  "[java]": {
+    "editor.defaultFormatter": "redhat.java",
+    "editor.formatOnSave": true,
+    "editor.rulers": [
+      {
+        "column": 100,
+        "color": "#fffefaf5"
+      }
+    ],
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
+  },
+  // Markdown mantém os dois espaços no fim da linha, que são quebra forçada
+  "[markdown]": {
+    "files.trimTrailingWhitespace": false,
+    "editor.rulers": []
+  }
+}

@@ -1,6 +1,7 @@
 package br.com.alelo.consumer.consumerpat.dominio.erros;
 
 import br.com.alelo.consumer.consumerpat.dominio.erros.validacao.ErroValidacao;
+import br.com.alelo.consumer.consumerpat.dominio.erros.validacao.ErroValorMonetarioInvalido;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -11,10 +12,8 @@ import java.util.regex.Pattern;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Garante o contrato dos códigos de erro percorrendo a hierarquia: variante
- * nova sem código, com
- * código repetido ou fora do formato quebra o build. Categoria nova entra na
- * lista de categorias.
+ * Garante o contrato dos códigos de erro percorrendo a hierarquia: variante nova sem código, com
+ * código repetido ou fora do formato quebra o build. Categoria nova entra na lista de categorias.
  */
 class CodigosDeErroTeste {
 
@@ -24,8 +23,7 @@ class CodigosDeErroTeste {
 
     private static List<Class<?>> variantes() {
         return CATEGORIAS.stream()
-                .flatMap(categoria -> Arrays.stream(categoria.getPermittedSubclasses()))
-                .toList();
+                .flatMap(categoria -> Arrays.stream(categoria.getPermittedSubclasses())).toList();
     }
 
     private static String codigoDe(Class<?> variante) {
@@ -58,8 +56,7 @@ class CodigosDeErroTeste {
     @Test
     void deve_declarar_o_codigo_da_variante_na_constante_quando_consultar_o_erro() {
         // Agir
-        var codigosDasInstancias = List.of(
-                new br.com.alelo.consumer.consumerpat.dominio.erros.validacao.ErroValorMonetarioInvalido().codigo());
+        var codigosDasInstancias = List.of(new ErroValorMonetarioInvalido().codigo());
         var codigosDasConstantes = variantes().stream().map(CodigosDeErroTeste::codigoDe).toList();
 
         // Verificar

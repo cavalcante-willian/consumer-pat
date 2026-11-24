@@ -6,8 +6,7 @@ package br.com.alelo.consumer.consumerpat.dominio.dinheiro;
 public interface Somavel extends ComQuantia {
 
     /**
-     * Soma exata: as duas quantias têm a mesma escala, então a soma nunca
-     * arredonda.
+     * Soma exata: as duas quantias têm a mesma escala, então a soma nunca arredonda.
      *
      * @param outro a quantia a somar
      * @return a soma, na mesma escala

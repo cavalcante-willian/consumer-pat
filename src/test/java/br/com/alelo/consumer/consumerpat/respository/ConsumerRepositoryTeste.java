@@ -13,8 +13,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Caracteriza o acesso a dados do legado contra um banco real (H2 em memória),
- * sem mock de
+ * Caracteriza o acesso a dados do legado contra um banco real (H2 em memória), sem mock de
  * repositório: o que se afirma é o que o banco de fato devolve e aceita.
  */
 @DataJpaTest
@@ -25,7 +24,8 @@ class ConsumerRepositoryTeste {
     @Autowired
     ConsumerRepository consumidores;
 
-    private Consumer consumidorSalvo(int documento, int cartaoAlimentacao, int cartaoCombustivel, int cartaoFarmacia) {
+    private Consumer consumidorSalvo(int documento, int cartaoAlimentacao, int cartaoCombustivel,
+            int cartaoFarmacia) {
         var consumidor = new Consumer();
         consumidor.setName("Consumidor " + documento);
         consumidor.setDocumentNumber(documento);
@@ -76,20 +76,20 @@ class ConsumerRepositoryTeste {
     void deve_listar_o_consumidor_quando_buscar_todos() {
         var consumidor = consumidorComCartoesExclusivos();
 
-        assertThat(consumidores.getAllConsumersList())
-                .extracting(Consumer::getId)
+        assertThat(consumidores.getAllConsumersList()).extracting(Consumer::getId)
                 .contains(consumidor.getId());
     }
 
     @Test
     @Disabled("Defeito do legado: o número do cartão não tem restrição de unicidade, então dois "
-            + "consumidores podem ter o mesmo cartão e a busca nativa passa a falhar com mais de uma linha. "
-            + "Habilitar no commit que cria a restrição.")
+            + "consumidores podem ter o mesmo cartão e a busca nativa passa a falhar com mais "
+            + "de uma linha. Habilitar no commit que cria a restrição.")
     void deve_recusar_o_segundo_consumidor_quando_o_cartao_de_alimentacao_ja_existe() {
         var primeiro = consumidorComCartoesExclusivos();
 
-        assertThatThrownBy(() -> consumidorSalvo(PROXIMO_NUMERO.incrementAndGet(), primeiro.getFoodCardNumber(),
-                PROXIMO_NUMERO.incrementAndGet(), PROXIMO_NUMERO.incrementAndGet()))
+        assertThatThrownBy(() -> consumidorSalvo(PROXIMO_NUMERO.incrementAndGet(),
+                primeiro.getFoodCardNumber(), PROXIMO_NUMERO.incrementAndGet(),
+                PROXIMO_NUMERO.incrementAndGet()))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
@@ -99,8 +99,9 @@ class ConsumerRepositoryTeste {
     void deve_recusar_o_segundo_consumidor_quando_o_documento_ja_existe() {
         var primeiro = consumidorComCartoesExclusivos();
 
-        assertThatThrownBy(() -> consumidorSalvo(primeiro.getDocumentNumber(), PROXIMO_NUMERO.incrementAndGet(),
-                PROXIMO_NUMERO.incrementAndGet(), PROXIMO_NUMERO.incrementAndGet()))
+        assertThatThrownBy(() -> consumidorSalvo(primeiro.getDocumentNumber(),
+                PROXIMO_NUMERO.incrementAndGet(), PROXIMO_NUMERO.incrementAndGet(),
+                PROXIMO_NUMERO.incrementAndGet()))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 }

@@ -56,7 +56,8 @@ class DinheiroTeste {
         var excessoDeCasas = new BigDecimal("0.0000001");
 
         // Agir e Verificar
-        assertThatThrownBy(() -> new Dinheiro(excessoDeCasas)).isInstanceOf(ArithmeticException.class);
+        assertThatThrownBy(() -> new Dinheiro(excessoDeCasas))
+                .isInstanceOf(ArithmeticException.class);
     }
 
     @Test

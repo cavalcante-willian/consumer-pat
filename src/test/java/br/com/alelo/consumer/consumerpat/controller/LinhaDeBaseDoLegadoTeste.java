@@ -22,19 +22,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 /**
- * Mede o desempenho do legado sobre 50.000 consumidores, para registrar a linha
- * de base antes de
- * qualquer refatoração. Não é teste de regra: nenhum valor de tempo é afirmado,
- * porque o tempo
- * depende da máquina. O resultado vai para
- * {@code build/medicao/linha-de-base-do-legado.txt}.
+ * Mede o desempenho do legado sobre 50.000 consumidores, para registrar a linha de base antes de
+ * qualquer refatoração. Não é teste de regra: nenhum valor de tempo é afirmado, porque o tempo
+ * depende da máquina. O resultado vai para {@code build/medicao/linha-de-base-do-legado.txt}.
  *
  * <p>
  * Fica desligado por padrão, por ser lento. Para rodar:
- * {@code MEDICAO=1 ./gradlew test --tests '*LinhaDeBaseDoLegadoTeste'}. A
- * duração é medida com
- * {@link System#nanoTime()}, que é monotônico, e a mediana é tomada depois de
- * descartar o
+ * {@code MEDICAO=1 ./gradlew test --tests '*LinhaDeBaseDoLegadoTeste'}. A duração é medida com
+ * {@link System#nanoTime()}, que é monotônico, e a mediana é tomada depois de descartar o
  * aquecimento, que paga carregamento de classe e abertura de conexão.
  */
 @SpringBootTest
@@ -61,8 +56,7 @@ class LinhaDeBaseDoLegadoTeste {
     }
 
     /**
-     * Executa a ação {@code AQUECIMENTO} vezes sem medir e {@code MEDICOES} vezes
-     * medindo.
+     * Executa a ação {@code AQUECIMENTO} vezes sem medir e {@code MEDICOES} vezes medindo.
      */
     private static List<Double> medir(Callable<?> acao) throws Exception {
         for (int i = 0; i < AQUECIMENTO; i++) {
@@ -80,18 +74,21 @@ class LinhaDeBaseDoLegadoTeste {
 
     private static String resumo(String rotulo, List<Double> tempos) {
         var mediana = (tempos.get(MEDICOES / 2 - 1) + tempos.get(MEDICOES / 2)) / 2.0;
-        return String.format("%-44s mediana %9.2f ms | mín %9.2f ms | máx %9.2f ms", rotulo, mediana,
-                tempos.get(0), tempos.get(MEDICOES - 1));
+        return String.format("%-44s mediana %9.2f ms | mín %9.2f ms | máx %9.2f ms", rotulo,
+                mediana, tempos.get(0), tempos.get(MEDICOES - 1));
     }
 
     @Test
-    void deve_registrar_a_linha_de_base_do_legado_com_cinquenta_mil_consumidores() throws Exception {
+    void deve_registrar_a_linha_de_base_do_legado_com_cinquenta_mil_consumidores()
+            throws Exception {
         var relatorio = new ArrayList<String>();
         relatorio.add("Linha de base do legado — " + CONSUMIDORES + " consumidores");
-        relatorio.add("JDK " + System.getProperty("java.version") + " | " + Runtime.getRuntime().availableProcessors()
-                + " CPUs | heap máximo " + Runtime.getRuntime().maxMemory() / (1024 * 1024)
+        relatorio.add("JDK " + System.getProperty("java.version") + " | "
+                + Runtime.getRuntime().availableProcessors() + " CPUs | heap máximo "
+                + Runtime.getRuntime().maxMemory() / (1024 * 1024)
                 + " MB | H2 em memória, MockMvc");
-        relatorio.add("Aquecimento: " + AQUECIMENTO + " chamadas descartadas; medições: " + MEDICOES + " por caminho");
+        relatorio.add("Aquecimento: " + AQUECIMENTO + " chamadas descartadas; medições: " + MEDICOES
+                + " por caminho");
         relatorio.add("");
 
         var inicioDaGeracao = System.nanoTime();
@@ -113,21 +110,24 @@ class LinhaDeBaseDoLegadoTeste {
 
         var meio = CONSUMIDORES / 2;
         var fim = CONSUMIDORES - 1;
-        relatorio.add(resumo("busca por cartão de alimentação (meio)",
-                medir(() -> consumidores.findByFoodCardNumber(GeradorDeConsumidores.cartaoDeAlimentacao(BASE, meio)))));
-        relatorio.add(resumo("busca por cartão de alimentação (fim)",
-                medir(() -> consumidores.findByFoodCardNumber(GeradorDeConsumidores.cartaoDeAlimentacao(BASE, fim)))));
-        relatorio.add(resumo("busca por cartão de farmácia (fim)",
-                medir(() -> consumidores.findByDrugstoreNumber(GeradorDeConsumidores.cartaoDeFarmacia(BASE, fim)))));
-        relatorio.add(resumo("GET /consumer/buy (cartão do meio)", medir(() -> mockMvc.perform(get("/consumer/buy")
-                .param("establishmentType", "1")
-                .param("establishmentName", "Estabelecimento")
-                .param("cardNumber", String.valueOf(GeradorDeConsumidores.cartaoDeAlimentacao(BASE, meio)))
-                .param("productDescription", "Produto")
-                .param("value", "1.0")).andReturn())));
+        relatorio.add(resumo("busca por cartão de alimentação (meio)", medir(() -> consumidores
+                .findByFoodCardNumber(GeradorDeConsumidores.cartaoDeAlimentacao(BASE, meio)))));
+        relatorio.add(resumo("busca por cartão de alimentação (fim)", medir(() -> consumidores
+                .findByFoodCardNumber(GeradorDeConsumidores.cartaoDeAlimentacao(BASE, fim)))));
+        relatorio.add(resumo("busca por cartão de farmácia (fim)", medir(() -> consumidores
+                .findByDrugstoreNumber(GeradorDeConsumidores.cartaoDeFarmacia(BASE, fim)))));
+        relatorio.add(resumo("GET /consumer/buy (cartão do meio)",
+                medir(() -> mockMvc
+                        .perform(get("/consumer/buy").param("establishmentType", "1")
+                                .param("establishmentName", "Estabelecimento")
+                                .param("cardNumber",
+                                        String.valueOf(GeradorDeConsumidores
+                                                .cartaoDeAlimentacao(BASE, meio)))
+                                .param("productDescription", "Produto").param("value", "1.0"))
+                        .andReturn())));
 
-        var plano = jdbc.queryForObject(
-                "EXPLAIN SELECT * FROM CONSUMER WHERE FOOD_CARD_NUMBER = ?", String.class, 1);
+        var plano = jdbc.queryForObject("EXPLAIN SELECT * FROM CONSUMER WHERE FOOD_CARD_NUMBER = ?",
+                String.class, 1);
         relatorio.add("");
         relatorio.add("Plano do H2 para a busca por cartão: " + plano.replaceAll("\\s+", " "));
 

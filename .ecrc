@@ -1,7 +1,4 @@
 {
-  "Disable": {
-    "Indentation": true
-  },
   "Exclude": [
     "^\\.gradle/",
     "(^|/)build/",

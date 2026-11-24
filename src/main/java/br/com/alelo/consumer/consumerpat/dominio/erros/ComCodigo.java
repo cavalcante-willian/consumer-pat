@@ -6,12 +6,11 @@ package br.com.alelo.consumer.consumerpat.dominio.erros;
 public interface ComCodigo {
 
     /**
-     * Código estável da variante, no formato
-     * {@code CPT-<CATEGORIA>-<ÁREA>-<SEQUENCIAL>}.
+     * Código estável da variante, no formato {@code CPT-<CATEGORIA>-<ÁREA>-<SEQUENCIAL>}.
      *
      * <p>
-     * Aparece em log, em resposta e em chamado de suporte, então nunca muda e
-     * nunca é reutilizado por outra variante.
+     * Aparece em log, em resposta e em chamado de suporte, então nunca muda e nunca é reutilizado
+     * por outra variante.
      *
      * @return o código desta variante
      */

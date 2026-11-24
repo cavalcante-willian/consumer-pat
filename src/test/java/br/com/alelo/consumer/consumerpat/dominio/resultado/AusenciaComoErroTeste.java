@@ -39,7 +39,8 @@ class AusenciaComoErroTeste {
         var pedidos = new AtomicInteger();
 
         // Agir
-        AusenciaComoErro.converter(Optional.of("achado"), () -> "erro " + pedidos.incrementAndGet());
+        AusenciaComoErro.converter(Optional.of("achado"),
+                () -> "erro " + pedidos.incrementAndGet());
 
         // Verificar
         assertThat(pedidos.get()).isZero();

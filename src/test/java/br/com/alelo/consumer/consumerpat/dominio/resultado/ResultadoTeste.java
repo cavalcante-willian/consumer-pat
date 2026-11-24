@@ -21,6 +21,7 @@ class ResultadoTeste {
         var papeis = Resultado.class.getInterfaces();
 
         // Verificar
-        assertThat(papeis).containsExactlyInAnyOrder(Resolvivel.class, Transformavel.class, Encadeavel.class);
+        assertThat(papeis).containsExactlyInAnyOrder(Resolvivel.class, Transformavel.class,
+                Encadeavel.class);
     }
 }

@@ -6,6 +6,8 @@ import br.com.alelo.consumer.consumerpat.dominio.dinheiro.Dinheiro;
 import br.com.alelo.consumer.consumerpat.fabricas.FabricaDeCartoes;
 import br.com.alelo.consumer.consumerpat.fabricas.RelogioAjustavel;
 import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.ConfiguracaoDeRelogioDeTeste;
+import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.ConsumidorEntidade;
+import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.ConsumidoresDeTeste;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -47,7 +49,7 @@ class SchemaDoCartaoTeste {
         // Agir e Verificar
         assertThatThrownBy(() -> gerenciador.getEntityManager()
                 .createNativeQuery("update cartoes set saldo = -0.000001").executeUpdate())
-                .isInstanceOf(PersistenceException.class);
+                        .isInstanceOf(PersistenceException.class);
     }
 
     @Test
@@ -55,7 +57,7 @@ class SchemaDoCartaoTeste {
         // Agir e Verificar
         assertThatThrownBy(() -> repositorio
                 .saveAndFlush(CartoesDeTeste.linha(gerenciador, TipoCartao.ALIMENTACAO, "-0.01")))
-                .isInstanceOf(DataIntegrityViolationException.class);
+                        .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
@@ -77,8 +79,8 @@ class SchemaDoCartaoTeste {
         // Agir e Verificar
         assertThatThrownBy(() -> repositorio
                 .saveAndFlush(CartoesDeTeste.linha(gerenciador, TipoCartao.FARMACIA, "10.00")))
-                .isInstanceOf(DataIntegrityViolationException.class)
-                .hasMessageContaining("UK_CARTOES_NUMERO");
+                        .isInstanceOf(DataIntegrityViolationException.class)
+                        .hasMessageContaining("UK_CARTOES_NUMERO");
     }
 
     @Test
@@ -133,5 +135,70 @@ class SchemaDoCartaoTeste {
         var relido = gerenciador.find(CartaoEntidade.class, linha.getId());
         assertThat(relido.getDataCriacao()).isEqualTo(criacao);
         assertThat(relido.getDataAtualizacao()).isEqualTo(inicio.plus(Duration.ofMinutes(5)));
+    }
+
+    @Test
+    void deve_recusar_dois_cartoes_do_mesmo_tipo_quando_o_dono_e_o_mesmo() {
+        // Preparar
+        var dono = gerenciador.persistAndFlush(ConsumidoresDeTeste.linha());
+        repositorio.saveAndFlush(
+                CartoesDeTeste.linha(dono, TipoCartao.FARMACIA, "5555000011112222", "10.00"));
+
+        // Agir e Verificar
+        assertThatThrownBy(() -> repositorio.saveAndFlush(
+                CartoesDeTeste.linha(dono, TipoCartao.FARMACIA, "5555000011113333", "10.00")))
+                        .isInstanceOf(DataIntegrityViolationException.class)
+                        .hasMessageContaining("UK_CARTOES_CONSUMIDOR_TIPO");
+    }
+
+    @Test
+    void deve_aceitar_o_mesmo_tipo_quando_os_donos_sao_diferentes() {
+        // Agir
+        var primeiro = repositorio.saveAndFlush(CartoesDeTeste.linha(gerenciador,
+                TipoCartao.FARMACIA, "5555000011112222", "10.00"));
+        var segundo = repositorio.saveAndFlush(CartoesDeTeste.linha(gerenciador,
+                TipoCartao.FARMACIA, "5555000011113333", "10.00"));
+
+        // Verificar
+        assertThat(primeiro.getId()).isNotEqualTo(segundo.getId());
+    }
+
+    @Test
+    void deve_aceitar_um_cartao_de_cada_tipo_quando_o_dono_e_o_mesmo() {
+        // Preparar
+        var dono = gerenciador.persistAndFlush(ConsumidoresDeTeste.linha());
+
+        // Agir
+        var tipos = List.of(TipoCartao.values()).stream()
+                .map(tipo -> repositorio.saveAndFlush(CartoesDeTeste.linha(dono, tipo,
+                        "55550000111122" + tipo.ordinal() + "0", "1.00")))
+                .map(CartaoEntidade::getTipo).toList();
+
+        // Verificar
+        assertThat(tipos).containsExactlyInAnyOrder(TipoCartao.values());
+    }
+
+    @Test
+    void deve_recusar_o_cartao_sem_dono_quando_gravar() {
+        // Preparar
+        ConsumidorEntidade ninguem = null;
+        var semDono = CartoesDeTeste.linha(ninguem, TipoCartao.ALIMENTACAO, "10.00");
+
+        // Agir e Verificar
+        assertThatThrownBy(() -> repositorio.saveAndFlush(semDono))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void deve_recusar_apagar_o_consumidor_quando_ele_tem_cartao() {
+        // Preparar
+        gerenciador.persistAndFlush(
+                CartoesDeTeste.linha(gerenciador, TipoCartao.ALIMENTACAO, "10.00"));
+
+        // Agir e Verificar: a chave estrangeira não cascateia exclusão
+        assertThatThrownBy(() -> gerenciador.getEntityManager()
+                .createNativeQuery("delete from consumidores").executeUpdate())
+                        .isInstanceOf(PersistenceException.class)
+                        .hasStackTraceContaining("FK_CARTOES_CONSUMIDORES");
     }
 }

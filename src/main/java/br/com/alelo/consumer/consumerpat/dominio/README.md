@@ -105,7 +105,9 @@ para dinheiro, e nenhuma regra de negócio devolve `null` para dizer "não achei
   infraestrutura os implementa, e a dependência aponta sempre para o domínio.
   Cada operação é um papel em seu arquivo, e a porta só os compõe: `CartaoPorta`
   junta `BuscadorDeCartaoParaAtualizacao` (devolve o cartão travado até o fim da
-  transação, ou `ErroCartaoNaoEncontrado`) e `GravadorDeCartao` (`salvar`).
+  transação, ou `ErroCartaoNaoEncontrado`) e `GravadorDeCartao` (`salvar`, que
+  atualiza o saldo de um cartão que já existe e lança se ele não existe: criar
+  um cartão exige o consumidor dono).
   `ExtratoPorta` só oferece `registrar`: extrato é registro financeiro, nunca
   atualizado nem apagado, e o que nenhuma interface oferece ninguém chama por
   engano.
@@ -293,3 +295,4 @@ Peças sem teste próprio, cobertas junto de quem as torna observáveis:
 | `#8` | Acrescenta o pacote `cartao` (`TipoCartao`, os papéis `Cobravel`, `ComAjusteDoValor` e `ComCodigoDeEstabelecimento`, `TipoCartaoDoEstabelecimento`, `NumeroDeCartao`, os papéis `Mascaravel` e `ComDigitos`, e `NumeroDeCartaoDeTexto`) e duas variantes de `ErroValidacao`: `ErroTipoEstabelecimentoInvalido` (`CPT-VAL-CRT-001`) e `ErroNumeroDeCartaoInvalido` (`CPT-VAL-CRT-002`). O `CodigosDeErroTeste` passa a instanciar as variantes por reflexão. Nenhum código do legado depende ainda dos tipos novos. |
 | `#11` | Acrescenta o `Cartao` (record imutável de número, tipo e saldo, que não aceita saldo negativo) e os papéis `ComSaldo`, `Debitavel` e `Creditavel`, `DinheiroPositivo`, a categoria `REGRA_DE_NEGOCIO` (422) com `erros.regradenegocio` (`ErroRegraDeNegocio` e `ErroSaldoInsuficiente`, `CPT-REG-CRT-001`) e `ErroValorNaoPositivo` (`CPT-VAL-DIN-002`) em `ErroValidacao`. O `CodigosDeErroTeste` passa a percorrer as duas categorias. Nenhum código do legado depende ainda do cartão. |
 | `#12` | Acrescenta o `Extrato` (compra efetivada, com o valor informado e o cobrado) e o pacote `portas`: `CartaoPorta`, que compõe os papéis `BuscadorDeCartaoParaAtualizacao` e `GravadorDeCartao`, e `ExtratoPorta`, que só registra. Acrescenta também a categoria `NAO_ENCONTRADO` (404) com `erros.naoencontrado` (`ErroNaoEncontrado` e `ErroCartaoNaoEncontrado`, `CPT-NEN-CRT-001`); o `CodigosDeErroTeste` passa a percorrer as três categorias. Nenhum código do legado depende ainda das portas. |
+| `#14` | Fixa o contrato do `GravadorDeCartao`: grava o novo estado de um cartão **que já existe**, e lança `IllegalStateException` se ele não existe, em vez de criá-lo. Nenhuma outra peça do domínio muda. |

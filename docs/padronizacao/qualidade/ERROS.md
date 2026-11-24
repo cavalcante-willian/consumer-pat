@@ -54,7 +54,7 @@ capturada.
 
 ```java
 // CORRETO — ausência é um estado explícito, no tipo de retorno
-Resultado<Cartao, ErroDominio> buscarPorNumeroETipoParaAtualizacao(String numero, TipoCartao tipo);
+Resultado<Cartao, ErroDominio> buscarPorNumeroETipoParaAtualizacao(NumeroDeCartao numero, TipoCartao tipo);
 
 // ERRADO — retorna null se não encontrado, sem dizer isso na assinatura
 // (foi o legado: findByFoodCardNumber devolvia null e o chamador chamava
@@ -109,12 +109,13 @@ public sealed interface ErroNaoEncontrado extends ErroDominio
 }
 
 // dominio/erros/naoencontrado/ErroCartaoNaoEncontrado.java — caso concreto carrega os dados do caso
-public record ErroCartaoNaoEncontrado(String numeroMascarado, TipoCartao tipo) implements ErroNaoEncontrado {
+public record ErroCartaoNaoEncontrado(NumeroDeCartao numero, TipoCartao tipo) implements ErroNaoEncontrado {
     public static final String CODIGO = "CPT-NEN-CRT-001";
 
     @Override public String codigo() { return CODIGO; }
     @Override public String mensagem() {
-        return "Não existe cartão de " + tipo + " com o número " + numeroMascarado + ".";
+        // NumeroDeCartao.toString() já é a forma mascarada: a mensagem nunca mostra o número inteiro
+        return "Não existe cartão " + tipo + " com o número " + numero + ".";
     }
 }
 

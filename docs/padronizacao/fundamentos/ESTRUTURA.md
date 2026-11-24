@@ -185,7 +185,9 @@ dominio/                                   # zero Spring, zero JPA, zero Lombok 
 │   └── EstadoDeSaude.java                 # SAUDAVEL / DEGRADADO + status por dependência
 └── portas/                                # contratos — pasta única enquanto forem poucas
     ├── ConsumidorPorta.java
-    ├── CartaoPorta.java
+    ├── CartaoPorta.java                   # só compõe os dois papéis abaixo
+    ├── BuscadorDeCartaoParaAtualizacao.java   # papel: buscar por número e tipo, travando para escrever
+    ├── GravadorDeCartao.java              # papel: salvar
     └── ExtratoPorta.java                  # só registrar(): extrato é imutável — qualidade/BANCO.md §8
 ```
 
@@ -641,9 +643,10 @@ forem poucas.
 // Domínio — define o contrato
 package br.com.alelo.consumer.consumerpat.dominio.portas;
 
-public interface CartaoPorta {
-    Resultado<Cartao, ErroDominio> buscarPorNumeroETipoParaAtualizacao(String numero, TipoCartao tipo);
-    Cartao salvar(Cartao cartao);
+public interface CartaoPorta extends BuscadorDeCartaoParaAtualizacao, GravadorDeCartao {
+    // só compõe: cada operação mora em seu arquivo
+    //   Resultado<Cartao, ErroDominio> buscarPorNumeroETipoParaAtualizacao(NumeroDeCartao numero, TipoCartao tipo);
+    //   Cartao salvar(Cartao cartao);
 }
 
 // Infraestrutura — implementa o contrato usando Spring Data JPA

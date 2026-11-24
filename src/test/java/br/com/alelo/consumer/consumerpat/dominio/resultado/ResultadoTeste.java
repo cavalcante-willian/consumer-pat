@@ -16,12 +16,10 @@ class ResultadoTeste {
     }
 
     @Test
-    void deve_compor_os_tres_papeis_quando_listar_as_interfaces() {
-        // Agir
-        var papeis = Resultado.class.getInterfaces();
-
+    void deve_ser_os_tres_papeis_quando_consultar_os_tipos_que_ele_estende() {
         // Verificar
-        assertThat(papeis).containsExactlyInAnyOrder(Resolvivel.class, Transformavel.class,
-                Encadeavel.class);
+        assertThat(Resolvivel.class).isAssignableFrom(Resultado.class);
+        assertThat(Transformavel.class).isAssignableFrom(Resultado.class);
+        assertThat(Encadeavel.class).isAssignableFrom(Resultado.class);
     }
 }

@@ -7,7 +7,8 @@ import br.com.alelo.consumer.consumerpat.dominio.portas.AtualizadorDeConsumidor;
 import br.com.alelo.consumer.consumerpat.dominio.resultado.AusenciaComoErro;
 import br.com.alelo.consumer.consumerpat.dominio.resultado.Resultado;
 import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cartao.ComRepositorioDeCartoes;
-import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.AtualizadorDeEntidadeDeConsumidor; // editorconfig-checker-disable-line
+// editorconfig-checker-disable-next-line
+import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.AtualizadorDeEntidadeDeConsumidor;
 import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.ConsumidorEntidade;
 
 /**

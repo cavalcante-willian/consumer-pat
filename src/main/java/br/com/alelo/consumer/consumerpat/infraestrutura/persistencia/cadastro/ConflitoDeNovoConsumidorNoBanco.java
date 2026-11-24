@@ -3,7 +3,8 @@ package br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cadastro;
 import br.com.alelo.consumer.consumerpat.dominio.consumidor.NovoConsumidor;
 import br.com.alelo.consumer.consumerpat.dominio.erros.ErroDominio;
 import br.com.alelo.consumer.consumerpat.dominio.erros.conflito.ErroDocumentoJaCadastrado;
-import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.ComRepositorioDeConsumidores; // editorconfig-checker-disable-line
+// editorconfig-checker-disable-next-line
+import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.ComRepositorioDeConsumidores;
 
 import java.util.Optional;
 

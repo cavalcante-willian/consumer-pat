@@ -5,7 +5,8 @@ import br.com.alelo.consumer.consumerpat.dominio.cartao.NumeroDeCartao;
 import br.com.alelo.consumer.consumerpat.dominio.cartao.TipoCartao;
 import br.com.alelo.consumer.consumerpat.fabricas.FabricaDeCartoes;
 import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.ConfiguracaoDeRelogioDeTeste;
-import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.ConsumidorRepositorioJpa; // editorconfig-checker-disable-line
+// editorconfig-checker-disable-next-line
+import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.ConsumidorRepositorioJpa;
 import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.ConsumidoresDeTeste;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

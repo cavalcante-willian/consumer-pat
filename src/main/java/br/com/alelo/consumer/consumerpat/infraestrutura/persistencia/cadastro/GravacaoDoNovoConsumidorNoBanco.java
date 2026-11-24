@@ -4,8 +4,10 @@ import br.com.alelo.consumer.consumerpat.dominio.consumidor.Consumidor;
 import br.com.alelo.consumer.consumerpat.dominio.consumidor.NovoConsumidor;
 import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cartao.ComRepositorioDeCartoes;
 import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cartao.EntidadeDeCartao;
-import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.AtualizadorDeEntidadeDeConsumidor; // editorconfig-checker-disable-line
-import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.ComRepositorioDeConsumidores; // editorconfig-checker-disable-line
+// editorconfig-checker-disable-next-line
+import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.AtualizadorDeEntidadeDeConsumidor;
+// editorconfig-checker-disable-next-line
+import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.ComRepositorioDeConsumidores;
 import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.ConsumidorEntidade;
 
 /**

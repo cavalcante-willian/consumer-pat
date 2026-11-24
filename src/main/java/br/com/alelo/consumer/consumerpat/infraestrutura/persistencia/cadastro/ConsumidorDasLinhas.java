@@ -1,11 +1,14 @@
 package br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cadastro;
 
+import br.com.alelo.consumer.consumerpat.dominio.cartao.Cartao;
 import br.com.alelo.consumer.consumerpat.dominio.consumidor.Consumidor;
 import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cartao.CartaoDeEntidade;
 import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cartao.CartaoEntidade;
-import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.ConsumidorDeEntidade; // editorconfig-checker-disable-line
+// editorconfig-checker-disable-next-line
+import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.ConsumidorDeEntidade;
 import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.ConsumidorEntidade;
 
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -13,7 +16,9 @@ import java.util.List;
  *
  * <p>
  * É a única peça que conhece as duas tabelas ao mesmo tempo: o pacote do consumidor não conhece o
- * cartão, e o do cartão não converte o consumidor. Fica aqui, no pacote que as compõe.
+ * cartão, e o do cartão não converte o consumidor. Fica aqui, no pacote que as compõe. Os cartões
+ * saem ordenados pelo tipo, venham da criação, da atualização ou da busca, para o mesmo consumidor
+ * ser igual a si mesmo em qualquer um dos caminhos.
  */
 final class ConsumidorDasLinhas {
 
@@ -29,6 +34,7 @@ final class ConsumidorDasLinhas {
      */
     static Consumidor converter(ConsumidorEntidade entidade, List<CartaoEntidade> cartoes) {
         return ConsumidorDeEntidade.converter(entidade,
-                cartoes.stream().map(CartaoDeEntidade::converter).toList());
+                cartoes.stream().map(CartaoDeEntidade::converter)
+                        .sorted(Comparator.comparing(Cartao::tipo)).toList());
     }
 }

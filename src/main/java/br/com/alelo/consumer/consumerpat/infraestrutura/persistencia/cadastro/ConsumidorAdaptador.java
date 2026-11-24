@@ -2,7 +2,8 @@ package br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cadastro;
 
 import br.com.alelo.consumer.consumerpat.dominio.portas.ConsumidorPorta;
 import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cartao.CartaoRepositorioJpa;
-import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.ConsumidorRepositorioJpa; // editorconfig-checker-disable-line
+// editorconfig-checker-disable-next-line
+import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.ConsumidorRepositorioJpa;
 
 /**
  * Implementa a porta do consumidor sobre o banco.

@@ -5,7 +5,8 @@ import br.com.alelo.consumer.consumerpat.dominio.erros.ErroDominio;
 import br.com.alelo.consumer.consumerpat.dominio.erros.conflito.ErroDocumentoJaCadastrado;
 import br.com.alelo.consumer.consumerpat.dominio.resultado.AusenciaComoErro;
 import br.com.alelo.consumer.consumerpat.dominio.resultado.Resultado;
-import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.ComRepositorioDeConsumidores; // editorconfig-checker-disable-line
+// editorconfig-checker-disable-next-line
+import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.ComRepositorioDeConsumidores;
 import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.ConsumidorEntidade;
 
 import java.util.Optional;

@@ -224,16 +224,20 @@ public interface CartaoPorta {
      * se mantém e dois débitos simultâneos poderiam sobrescrever o saldo
      * um do outro.
      *
-     * @param numero número do cartão, já validado em formato
+     * @param numero número do cartão, na forma canônica
      * @param tipo   tipo esperado; um cartão de outro tipo com o mesmo
      *               número <b>não</b> é devolvido
      * @return o cartão travado, ou falha {@link ErroCartaoNaoEncontrado}
      *         quando não existe cartão com este número e tipo — ausência é
      *         retorno, não exceção
      */
-    Resultado<Cartao, ErroDominio> buscarPorNumeroETipoParaAtualizacao(String numero, TipoCartao tipo);
+    Resultado<Cartao, ErroDominio> buscarPorNumeroETipoParaAtualizacao(NumeroDeCartao numero, TipoCartao tipo);
 }
 ```
+
+> No código real essa operação é o papel `BuscadorDeCartaoParaAtualizacao`, em
+> arquivo próprio, e `CartaoPorta` só o compõe com `GravadorDeCartao` — uma
+> operação por arquivo, como no resto do domínio.
 
 ### Classe e Construtor
 
@@ -308,7 +312,7 @@ public interface ErroDominio {
  * @param numero número consultado
  * @param tipo   tipo esperado pelo estabelecimento
  */
-public record ErroCartaoNaoEncontrado(String numeroMascarado, TipoCartao tipo) implements ErroNaoEncontrado { /* ... */ }
+public record ErroCartaoNaoEncontrado(NumeroDeCartao numero, TipoCartao tipo) implements ErroNaoEncontrado { /* ... */ }
 
 /**
  * O saldo do cartão não cobre o valor cobrado. Repetir a compra sem novo

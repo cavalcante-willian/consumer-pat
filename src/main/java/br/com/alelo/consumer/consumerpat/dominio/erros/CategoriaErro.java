@@ -14,7 +14,10 @@ public enum CategoriaErro {
     VALIDACAO(400),
 
     /** A entrada é válida, mas uma regra de negócio a recusa diante do estado atual. */
-    REGRA_DE_NEGOCIO(422);
+    REGRA_DE_NEGOCIO(422),
+
+    /** A entrada é válida, mas o que ela nomeia não existe. */
+    NAO_ENCONTRADO(404);
 
     private final int statusHttp;
 

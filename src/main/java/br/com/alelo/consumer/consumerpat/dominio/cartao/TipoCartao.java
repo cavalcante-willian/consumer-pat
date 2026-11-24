@@ -10,7 +10,8 @@ import java.math.BigDecimal;
  * O valor de uma compra só pode ser debitado do cartão do tipo que corresponde ao estabelecimento:
  * a correspondência é o {@link #codigoDeEstabelecimento()}. O ajuste é dado do tipo, e não uma
  * decisão tomada por quem calcula: alimentação dá 10% de desconto, farmácia não altera o valor e
- * combustível acrescenta 35%. O cálculo do valor cobrado é o papel {@link Cobravel}.
+ * combustível acrescenta 35%. O cálculo do valor cobrado é o papel {@link Cobravel}, e a leitura do
+ * código vindo de fora é {@link TipoCartaoDoEstabelecimento}.
  */
 public enum TipoCartao implements Cobravel, ComCodigoDeEstabelecimento {
 

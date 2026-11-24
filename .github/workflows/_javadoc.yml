@@ -1,0 +1,24 @@
+name: Javadoc
+
+on:
+  workflow_call:
+
+jobs:
+  javadoc:
+    name: Gerar o Javadoc
+    runs-on: [self-hosted, linux, x64, arch]
+    timeout-minutes: 20
+    env:
+      # O Gradle 7.6 do wrapper só roda em JDK 17 a 19 (qualidade/BUILD.md §1); o JDK padrão
+      # do runner é mais novo e faria o build falhar com ExceptionInInitializerError.
+      JAVA_HOME: /usr/lib/jvm/java-17-openjdk
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
+
+      - name: Verificar o JDK
+        run: '"$JAVA_HOME/bin/java" -version'
+
+      - name: Gerar e validar o Javadoc
+        run: ./gradlew javadoc

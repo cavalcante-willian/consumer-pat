@@ -1,0 +1,124 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Preflight — detecta quais tipos de arquivo mudaram no PR
+  # ---------------------------------------------------------------------------
+  detectar:
+    uses: ./.github/workflows/_detectar.yml
+
+  # ---------------------------------------------------------------------------
+  # Projeto Gradle — condicionado por tem_java
+  # ---------------------------------------------------------------------------
+  build:
+    needs: detectar
+    if: needs.detectar.outputs.tem_java == 'true'
+    uses: ./.github/workflows/_build.yml
+
+  javadoc:
+    needs: detectar
+    if: needs.detectar.outputs.tem_java == 'true'
+    uses: ./.github/workflows/_javadoc.yml
+
+  testes:
+    needs: [detectar, build]
+    if: needs.detectar.outputs.tem_java == 'true'
+    uses: ./.github/workflows/_testes.yml
+
+  # ---------------------------------------------------------------------------
+  # Verificações transversais
+  # ---------------------------------------------------------------------------
+  editorconfig:
+    needs: detectar
+    uses: ./.github/workflows/_editorconfig.yml
+
+  markdownlint:
+    needs: detectar
+    if: needs.detectar.outputs.tem_md == 'true'
+    uses: ./.github/workflows/_markdownlint.yml
+
+  # ---------------------------------------------------------------------------
+  # Gate — único status check obrigatório na proteção de branch. Sempre roda;
+  # falha se qualquer job necessário não terminou em success/skipped.
+  # Skipped é aceito: significa que o path filter não detectou mudanças
+  # relevantes para aquela trilha.
+  # ---------------------------------------------------------------------------
+  sucesso:
+    name: CI
+    needs:
+      - build
+      - javadoc
+      - testes
+      - editorconfig
+      - markdownlint
+    if: always()
+    runs-on: [self-hosted, linux, x64, arch]
+    steps:
+      - name: Verificar resultados
+        run: |
+          for resultado in \
+            "${{ needs.build.result }}" \
+            "${{ needs.javadoc.result }}" \
+            "${{ needs.testes.result }}" \
+            "${{ needs.editorconfig.result }}" \
+            "${{ needs.markdownlint.result }}"
+          do
+            [[ "$resultado" == "success" || "$resultado" == "skipped" ]] || exit 1
+          done
+
+  # ---------------------------------------------------------------------------
+  # Auto-aprovação — somente PR do mantenedor, após o gate CI passar.
+  # Vale para o PR da branch para a main DO FORK (etapa 1). O PR final para o
+  # repositório do enunciado (etapa 2) é revisado por quem o recebe.
+  # ---------------------------------------------------------------------------
+  auto-aprovar:
+    needs: sucesso
+    if: |
+      always() &&
+      needs.sucesso.result == 'success' &&
+      github.event.pull_request.user.login == 'cavalcante-willian'
+    runs-on: [self-hosted, linux, x64, arch]
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write
+      contents: write
+    steps:
+      # `client-id` recebe o Client ID do App (Iv23...), guardado no secret CLIENT_ID.
+      # O `app-id` está deprecado e não aceita o Client ID.
+      - name: Gerar token do app
+        id: token
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3
+        with:
+          client-id: ${{ secrets.CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Aprovar PR
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+        run: |
+          gh pr review "${{ github.event.pull_request.number }}" \
+            --repo "${{ github.repository }}" \
+            --approve \
+            --body "CI passou. Aprovação automática."
+
+      - name: Mesclar PR
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+        run: |
+          gh pr merge "${{ github.event.pull_request.number }}" \
+            --repo "${{ github.repository }}" \
+            --squash \
+            --delete-branch \
+            --admin

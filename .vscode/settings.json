@@ -39,5 +39,8 @@
   "[markdown]": {
     "files.trimTrailingWhitespace": false,
     "editor.rulers": []
-  }
+  },
+  // A análise de nulos da IDE trata como falha todo valor que ela não prova não nulo, por causa das
+  // anotações @NonNull do Spring, e acusa dezenas de avisos que o compilador não conhece.
+  "java.compile.nullAnalysis.mode": "disabled"
 }

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+  Perfil do formatador Java do projeto (Eclipse JDT, o motor da extensão redhat.java do VS Code).
+
+  É a fonte da formatação do código: nada fica por conta do padrão da extensão. Os valores
+  de indentação e de largura repetem o .editorconfig, que o editorconfig-checker confere no CI.
+  Para aplicar no VS Code, o .vscode/settings.json aponta para este arquivo.
+
+  Só entram aqui as configurações que o projeto fixa; as demais usam o padrão do Eclipse.
+-->
+<profiles version="21">
+  <profile kind="CodeFormatterProfile" name="consumer-pat" version="21">
+
+    <!-- Indentação: espaços, nunca tab -->
+    <setting id="org.eclipse.jdt.core.formatter.tabulation.char" value="space"/>
+    <setting id="org.eclipse.jdt.core.formatter.tabulation.size" value="4"/>
+    <setting id="org.eclipse.jdt.core.formatter.indentation.size" value="4"/>
+    <setting id="org.eclipse.jdt.core.formatter.continuation_indentation" value="2"/>
+    <setting id="org.eclipse.jdt.core.formatter.continuation_indentation_for_array_initializer" value="2"/>
+
+    <!-- Largura: 100 colunas para código e para comentário, contadas desde o início da linha -->
+    <setting id="org.eclipse.jdt.core.formatter.lineSplit" value="100"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.line_length" value="100"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.count_line_length_from_starting_position" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.join_wrapped_lines" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.join_lines_in_comments" value="true"/>
+
+    <!-- Comentários: todos formatados, Javadoc com tags alinhadas -->
+    <setting id="org.eclipse.jdt.core.formatter.comment.format_javadoc_comments" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.format_block_comments" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.format_line_comments" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.format_header" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.format_html" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.format_source_code" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.indent_root_tags" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.indent_parameter_description" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.align_tags_descriptions_grouped" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.insert_new_line_before_root_tags" value="insert"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.new_lines_at_javadoc_boundaries" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.clear_blank_lines_in_javadoc_comment" value="false"/>
+
+    <!-- Linhas em branco: no máximo uma, e sempre uma entre os membros -->
+    <setting id="org.eclipse.jdt.core.formatter.number_of_empty_lines_to_preserve" value="1"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_before_package" value="0"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_after_package" value="1"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_before_imports" value="1"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_between_import_groups" value="1"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_after_imports" value="1"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_between_type_declarations" value="1"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_before_member_type" value="1"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_before_method" value="1"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_before_new_chunk" value="1"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_before_field" value="0"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_before_first_class_body_declaration" value="0"/>
+
+    <!-- Chaves: sempre na mesma linha da declaração (estilo K&R) -->
+    <setting id="org.eclipse.jdt.core.formatter.brace_position_for_type_declaration" value="end_of_line"/>
+    <setting id="org.eclipse.jdt.core.formatter.brace_position_for_record_declaration" value="end_of_line"/>
+    <setting id="org.eclipse.jdt.core.formatter.brace_position_for_enum_declaration" value="end_of_line"/>
+    <setting id="org.eclipse.jdt.core.formatter.brace_position_for_method_declaration" value="end_of_line"/>
+    <setting id="org.eclipse.jdt.core.formatter.brace_position_for_block" value="end_of_line"/>
+    <setting id="org.eclipse.jdt.core.formatter.brace_position_for_switch" value="end_of_line"/>
+    <setting id="org.eclipse.jdt.core.formatter.brace_position_for_lambda_body" value="end_of_line"/>
+    <setting id="org.eclipse.jdt.core.formatter.brace_position_for_array_initializer" value="end_of_line"/>
+
+    <!-- Estrutura: uma instrução por linha, e else/catch/finally na linha da chave que fecha -->
+    <setting id="org.eclipse.jdt.core.formatter.put_empty_statement_on_new_line" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.insert_new_line_before_else_in_if_statement" value="do not insert"/>
+    <setting id="org.eclipse.jdt.core.formatter.insert_new_line_before_catch_in_try_statement" value="do not insert"/>
+    <setting id="org.eclipse.jdt.core.formatter.insert_new_line_before_finally_in_try_statement" value="do not insert"/>
+    <setting id="org.eclipse.jdt.core.formatter.insert_new_line_at_end_of_file_if_missing" value="insert"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_if_then_body_block_on_one_line" value="one_line_never"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_then_statement_on_same_line" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_else_statement_on_same_line" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_loop_body_block_on_one_line" value="one_line_never"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_method_body_on_one_line" value="one_line_never"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_simple_getter_setter_on_one_line" value="false"/>
+
+    <!-- Os marcadores @formatter:off/on não são aceitos: ninguém contorna a formatação -->
+    <setting id="org.eclipse.jdt.core.formatter.use_on_off_tags" value="false"/>
+  </profile>
+</profiles>

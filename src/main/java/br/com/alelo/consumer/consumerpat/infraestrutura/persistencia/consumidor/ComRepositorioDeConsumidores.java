@@ -3,7 +3,7 @@ package br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor
 /**
  * Operação-base dos papéis do adaptador do consumidor: o repositório dos consumidores.
  */
-interface ComRepositorioDeConsumidores {
+public interface ComRepositorioDeConsumidores {
 
     /**
      * O repositório dos consumidores.

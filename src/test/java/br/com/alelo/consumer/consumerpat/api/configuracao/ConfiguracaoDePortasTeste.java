@@ -1,9 +1,11 @@
 package br.com.alelo.consumer.consumerpat.api.configuracao;
 
 import br.com.alelo.consumer.consumerpat.dominio.portas.CartaoPorta;
+import br.com.alelo.consumer.consumerpat.dominio.portas.ConsumidorPorta;
 import br.com.alelo.consumer.consumerpat.dominio.portas.ExtratoPorta;
-import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.CartaoAdaptador;
-import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.ExtratoAdaptador;
+import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cadastro.ConsumidorAdaptador;
+import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cartao.CartaoAdaptador;
+import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.extrato.ExtratoAdaptador;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -24,6 +26,9 @@ class ConfiguracaoDePortasTeste {
     private CartaoPorta cartaoPorta;
 
     @Autowired
+    private ConsumidorPorta consumidorPorta;
+
+    @Autowired
     private ExtratoPorta extratoPorta;
 
     @Autowired
@@ -33,6 +38,12 @@ class ConfiguracaoDePortasTeste {
     void deve_ligar_a_porta_do_cartao_ao_adaptador_quando_subir_o_contexto() {
         // Verificar
         assertThat(cartaoPorta).isInstanceOf(CartaoAdaptador.class);
+    }
+
+    @Test
+    void deve_ligar_a_porta_do_consumidor_ao_adaptador_quando_subir_o_contexto() {
+        // Verificar
+        assertThat(consumidorPorta).isInstanceOf(ConsumidorAdaptador.class);
     }
 
     @Test

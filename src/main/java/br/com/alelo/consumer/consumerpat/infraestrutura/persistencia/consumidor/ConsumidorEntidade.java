@@ -48,7 +48,7 @@ import java.time.LocalDate;
 @Getter
 @Setter
 @NoArgsConstructor
-class ConsumidorEntidade {
+public class ConsumidorEntidade {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

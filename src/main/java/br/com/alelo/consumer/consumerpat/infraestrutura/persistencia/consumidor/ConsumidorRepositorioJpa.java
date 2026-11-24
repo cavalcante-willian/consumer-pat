@@ -8,11 +8,12 @@ import org.springframework.data.repository.query.Param;
  * O acesso Spring Data à tabela {@code consumidores}.
  *
  * <p>
- * É pacote-privado: quem enxerga o banco é o adaptador, e nenhuma outra camada pode escrever o tipo
- * dele. As conferências de unicidade respondem só se existe, sem carregar a linha, porque o
- * adaptador as usa antes de gravar e não precisa do consumidor que colide.
+ * É público porque o adaptador está em outro pacote, mas nenhuma camada fora da persistência pode
+ * importá-lo, e um teste impõe isso. As conferências de unicidade respondem só se existe, sem
+ * carregar a linha, porque o adaptador as usa antes de gravar e não precisa do consumidor que
+ * colide.
  */
-interface ConsumidorRepositorioJpa extends JpaRepository<ConsumidorEntidade, Long> {
+public interface ConsumidorRepositorioJpa extends JpaRepository<ConsumidorEntidade, Long> {
 
     /**
      * Diz se algum consumidor tem o documento.

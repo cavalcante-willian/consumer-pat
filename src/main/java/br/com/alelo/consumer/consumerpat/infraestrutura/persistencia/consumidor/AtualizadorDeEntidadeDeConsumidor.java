@@ -11,7 +11,7 @@ import br.com.alelo.consumer.consumerpat.dominio.consumidor.contato.Telefone;
  * id, a versão e a auditoria são do banco, e os cartões não passam por aqui. Um telefone ausente
  * vira nulo na coluna.
  */
-final class AtualizadorDeEntidadeDeConsumidor {
+public final class AtualizadorDeEntidadeDeConsumidor {
 
     private AtualizadorDeEntidadeDeConsumidor() {
     }
@@ -23,7 +23,8 @@ final class AtualizadorDeEntidadeDeConsumidor {
      * @param dados    os dados cadastrais
      * @return a mesma linha, preenchida
      */
-    static ConsumidorEntidade atualizar(ConsumidorEntidade entidade, DadosDoConsumidor dados) {
+    public static ConsumidorEntidade atualizar(ConsumidorEntidade entidade,
+            DadosDoConsumidor dados) {
         entidade.setNome(dados.nome());
         entidade.setDocumento(dados.documento().digitos());
         entidade.setDataNascimento(dados.dataNascimento());

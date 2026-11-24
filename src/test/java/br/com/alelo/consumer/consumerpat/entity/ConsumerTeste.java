@@ -6,7 +6,8 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Caracteriza a igualdade do {@link Consumer}. É teste unitário puro: nenhum contexto Spring.
+ * Caracteriza a igualdade do {@link Consumer}. É teste unitário puro: nenhum
+ * contexto Spring.
  */
 class ConsumerTeste {
 
@@ -37,8 +38,8 @@ class ConsumerTeste {
 
     @Test
     @Disabled("Defeito do legado: equals foi sobrescrito sem hashCode (o Lombok avisa e não gera o "
-        + "hashCode), então dois consumidores iguais têm hashes diferentes e quebram HashSet e HashMap. "
-        + "Habilitar no commit que corrige.")
+            + "hashCode), então dois consumidores iguais têm hashes diferentes e quebram HashSet e HashMap. "
+            + "Habilitar no commit que corrige.")
     void deve_ter_o_mesmo_hash_quando_dois_consumidores_sao_iguais() {
         assertThat(consumidor("Ana", 1)).hasSameHashCodeAs(consumidor("Ana", 1));
     }

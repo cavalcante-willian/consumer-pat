@@ -473,6 +473,47 @@ Em Java isso inclui as **variantes de uma `sealed interface`**: cada
 `record` listado em `permits` é um arquivo próprio, no mesmo pacote
 (`Sucesso.java`, `Falha.java`) — nunca aninhados na interface.
 
+**A razão de mudar é cirúrgica: uma peça por arquivo, e isso vale também para
+as operações de um tipo.** Não basta que os métodos de um arquivo "tenham o
+mesmo propósito". A pergunta é "o que faria este arquivo mudar?", e cada
+operação distinta é uma resposta distinta.
+
+O motivo é de equipe, não de estética. Com várias pessoas mexendo ao mesmo
+tempo, duas operações no mesmo arquivo fazem duas pessoas competirem pelo mesmo
+estado: conflito de *merge*, e alteração de uma que invalida o trabalho da
+outra. Com cada peça em seu arquivo, o pior que acontece é, ao sincronizar,
+aparecerem ou mudarem arquivos que não afetam a tarefa em curso.
+
+```text
+// ERRADO — um arquivo, várias razões de mudar
+dominio/dinheiro/Dinheiro.java     → guardar a quantia, somar, subtrair, multiplicar e comparar
+dominio/resultado/Resultado.java   → consumir, transformar, encadear,
+                                      criar sucesso, criar falha e converter Optional
+
+// CORRETO — cada operação no seu arquivo; o tipo só guarda o dado e compõe os papéis
+dominio/dinheiro/Dinheiro.java          → a quantia e a escala (e nada mais)
+dominio/dinheiro/Somavel.java           → somar
+dominio/dinheiro/Subtraivel.java        → subtrair
+dominio/dinheiro/Multiplicavel.java     → multiplicar por um fator
+dominio/dinheiro/ComparavelPorQuantia.java → ordenar pelo valor
+dominio/dinheiro/DinheiroDeTexto.java   → ler uma quantia de texto vindo de fora
+dominio/dinheiro/ApresentacaoDeDinheiro.java → mostrar em centavos
+
+dominio/resultado/Resolvivel.java       → consumir (a operação-base)
+dominio/resultado/Transformavel.java    → transformar o valor
+dominio/resultado/Encadeavel.java       → encadear uma operação que também falha
+dominio/resultado/Sucesso.java          → a variante de sucesso (só `resolver`)
+dominio/resultado/Falha.java            → a variante de falha (só `resolver`)
+dominio/resultado/AusenciaComoErro.java → converter ausência em erro
+```
+
+**Como se faz em Java sem perder a API fluente (`a.mais(b)`):** cada operação é
+um papel (`interface`) com **método `default`**, escrito em cima de uma única
+operação-base que o tipo expõe (`valor()` no `Dinheiro`, `resolver` no
+`Resultado`). O tipo só declara que implementa os papéis. Criar a variante é o
+construtor dela, e não uma fábrica estática dentro do arquivo que define o
+contrato.
+
 **Viés padrão: extrair, mesmo sem segundo consumidor visível.** Na dúvida
 entre marcar um tipo como aninhado só para justificá-lo junto de outro, o
 caminho correto na maioria dos casos é arquivo próprio — um teste contra

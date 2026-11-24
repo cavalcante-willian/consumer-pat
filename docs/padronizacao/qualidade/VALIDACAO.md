@@ -61,7 +61,7 @@ ResponseEntity<Object> creditar(@Valid @RequestBody MensagemCreditarCartao mensa
 // ERRADO — validação espalhada no caso de uso (e foi o legado: nenhuma validação,
 // valor negativo em /setcardbalance virava DÉBITO)
 public Resultado<Cartao, ErroDominio> creditar(String numero, BigDecimal valor) {
-    if (valor.signum() <= 0) return Resultado.falha(/* ... */);   // regra de formato dentro do caso de uso
+    if (valor.signum() <= 0) return new Falha<>(/* ... */);   // regra de formato dentro do caso de uso
     // ...
 }
 ```

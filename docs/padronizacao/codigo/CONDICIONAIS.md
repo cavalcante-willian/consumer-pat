@@ -256,7 +256,7 @@ public sealed interface EstadoDoCartao permits Ativo, Bloqueado {
 public record Ativo() implements EstadoDoCartao {
     @Override
     public Resultado<BigDecimal, ErroDominio> saldoDisponivel(Cartao cartao) {
-        return Resultado.sucesso(cartao.saldo());
+        return new Sucesso<>(cartao.saldo());
     }
 }
 
@@ -264,7 +264,7 @@ public record Ativo() implements EstadoDoCartao {
 public record Bloqueado(String motivo) implements EstadoDoCartao {
     @Override
     public Resultado<BigDecimal, ErroDominio> saldoDisponivel(Cartao cartao) {
-        return Resultado.falha(new ErroCartaoBloqueado(cartao.numero(), motivo));
+        return new Falha<>(new ErroCartaoBloqueado(cartao.numero(), motivo));
     }
 }
 
@@ -368,58 +368,67 @@ Convenção do projeto (ver `ERROS.md`): toda função falível de domínio
 retorna `Resultado<T, E>` explícito; exceção é para falha genuinamente
 excepcional na fronteira com infraestrutura, nunca rotina de domínio.
 
-O `Resultado` é uma `sealed interface` com duas variantes `record`. A
-própria interface oferece `resolver`, `mapear` e `encadear`, implementados
-**por polimorfismo** — cada variante sabe o que fazer, então a biblioteca
-em si não contém `if`:
+O `Resultado` é uma `sealed interface` com duas variantes `record`. **Cada
+operação é um papel em arquivo próprio**, escrito como método `default` em cima
+de uma única operação-base, `resolver`: as variantes implementam só ela, e as
+demais vivem inteiras em seus arquivos. Assim ninguém precisa editar `Sucesso`
+e `Falha` para mudar `mapear`, e a biblioteca em si não contém `if` — cada
+variante sabe o que fazer, **por polimorfismo**. Criar um resultado é o
+construtor da variante, e converter uma origem de ausência é um tipo à parte:
 
 ```java
-// dominio/resultado/Resultado.java
-public sealed interface Resultado<T, E> permits Sucesso, Falha {
-
+// dominio/resultado/Resolvivel.java — consumir: a operação-base, as demais se escrevem nela
+public interface Resolvivel<T, E> {
     <R> R resolver(Function<? super T, ? extends R> aoSucesso, Function<? super E, ? extends R> aoFalhar);
+}
 
-    <U> Resultado<U, E> mapear(Function<? super T, ? extends U> funcao);
-
-    <U> Resultado<U, E> encadear(Function<? super T, Resultado<U, E>> funcao);
-
-    static <T, E> Resultado<T, E> sucesso(T valor) { return new Sucesso<>(valor); }
-
-    static <T, E> Resultado<T, E> falha(E erro) { return new Falha<>(erro); }
-
-    // ausência vira erro tipado na fronteira — nenhum null atravessa daqui
-    static <T, E> Resultado<T, E> deOptional(Optional<T> opcional, Supplier<E> erroSeAusente) {
-        return opcional.<Resultado<T, E>>map(Resultado::sucesso)
-                       .orElseGet(() -> Resultado.falha(erroSeAusente.get()));
+// dominio/resultado/Transformavel.java — transformar o valor, sem poder falhar
+public interface Transformavel<T, E> extends Resolvivel<T, E> {
+    default <U> Resultado<U, E> mapear(Function<? super T, ? extends U> funcao) {
+        return this.<Resultado<U, E>>resolver(valor -> new Sucesso<>(funcao.apply(valor)), erro -> new Falha<>(erro));
     }
 }
 
-// dominio/resultado/Sucesso.java
+// dominio/resultado/Encadeavel.java — encadear uma operação que também pode falhar
+public interface Encadeavel<T, E> extends Resolvivel<T, E> {
+    default <U> Resultado<U, E> encadear(Function<? super T, Resultado<U, E>> funcao) {
+        return this.<Resultado<U, E>>resolver(valor -> funcao.apply(valor), erro -> new Falha<>(erro));
+    }
+}
+
+// dominio/resultado/Resultado.java — só compõe os papéis e fecha as variantes
+public sealed interface Resultado<T, E> extends Resolvivel<T, E>, Transformavel<T, E>, Encadeavel<T, E>
+    permits Sucesso, Falha { }
+
+// dominio/resultado/Sucesso.java — uma única operação
 public record Sucesso<T, E>(T valor) implements Resultado<T, E> {
     @Override public <R> R resolver(Function<? super T, ? extends R> aoSucesso, Function<? super E, ? extends R> aoFalhar) {
         return aoSucesso.apply(valor);
     }
-    @Override public <U> Resultado<U, E> mapear(Function<? super T, ? extends U> funcao) {
-        return Resultado.sucesso(funcao.apply(valor));
-    }
-    @Override public <U> Resultado<U, E> encadear(Function<? super T, Resultado<U, E>> funcao) {
-        return funcao.apply(valor);
-    }
 }
 
-// dominio/resultado/Falha.java
+// dominio/resultado/Falha.java — uma única operação
 public record Falha<T, E>(E erro) implements Resultado<T, E> {
     @Override public <R> R resolver(Function<? super T, ? extends R> aoSucesso, Function<? super E, ? extends R> aoFalhar) {
         return aoFalhar.apply(erro);
     }
-    @Override public <U> Resultado<U, E> mapear(Function<? super T, ? extends U> funcao) {
-        return Resultado.falha(erro);
-    }
-    @Override public <U> Resultado<U, E> encadear(Function<? super T, Resultado<U, E>> funcao) {
-        return Resultado.falha(erro);
+}
+
+// dominio/resultado/AusenciaComoErro.java — ausência vira erro tipado na fronteira; nenhum null atravessa daqui
+public final class AusenciaComoErro {
+    private AusenciaComoErro() { }
+
+    public static <T, E> Resultado<T, E> converter(Optional<T> opcional, Supplier<E> erroSeAusente) {
+        return opcional.<Resultado<T, E>>map(valor -> new Sucesso<>(valor))
+                       .orElseGet(() -> new Falha<>(erroSeAusente.get()));
     }
 }
 ```
+
+> **Por que não há `Resultado.sucesso(...)` nem `Resultado.falha(...)`.** Uma
+> fábrica estática dentro da interface é uma terceira razão de mudar (criar) no
+> arquivo que já define o contrato. O construtor da variante, `new Sucesso<>(v)`
+> e `new Falha<>(e)`, faz o mesmo sem nada a mais.
 
 ```java
 // CORRETO — propagação explícita, linha reta: cada etapa só roda se a anterior teve sucesso
@@ -490,7 +499,7 @@ public final class CartaoAtivo implements RegraDeCompra {
 // (nível 11) cuja condição lê como frase de domínio
 var regra = new CartaoAtivo().e(new SaldoSuficiente());
 if (!regra.atende(cartao, valorCobrado))
-    return Resultado.falha(new ErroCompraNaoPermitida(cartao.numero()));
+    return new Falha<>(new ErroCompraNaoPermitida(cartao.numero()));
 
 // ERRADO — condição muda inline; quem lê precisa decodificar a fórmula toda vez,
 // e a mesma fórmula reaparece copiada em outro caso de uso
@@ -526,7 +535,7 @@ public final class PipelineDeCompra {
     public PipelineDeCompra(List<EtapaDeCompra> etapas) { this.etapas = List.copyOf(etapas); }
 
     public Resultado<ContextoDeCompra, ErroDominio> executar(ContextoDeCompra inicial) {
-        Resultado<ContextoDeCompra, ErroDominio> atual = Resultado.sucesso(inicial);
+        Resultado<ContextoDeCompra, ErroDominio> atual = new Sucesso<>(inicial);
         for (EtapaDeCompra etapa : etapas) {
             atual = atual.encadear(etapa::aplicar); // Falha curto-circuita sem if
         }
@@ -572,7 +581,7 @@ public final class RegistroDeExportadores {
     }
 
     public Resultado<ExportadorPorta, ErroDominio> buscar(String extensao) {
-        return Resultado.deOptional(
+        return AusenciaComoErro.converter(
             Optional.ofNullable(porExtensao.get(extensao)),
             () -> new ErroFormatoNaoSuportado(extensao));
     }
@@ -713,10 +722,10 @@ public void comprarErrado(MensagemRegistrarCompra m) {
 // (valor positivo é pré-condição de entrada: validação na borda, nível 10 — não este método)
 public Resultado<Cartao, ErroDominio> debitar(BigDecimal valorCobrado) {
     if (saldo.compareTo(valorCobrado) < 0)
-        return Resultado.falha(new ErroSaldoInsuficiente(numero, saldo, valorCobrado));
+        return new Falha<>(new ErroSaldoInsuficiente(numero, saldo, valorCobrado));
 
     // fluxo principal: sem aninhamento, sem distração
-    return Resultado.sucesso(comSaldo(saldo.subtract(valorCobrado)));
+    return new Sucesso<>(comSaldo(saldo.subtract(valorCobrado)));
 }
 
 // ERRADO — lógica principal aninhada dentro de ifs; o leitor precisa segurar
@@ -725,15 +734,15 @@ public Resultado<Cartao, ErroDominio> debitarErrado(BigDecimal valorCobrado) {
     if (valorCobrado != null) {
         if (valorCobrado.signum() > 0) {
             if (saldo.compareTo(valorCobrado) >= 0) {
-                return Resultado.sucesso(comSaldo(saldo.subtract(valorCobrado)));
+                return new Sucesso<>(comSaldo(saldo.subtract(valorCobrado)));
             } else {
-                return Resultado.falha(new ErroSaldoInsuficiente(numero, saldo, valorCobrado));
+                return new Falha<>(new ErroSaldoInsuficiente(numero, saldo, valorCobrado));
             }
         } else {
-            return Resultado.falha(new ErroValorInvalido(valorCobrado));
+            return new Falha<>(new ErroValorInvalido(valorCobrado));
         }
     } else {
-        return Resultado.falha(new ErroValorInvalido(null));
+        return new Falha<>(new ErroValorInvalido(null));
     }
 }
 ```
@@ -880,7 +889,7 @@ public Resultado<Unit, ErroDominio> salvarEmLote(List<Extrato> extratos) {
         if (resultado instanceof Falha<Unit, ErroDominio> falha)
             return falha;
     }
-    return Resultado.sucesso(Unit.INSTANCIA);
+    return new Sucesso<>(Unit.INSTANCIA);
 }
 
 // ERRADO — .forEach() com lambda: não consegue abortar com retorno tipado, e
@@ -967,7 +976,7 @@ Regra contável, aplicada por quem revisa — não depende de gosto:
   - `Optional` como campo, parâmetro de método ou atributo de entidade.
 
   A ausência vira **Null Object** (nível 8), **`Resultado<T, E>`**
-  (nível 4, via `Resultado.deOptional` na fronteira), **comportamento/
+  (nível 4, via `AusenciaComoErro.converter` na fronteira), **comportamento/
   padrão nomeado no tipo** (nível 2) ou **validação na borda** (nível 10)
   — fallback nomeado mora na construção do valor, visível e testado, não
   escondido em cada uso. `Optional` só existe como **retorno de porta de

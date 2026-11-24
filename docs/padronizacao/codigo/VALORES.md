@@ -388,7 +388,7 @@ preserva o que o cálculo produziu.
 | **Escala interna** (casas guardadas) | **6** | `Dinheiro.ESCALA` — **a única constante** |
 | Coluna do banco | `NUMERIC(19,6)` | `@Column(precision = 19, scale = 6, nullable = false)` |
 | Entrada pela API (valor informado) | **até 2 casas** | `@Digits(integer = 13, fraction = 2)` na `Mensagem*` |
-| Apresentação | **2 casas** | `Dinheiro.arredondadoParaCentavos(RoundingMode)` — o modo é **argumento obrigatório** |
+| Apresentação | **2 casas** | `ApresentacaoDeDinheiro.emCentavos(dinheiro, RoundingMode)` — o modo é **argumento obrigatório** |
 
 - **Por que 6.** Entrada de 2 casas × fator de 2 casas (10%, 35%) dá 4 casas
   exatas; 6 deixa folga de **duas casas** para encargos compostos, sem
@@ -409,7 +409,7 @@ O sistema tem **exatamente dois pontos** de arredondamento, ambos explícitos:
 | Ponto | Quando | Regra |
 |---|---|---|
 | **Interno** | resultado de **multiplicação ou divisão** excede a escala de 6 | `RoundingMode.HALF_EVEN`, aplicado dentro de `Dinheiro` |
-| **Externo** | apresentação em centavos | `arredondadoParaCentavos(RoundingMode)` — **o chamador escolhe**, não há padrão |
+| **Externo** | apresentação em centavos | `ApresentacaoDeDinheiro.emCentavos(dinheiro, RoundingMode)` — **o chamador escolhe**, não há padrão |
 
 - **Soma e subtração são exatas** e nunca arredondam (mesma escala).
 - **O arredondamento interno é de magnitude desprezível** (sexta casa
@@ -420,60 +420,83 @@ O sistema tem **exatamente dois pontos** de arredondamento, ambos explícitos:
   regra contratual/regulatória que vier a se aplicar* — se o negócio exigir
   `HALF_UP`, a mudança é uma constante.
 - **Divisão sem contexto é proibida**: `a.divide(b)` lança
-  `ArithmeticException` quando o resultado é dízima (1 ÷ 3). Toda divisão
-  informa escala e `RoundingMode` — e acontece **dentro de `Dinheiro`**,
+  `ArithmeticException` quando o resultado é dízima (1 ÷ 3). Hoje nenhum caso
+  de uso divide dinheiro, então `Dinheiro` não tem divisão; se um dia tiver,
+  ela informa escala e `RoundingMode` e acontece **dentro de `Dinheiro`**,
   nunca espalhada.
 - **A apresentação não tem modo padrão de propósito.** `HALF_UP` e `HALF_EVEN`
-  dão resultados diferentes em `29.995`; deixar o modo implícito é decidir
-  sem perceber. O ponto de chamada declara o que escolheu.
+  dão resultados diferentes em `29.985` (`29.99` e `29.98`); deixar o modo
+  implícito é decidir sem perceber. O ponto de chamada declara o que escolheu.
 
 ### 6.5 O Tipo `Dinheiro`
 
+**Uma peça por arquivo.** O `Dinheiro` só guarda a quantia e garante a escala;
+somar, subtrair, multiplicar e comparar são papéis com método `default`, cada um
+em seu arquivo, escritos em cima de `valor()`; ler texto de fora e apresentar em
+centavos são tipos à parte. Assim duas pessoas podem mexer na multiplicação e
+na leitura de texto sem tocar no mesmo arquivo
+([`ESTRUTURA.md`](../fundamentos/ESTRUTURA.md#1-um-tipo-público-por-arquivo)).
+
 ```java
-// dominio/dinheiro/Dinheiro.java
-/**
- * Quantia em reais, com escala fixa de {@value #ESCALA} casas.
- *
- * <p>Guarda a fração de centavo que os cálculos produzem; arredondar para
- * centavos é decisão da apresentação ({@link #arredondadoParaCentavos}).
- */
-public record Dinheiro(BigDecimal valor) implements Comparable<Dinheiro> {
+// dominio/dinheiro/Dinheiro.java — a quantia e a escala, e nada mais
+public record Dinheiro(BigDecimal valor) implements Somavel, Subtraivel, Multiplicavel, ComparavelPorQuantia {
 
     /** Casas decimais guardadas. Deve coincidir com a escala da coluna (teste de coerência). */
     public static final int ESCALA = 6;
+
+    /** Dígitos guardados, com a escala: o que cabe em NUMERIC(19,6). */
+    public static final int PRECISAO = 19;
 
     public static final Dinheiro ZERO = new Dinheiro(BigDecimal.ZERO);
 
     public Dinheiro {
         // UNNECESSARY: se o valor perderia dígitos, é BUG de quem construiu — lança.
-        // Entrada externa passa por criar(), que valida antes.
+        // Entrada externa passa por DinheiroDeTexto, que valida antes.
         valor = valor.setScale(ESCALA, RoundingMode.UNNECESSARY);
     }
-
-    /** Entrada externa: valor informado pelo cliente, validado e convertido sem lançar. */
-    public static Resultado<Dinheiro, ErroDominio> criar(String texto) { /* ... */ }
-
-    public Dinheiro mais(Dinheiro outro)  { return new Dinheiro(valor.add(outro.valor)); }       // exato
-    public Dinheiro menos(Dinheiro outro) { return new Dinheiro(valor.subtract(outro.valor)); }  // exato
-
-    /** Multiplica por um fator em fração (0.90, 1.35); arredonda à escala interna com HALF_EVEN. */
-    public Dinheiro vezes(BigDecimal fator) {
-        return new Dinheiro(valor.multiply(fator).setScale(ESCALA, RoundingMode.HALF_EVEN));
-    }
-
-    /** O modo é obrigatório: não há arredondamento "padrão" para exibição. */
-    public BigDecimal arredondadoParaCentavos(RoundingMode modo) { return valor.setScale(2, modo); }
-
-    @Override public int compareTo(Dinheiro outro) { return valor.compareTo(outro.valor); }
     // equals/hashCode gerados do record funcionam: todo Dinheiro tem a MESMA escala (6),
     // então 90.000000 e 90.000000 são iguais — a armadilha de equals do BigDecimal some
 }
+
+// dominio/dinheiro/ComQuantia.java — a operação-base de que as outras se escrevem
+public interface ComQuantia { BigDecimal valor(); }
+
+// dominio/dinheiro/Somavel.java — soma exata
+public interface Somavel extends ComQuantia {
+    default Dinheiro mais(Dinheiro outro) { return new Dinheiro(valor().add(outro.valor())); }
+}
+
+// dominio/dinheiro/Subtraivel.java — subtração exata (o resultado pode ser negativo)
+public interface Subtraivel extends ComQuantia {
+    default Dinheiro menos(Dinheiro outro) { return new Dinheiro(valor().subtract(outro.valor())); }
+}
+
+// dominio/dinheiro/Multiplicavel.java — multiplica por um fator em fração; arredonda à escala interna com HALF_EVEN
+public interface Multiplicavel extends ComQuantia {
+    default Dinheiro vezes(BigDecimal fator) {
+        return new Dinheiro(valor().multiply(fator).setScale(Dinheiro.ESCALA, RoundingMode.HALF_EVEN));
+    }
+}
+
+// dominio/dinheiro/ComparavelPorQuantia.java — ordena pelo valor numérico
+public interface ComparavelPorQuantia extends ComQuantia, Comparable<Dinheiro> {
+    @Override default int compareTo(Dinheiro outro) { return valor().compareTo(outro.valor()); }
+}
+
+// dominio/dinheiro/DinheiroDeTexto.java — entrada externa: valida o formato e converte, sem lançar
+public final class DinheiroDeTexto {
+    public static Resultado<Dinheiro, ErroDominio> converter(String texto) { /* ... */ }
+}
+
+// dominio/dinheiro/ApresentacaoDeDinheiro.java — o modo é obrigatório: não há arredondamento "padrão"
+public final class ApresentacaoDeDinheiro {
+    public static BigDecimal emCentavos(Dinheiro dinheiro, RoundingMode modo) { /* ... */ }
+}
 ```
 
-*(Esboço — validar ao implementar. `Dinheiro` é `record` e **não** esconde o
-`toString()`: valor monetário não é dado sensível por si; o saldo de um
-cartão logado ao lado do número já seria, mas esse vazamento é do **número**,
-tratado em `SEGURANCA.md` §5.)*
+*(`Dinheiro` é `record` e **não** esconde o `toString()`: valor monetário não é
+dado sensível por si; o saldo de um cartão logado ao lado do número já seria,
+mas esse vazamento é do **número**, tratado em `SEGURANCA.md` §5.)*
 
 ### 6.6 Percentual e Fator: Fração, Nunca 0–100
 
@@ -555,7 +578,8 @@ private BigDecimal saldo;     // NUMERIC(19,6) — nunca DOUBLE/FLOAT/REAL
   ([`API.md`](../qualidade/API.md#6-serialização-determinística)).
 - **Apresentação em centavos não é desta API hoje.** Se aparecer um
   endpoint de extrato para exibição, ele devolve uma `Mensagem*` própria com
-  `arredondadoParaCentavos(modo)` — nunca o valor exato com a casa a mais.
+  `ApresentacaoDeDinheiro.emCentavos(dinheiro, modo)` — nunca o valor exato
+  com a casa a mais.
 
 ### 6.8 Testes Que Fixam Esta Seção
 
@@ -564,8 +588,9 @@ private BigDecimal saldo;     // NUMERIC(19,6) — nunca DOUBLE/FLOAT/REAL
 | `DinheiroTeste` — `deve_guardar_a_fracao_quando_multiplicar_por_fator` | `33.33 × 0.90 = 29.997000`, sem perda |
 | `DinheiroTeste` — `deve_somar_exato_quando_acumular_fracoes` | `0.1 + 0.2 = 0.3` em escala 6 (o exemplo clássico que `double` erra) |
 | `DinheiroTeste` — `deve_lancar_quando_construir_com_mais_casas_que_a_escala` | `UNNECESSARY` impede perda silenciosa |
-| `DinheiroTeste` — `deve_arredondar_so_na_escala_interna_com_half_even` | o único arredondamento interno é o definido |
-| `DinheiroTeste` — `deve_exigir_o_modo_quando_arredondar_para_centavos` | `29.995` dá `29.99` (HALF_EVEN) e `30.00` (HALF_UP) — o chamador decide |
+| `DinheiroTeste` — `deve_arredondar_para_o_par_na_escala_interna_quando_a_multiplicacao_excede_a_escala` | o único arredondamento interno é o definido |
+| `ApresentacaoDeDinheiroTeste` — `deve_arredondar_como_o_modo_escolhido_quando_apresentar_em_centavos` | `29.985` dá `29.98` (HALF_EVEN) e `29.99` (HALF_UP) — o chamador decide |
+| `DinheiroDeTextoTeste` | só decimal com ponto, até 13 inteiros e 6 casas, é aceito; o texto recusado não volta na falha |
 | `DinheiroTeste` — `deve_ser_igual_quando_mesma_quantia_com_escalas_diferentes` | `2.0` e `2.00` viram o mesmo `Dinheiro` |
 | `CoerenciaDeEscalaTeste` | `scale` das colunas monetárias == `Dinheiro.ESCALA` |
 | contrato — `deve_serializar_dinheiro_como_texto` | saída `"29.997000"`, não número |

@@ -13,7 +13,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Caracteriza o acesso a dados do legado contra um banco real (H2 em memória), sem mock de
+ * Caracteriza o acesso a dados do legado contra um banco real (H2 em memória),
+ * sem mock de
  * repositório: o que se afirma é o que o banco de fato devolve e aceita.
  */
 @DataJpaTest
@@ -36,7 +37,7 @@ class ConsumerRepositoryTeste {
 
     private Consumer consumidorComCartoesExclusivos() {
         return consumidorSalvo(PROXIMO_NUMERO.incrementAndGet(), PROXIMO_NUMERO.incrementAndGet(),
-            PROXIMO_NUMERO.incrementAndGet(), PROXIMO_NUMERO.incrementAndGet());
+                PROXIMO_NUMERO.incrementAndGet(), PROXIMO_NUMERO.incrementAndGet());
     }
 
     @Test
@@ -76,30 +77,30 @@ class ConsumerRepositoryTeste {
         var consumidor = consumidorComCartoesExclusivos();
 
         assertThat(consumidores.getAllConsumersList())
-            .extracting(Consumer::getId)
-            .contains(consumidor.getId());
+                .extracting(Consumer::getId)
+                .contains(consumidor.getId());
     }
 
     @Test
     @Disabled("Defeito do legado: o número do cartão não tem restrição de unicidade, então dois "
-        + "consumidores podem ter o mesmo cartão e a busca nativa passa a falhar com mais de uma linha. "
-        + "Habilitar no commit que cria a restrição.")
+            + "consumidores podem ter o mesmo cartão e a busca nativa passa a falhar com mais de uma linha. "
+            + "Habilitar no commit que cria a restrição.")
     void deve_recusar_o_segundo_consumidor_quando_o_cartao_de_alimentacao_ja_existe() {
         var primeiro = consumidorComCartoesExclusivos();
 
         assertThatThrownBy(() -> consumidorSalvo(PROXIMO_NUMERO.incrementAndGet(), primeiro.getFoodCardNumber(),
-            PROXIMO_NUMERO.incrementAndGet(), PROXIMO_NUMERO.incrementAndGet()))
-            .isInstanceOf(DataIntegrityViolationException.class);
+                PROXIMO_NUMERO.incrementAndGet(), PROXIMO_NUMERO.incrementAndGet()))
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
     @Disabled("Defeito do legado: o documento não tem restrição de unicidade, então o mesmo "
-        + "documento cadastra dois consumidores. Habilitar no commit que cria a restrição.")
+            + "documento cadastra dois consumidores. Habilitar no commit que cria a restrição.")
     void deve_recusar_o_segundo_consumidor_quando_o_documento_ja_existe() {
         var primeiro = consumidorComCartoesExclusivos();
 
         assertThatThrownBy(() -> consumidorSalvo(primeiro.getDocumentNumber(), PROXIMO_NUMERO.incrementAndGet(),
-            PROXIMO_NUMERO.incrementAndGet(), PROXIMO_NUMERO.incrementAndGet()))
-            .isInstanceOf(DataIntegrityViolationException.class);
+                PROXIMO_NUMERO.incrementAndGet(), PROXIMO_NUMERO.incrementAndGet()))
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 }

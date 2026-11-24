@@ -21,6 +21,14 @@ group = 'br.com.alelo.consumer'
 version = '0.0.1'
 description = 'consumer-test'
 
+java {
+    // O que a IDE lê para saber o nível da linguagem: sem isto ela herda a versão da JVM que roda
+    // o Gradle e pode pedir um nível que o compilador dela não suporta. A compilação em si é
+    // fixada por options.release, mais abaixo; os dois dizem 17 e não se afastam.
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
 configurations {
     // O processador de anotação (Lombok) também precisa estar no classpath de compilação.
     compileOnly {

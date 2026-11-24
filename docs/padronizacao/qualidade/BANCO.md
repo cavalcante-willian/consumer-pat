@@ -189,6 +189,15 @@ descobrir qual restrição estourou sem nome custa uma investigação.
 tem **no máximo um cartão de cada tipo**, invariante do domínio que o
 legado expressava com três colunas.)*
 
+> **Hoje a tabela nasce sem `consumidor_id` e sem `uk_cartoes_consumidor_tipo`.**
+> O domínio ainda não tem `Consumidor`, e criar a coluna `NOT NULL` obrigaria a
+> criar também a tabela `consumidores` e uma entidade sem mapeador nem uso. Como o
+> schema nasce só das anotações (`create-drop`), as duas entram junto do
+> consumidor, sem migração. Enquanto isso, o `GravadorDeCartao` só **atualiza** um
+> cartão que existe; criá-lo exige o consumidor dono. O `extratos` já tem a FK
+> `fk_extratos_cartoes`, e a persistência do extrato mora no pacote do cartão
+> (ver [`ESTRUTURA.md`](../fundamentos/ESTRUTURA.md)).
+
 **`extratos`** *(imutável: só se insere — seção 8)*
 
 | Coluna | Tipo | Nulo? | Observação |
@@ -249,7 +258,8 @@ domínio (Null Object), nunca `0`.
     até verificar a alternativa (nome via `@Table`/DDL). É uma exceção
     declarada à regra "toda restrição é nomeada".
   - **Um teste prova que o H2 a aplica** (seção 15): sem ele, o `@Check`
-    pode ser ignorado em silêncio.
+    pode ser ignorado em silêncio. *(Provado: sem a anotação, os dois testes
+    de saldo negativo falham.)*
 - **Chave estrangeira com índice explícito.** O H2 cria o índice de FK
   sozinho; PostgreSQL, não.
 - **`unique` é regra de integridade e rede de segurança**, não a primeira
@@ -402,7 +412,10 @@ só com justificativa registrada — é a origem clássica de deadlock*.
    *lost update* silencioso em 409 visível.
 6. **O custo é conhecido e medido**: contenção em um cartão ocupa conexões do
    pool — mitigado por timeout de lock menor que o de conexão
-   ([`PERFORMANCE.md`](PERFORMANCE.md#9-timeouts-e-limites)).
+   ([`PERFORMANCE.md`](PERFORMANCE.md#9-timeouts-e-limites)). **No H2 o teto é o
+   `LOCK_TIMEOUT` da URL**, porque a dica do JPA é ignorada por ele em silêncio;
+   `TravaDeCartaoTeste` prova que a segunda transação falha dentro do teto, com
+   `PessimisticLockingFailureException`, e não espera o padrão do banco.
 
 **Por quê:** *last write wins* sobrescreve o primeiro salvamento **sem que
 nenhum dos dois autores saiba** — em cadastro é perda de dado; em saldo, é
@@ -653,6 +666,13 @@ Em grande parte coberta em outros documentos; aqui só o que é do banco:
 | `deve_gravar_o_enum_como_texto_quando_persistir_o_tipo_do_cartao` | `EnumType.STRING`, não ordinal | Integração |
 | `NomenclaturaDeSchemaTeste` | todo `unique`/índice/FK é nomeado e segue `uk_`/`idx_`/`fk_` | Arquitetura |
 | `deve_recusar_atualizar_extrato` | `ExtratoPorta` só oferece `registrar` (não existe `atualizar`) | Arquitetura |
+| `TravaDeCartaoTeste` | a espera por trava tem teto e ele dispara; a espera que termina antes do teto tem sucesso | Integração |
+
+*(Existem hoje: `SchemaDoCartaoTeste` (escala, `CHECK`, `unique`, enum como texto,
+auditoria), `NomenclaturaDeSchemaTeste`, `CartaoAdaptadorTeste` (inclusive o
+`@Version`), `ExtratoAdaptadorTeste` (inclusive a FK sem cascata) e
+`TravaDeCartaoTeste`. Dependem do consumidor: o documento duplicado e o
+`uk_cartoes_consumidor_tipo`.)*
 
 *(Entram na tabela da seção 14 de [`TESTES.md`](TESTES.md#14-testes-exigidos-pelos-outros-documentos).)*
 

@@ -237,22 +237,34 @@ infraestrutura/                            # implementa as portas de dominio; co
 ├── saude/
 │   └── SaudeDoBancoAdaptador.java         # Connection.isValid(timeout) no DataSource — sem expor internals
 └── persistencia/                          # organizada por agregado (conceito), não por tipo técnico
+    ├── ErroDeTravaNaoDescartaConexao.java # ligada ao pool: estourar a espera por trava não fecha a conexão (qualidade/PERFORMANCE.md §9)
     ├── consumidor/
     │   ├── ConsumidorEntidade.java        # @Entity — package-private: ninguém fora daqui a vê
     │   ├── ConsumidorRepositorioJpa.java  # Spring Data — package-private
     │   ├── ConsumidorMapeador.java        # entidade ⇄ domínio, manual (sem MapStruct)
     │   └── ConsumidorAdaptador.java       # único tipo público: implementa ConsumidorPorta
-    ├── cartao/
-    │   ├── CartaoEntidade.java            # unique(numero), @Version
-    │   ├── CartaoRepositorioJpa.java      # consultas com @Lock(PESSIMISTIC_WRITE)
-    │   ├── CartaoMapeador.java
-    │   └── CartaoAdaptador.java           # implementa CartaoPorta
-    └── extrato/
-        ├── ExtratoEntidade.java
+    └── cartao/                            # o cartão e o seu extrato: a FK exige que as entidades se vejam
+        ├── CartaoEntidade.java            # unique(numero), @Version, @Check(saldo >= 0), auditoria
+        ├── ExtratoEntidade.java           # imutável: sem versão e sem data de atualização
+        ├── CartaoRepositorioJpa.java      # consulta com @Lock(PESSIMISTIC_WRITE); só JPQL
         ├── ExtratoRepositorioJpa.java
-        ├── ExtratoMapeador.java
-        └── ExtratoAdaptador.java          # implementa ExtratoPorta
+        ├── CartaoDeEntidade.java          # linha → cartão do domínio (função pura, pacote-privada)
+        ├── AtualizadorDeEntidadeDeCartao.java # leva o saldo novo para a linha que já existe
+        ├── EntidadeDeExtrato.java         # extrato do domínio → linha a gravar
+        ├── ComRepositorioDeCartoes.java   # operação-base dos papéis dos adaptadores
+        ├── ComRepositorioDeExtratos.java  # idem, para o extrato
+        ├── BuscaDeCartaoNoBanco.java      # papel: busca travando para escrever
+        ├── GravacaoDeCartaoNoBanco.java   # papel: atualiza o saldo de um cartão que existe
+        ├── RegistroDeExtratoNoBanco.java  # papel: só insere
+        ├── CartaoAdaptador.java           # único tipo público do cartão: implementa CartaoPorta
+        └── ExtratoAdaptador.java          # único tipo público do extrato: implementa ExtratoPorta
 ```
+
+> **O extrato mora no pacote do cartão**, e não num pacote próprio: a chave
+> estrangeira `fk_extratos_cartoes` exige que `ExtratoEntidade` enxergue
+> `CartaoEntidade`, e as duas são pacote-privadas. O mapeador manual é uma
+> peça por direção (`CartaoDeEntidade`, `AtualizadorDeEntidadeDeCartao`,
+> `EntidadeDeExtrato`), como o resto do projeto.
 
 ### `…consumerpat.api`
 
@@ -285,7 +297,8 @@ api/                                       # composition root — único lugar q
 │   ├── FiltroDeCorrelacao.java            # Servlet Filter: gera/aceita idRequisicao, popula o MDC (única classe fora de infraestrutura.log com org.slf4j — só MDC)
 │   └── FiltroDeLogDeConclusao.java        # Servlet Filter: status e duração, com o id da correlação
 └── configuracao/                          # ÚNICO lugar com @Bean e que importa infraestrutura
-    ├── ConfiguracaoDePortas.java          # instancia adaptadores concretos
+    ├── ConfiguracaoDePortas.java          # importa os adaptadores concretos (@Import): só nomeia quais existem
+    ├── ConfiguracaoDeRelogio.java         # o único Clock: de parede, em UTC
     ├── ConfiguracaoDeCasosDeUso.java      # instancia casos de uso com as portas injetadas e o Clock (Clock.systemUTC())
     ├── ConfiguracaoDeAuditoria.java       # @EnableJpaAuditing com o Clock do domínio (qualidade/BANCO.md §6)
     ├── ConfiguracaoDeFiltros.java         # registra os filtros na ordem do contrato (qualidade/API.md §4)
@@ -773,22 +786,25 @@ da API instancia serviços concretos diretamente.
 ```java
 // api/configuracao/ConfiguracaoDePortas.java — composition root
 @Configuration
+@Import({ CartaoAdaptador.class, ExtratoAdaptador.class })
 public class ConfiguracaoDePortas {
-
-    @Bean
-    CartaoPorta cartaoPorta(CartaoRepositorioJpa repositorio) {
-        return new CartaoAdaptador(repositorio);
-    }
-    // ...
+    // só nomeia os adaptadores; o Spring injeta os repositórios de dentro do pacote
 }
 ```
+
+> **Por que `@Import`, e não um método `@Bean`:** o repositório do Spring Data é
+> pacote-privado, e uma classe da API não pode nem escrever o tipo dele no
+> parâmetro de um `@Bean`. Importar a classe do adaptador, que é pública, deixa a
+> API decidir **quais** adaptadores existem sem enxergar o que eles recebem. O
+> construtor do adaptador é pacote-privado, e o Spring o chama mesmo assim.
 
 Regras decorrentes, que diferem do uso comum de Spring:
 
 - **Nenhum `@Component`, `@Service` ou `@Repository` em `dominio`,
   `aplicacao` ou `infraestrutura`.** Estereótipo de classe faz o Spring
   instanciá-la por varredura — o oposto de "só a composition root
-  compõe". Bean nasce de método `@Bean` em `api.configuracao`.
+  compõe". Bean nasce de método `@Bean`, ou de `@Import` de uma classe, em
+  `api.configuracao`.
 - **Exceção:** interfaces Spring Data (`*RepositorioJpa`) são descobertas
   pelo framework e geradas em runtime — não há classe nossa para anotar.
 - **Injeção por construtor**, nunca `@Autowired` em campo.

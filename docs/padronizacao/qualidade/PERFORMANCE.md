@@ -475,9 +475,9 @@ declarados — o padrão da ferramenta não é aceito por omissão.
 | Fronteira | Limite | Onde se decide |
 |---|---|---|
 | Obter conexão do pool | `spring.datasource.hikari.connection-timeout` (padrão 30 s — **longo demais**) e `maximum-pool-size` | `application.yml` |
-| Espera por lock pessimista | dica `javax.persistence.lock.timeout` (ms) nas consultas travadas | `@QueryHints` no `CartaoRepositorioJpa` |
+| Espera por lock pessimista | no H2, o parâmetro `LOCK_TIMEOUT` (ms) da URL; a dica `javax.persistence.lock.timeout` **é ignorada pelo H2** (ver a nota abaixo) | `spring.datasource.url` |
 | Duração de transação | `@Transactional(timeout = …)` (segundos) | caso de uso |
-| Execução de consulta | dica `javax.persistence.query.timeout` | `@QueryHints` ou propriedade do JPA |
+| Execução de consulta | dica `javax.persistence.query.timeout` — **a validar**, como a de trava | `@QueryHints` ou propriedade do JPA |
 | Listagem (`tamanhoPagina`) | teto 100, validado com `@Max` | [`API.md`](API.md#9-paginação-filtros-e-ordenação) |
 | Tamanho de cada campo de texto | `@Size(max = …)` nas `Mensagem*` | Bean Validation |
 | Corpo da requisição | **sem propriedade nativa para JSON** no Spring MVC — o teto prático é o `@Size` de cada campo e o limite do servidor/proxy à frente | validar ao implementar |
@@ -487,18 +487,31 @@ declarados — o padrão da ferramenta não é aceito por omissão.
 # application.yml — pontos de partida; decidir com medição (seção 8)
 spring:
   datasource:
+    url: jdbc:h2:mem:consumer-pat;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=3000   # ms — MENOR que a espera por conexão
     hikari:
       connection-timeout: 5000        # ms — o padrão de 30 s só adia o esgotamento do pool
       maximum-pool-size: 10
-  jpa:
-    properties:
-      javax.persistence.lock.timeout: 3000     # ms — MENOR que a espera por conexão (seção 7)
-      javax.persistence.query.timeout: 5000
+      exception-override-class-name:  # estourar a trava não pode descartar a conexão (nota abaixo)
+        br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.ErroDeTravaNaoDescartaConexao
 ```
 
-> **Validar:** que o dialeto H2 respeita as dicas de timeout de lock e de
-> consulta — algumas combinações driver/dialeto as ignoram em silêncio.
-> Um timeout que não dispara não é um timeout.
+> **Validado, e a suposição estava errada.** Com o H2 2.1 e o Hibernate 5.6, a
+> dica `javax.persistence.lock.timeout` é ignorada **em silêncio**, tanto como
+> propriedade global quanto como `@QueryHints` na consulta: a espera por uma
+> trava seguiu o padrão do H2, de 4 segundos, com o teto configurado em 500 ms.
+> O que funciona é o parâmetro `LOCK_TIMEOUT` da URL. Um timeout que não dispara
+> não é um timeout, e o teste de trava existe para não deixar a configuração
+> ser decorativa.
+>
+> **Segunda armadilha:** o estouro da trava chega do H2 com o estado `HYT00`, e o
+> Hikari o trata como conexão quebrada: fecha a conexão, o *rollback* seguinte
+> falha com "Connection is closed" e o Spring devolve essa falha no lugar da
+> exceção de trava. `ErroDeTravaNaoDescartaConexao` diz ao pool que esse código
+> não estraga a conexão, e a exceção chega como `PessimisticLockingFailureException`.
+>
+> **Ainda não validado:** o teto de execução de consulta
+> (`javax.persistence.query.timeout`). Não está configurado: configurá-lo sem
+> prova repetiria o erro acima.
 
 **Regras:**
 

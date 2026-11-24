@@ -432,11 +432,13 @@ public final class AusenciaComoErro {
 
 ```java
 // CORRETO — propagação explícita, linha reta: cada etapa só roda se a anterior teve sucesso
-public Resultado<DtoComprovante, ErroDominio> registrar(DtoCompra compra) {
-    return TipoCartaoDoEstabelecimento.converter(compra.tipoEstabelecimento())
-        .encadear(tipo -> cartaoPorta.buscarPorNumeroETipoParaAtualizacao(compra.numeroCartao(), tipo)
-            .encadear(cartao -> cartao.debitar(tipo.valorCobrado(compra.valor())))
-            .mapear(cartaoDebitado -> concluir(cartaoDebitado, compra)));
+public Resultado<DtoComprovanteCompra, ErroDominio> registrar(DtoCompra compra) {
+    var cobrado = compra.tipo().valorCobrado(compra.valor());
+    var extrato = ExtratoDaCompra.montar(compra, cobrado, relogio.instant());
+    return cartaoPorta.buscarPorNumeroETipoParaAtualizacao(compra.numeroCartao(), compra.tipo())
+        .encadear(cartao -> cartao.debitar(cobrado))
+        .mapear(debitado -> gravador.gravar(debitado, extrato))
+        .mapear(gravado -> ComprovanteDaCompra.montar(extrato, gravado));
 }
 
 // ERRADO — exceção genérica como controle de fluxo de domínio corrente:

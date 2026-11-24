@@ -6,8 +6,8 @@ package br.com.alelo.consumer.consumerpat.dominio.erros;
 public interface ComMensagem {
 
     /**
-     * Texto para uma pessoa ler. Nunca contém dado sensível por inteiro: o que
-     * for identificador (como número de cartão) aparece mascarado.
+     * Texto para uma pessoa ler. Nunca contém dado sensível por inteiro: o que for identificador
+     * (como número de cartão) aparece mascarado.
      *
      * @return a explicação do erro
      */

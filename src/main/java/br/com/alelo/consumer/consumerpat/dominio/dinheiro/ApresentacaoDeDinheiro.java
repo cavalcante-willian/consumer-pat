@@ -7,13 +7,10 @@ import java.math.RoundingMode;
  * Apresenta uma quantia em centavos.
  *
  * <p>
- * Fica fora do {@link Dinheiro} porque a apresentação muda por razões que o
- * valor não tem: o
- * modo de arredondar é decisão de quem mostra, e não de quem guarda. O modo é
- * obrigatório, sem
- * padrão, porque {@code HALF_UP} e {@code HALF_EVEN} dão resultados diferentes
- * em 29,985, e deixar
- * um deles implícito seria decidir sem perceber.
+ * Fica fora do {@link Dinheiro} porque a apresentação muda por razões que o valor não tem: o modo
+ * de arredondar é decisão de quem mostra, e não de quem guarda. O modo é obrigatório, sem padrão,
+ * porque {@code HALF_UP} e {@code HALF_EVEN} dão resultados diferentes em 29,985, e deixar um deles
+ * implícito seria decidir sem perceber.
  */
 public final class ApresentacaoDeDinheiro {
 

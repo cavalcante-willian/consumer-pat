@@ -4,10 +4,8 @@ package br.com.alelo.consumer.consumerpat.dominio.erros;
  * Natureza de uma falha de negócio, com o status HTTP que ela produz.
  *
  * <p>
- * O status é dado da categoria: escolhê-lo é consultar o enum, e não ramificar
- * sobre o tipo do
- * erro. Uma categoria só existe quando há um erro concreto que a use; as demais
- * entram com o
+ * O status é dado da categoria: escolhê-lo é consultar o enum, e não ramificar sobre o tipo do
+ * erro. Uma categoria só existe quando há um erro concreto que a use; as demais entram com o
  * primeiro caso de uso que as produz.
  */
 public enum CategoriaErro {

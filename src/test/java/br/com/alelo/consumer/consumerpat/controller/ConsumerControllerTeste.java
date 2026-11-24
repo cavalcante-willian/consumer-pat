@@ -12,7 +12,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -131,7 +130,7 @@ class ConsumerControllerTeste {
 
         var lancamentos = extratos.findAll().stream()
             .filter(e -> e.getCardNumber() == cartao)
-            .collect(Collectors.toList());
+            .toList();
         assertThat(lancamentos).hasSize(1);
         assertThat(lancamentos.get(0).getAmount()).isEqualTo(90.0);
     }
@@ -174,7 +173,7 @@ class ConsumerControllerTeste {
 
         var cadastrado = consumidores.findAll().stream()
             .filter(c -> c.getDocumentNumber() == documento)
-            .collect(Collectors.toList());
+            .toList();
         assertThat(cadastrado).hasSize(1);
         assertThat(cadastrado.get(0).getName()).isEqualTo("Cadastrado " + documento);
         assertThat(cadastrado.get(0).getCity()).isEqualTo("São Paulo");
@@ -192,12 +191,12 @@ class ConsumerControllerTeste {
     @Test
     void deve_atualizar_os_dados_cadastrais_quando_atualizar() throws Exception {
         var consumidor = consumidorComSaldoEmTodosOsCartoes(200.0);
-        var json = String.format(
-            "{\"id\": %d, \"name\": \"Nome novo\", \"documentNumber\": %d,"
-                + " \"foodCardNumber\": %d, \"foodCardBalance\": 200.0,"
-                + " \"fuelCardNumber\": %d, \"fuelCardBalance\": 200.0,"
-                + " \"drugstoreNumber\": %d, \"drugstoreCardBalance\": 200.0}",
-            consumidor.getId(), consumidor.getDocumentNumber(), consumidor.getFoodCardNumber(),
+        var json = """
+            {"id": %d, "name": "Nome novo", "documentNumber": %d,
+             "foodCardNumber": %d, "foodCardBalance": 200.0,
+             "fuelCardNumber": %d, "fuelCardBalance": 200.0,
+             "drugstoreNumber": %d, "drugstoreCardBalance": 200.0}
+            """.formatted(consumidor.getId(), consumidor.getDocumentNumber(), consumidor.getFoodCardNumber(),
             consumidor.getFuelCardNumber(), consumidor.getDrugstoreNumber());
 
         mockMvc.perform(post("/consumer/updateConsumer").contentType("application/json").content(json))
@@ -259,12 +258,12 @@ class ConsumerControllerTeste {
         + "a regra 'não deve ser possível alterar o saldo do cartão'. Habilitar no commit que corrige.")
     void deve_preservar_o_saldo_quando_atualizar_dados_cadastrais() throws Exception {
         var consumidor = consumidorComSaldoEmTodosOsCartoes(200.0);
-        var json = String.format(
-            "{\"id\": %d, \"name\": \"Nome novo\", \"documentNumber\": %d,"
-                + " \"foodCardNumber\": %d, \"foodCardBalance\": 999999.0,"
-                + " \"fuelCardNumber\": %d, \"fuelCardBalance\": 999999.0,"
-                + " \"drugstoreNumber\": %d, \"drugstoreCardBalance\": 999999.0}",
-            consumidor.getId(), consumidor.getDocumentNumber(), consumidor.getFoodCardNumber(),
+        var json = """
+            {"id": %d, "name": "Nome novo", "documentNumber": %d,
+             "foodCardNumber": %d, "foodCardBalance": 999999.0,
+             "fuelCardNumber": %d, "fuelCardBalance": 999999.0,
+             "drugstoreNumber": %d, "drugstoreCardBalance": 999999.0}
+            """.formatted(consumidor.getId(), consumidor.getDocumentNumber(), consumidor.getFoodCardNumber(),
             consumidor.getFuelCardNumber(), consumidor.getDrugstoreNumber());
 
         mockMvc.perform(post("/consumer/updateConsumer").contentType("application/json").content(json)).andReturn();

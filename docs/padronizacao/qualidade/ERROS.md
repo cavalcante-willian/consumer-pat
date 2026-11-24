@@ -82,14 +82,22 @@ Erros são organizados por **categoria de falha** — não por camada técnica.
 cada caso concreto é um `record` nomeado pela situação que ocorreu.
 
 ```java
-// dominio/erros/ErroDominio.java — contrato mínimo de todo erro de domínio
-public interface ErroDominio {
-    CategoriaErro categoria();
-    String codigo();       // ver seção 8
-    String mensagem();     // texto para humano; nunca com dado sensível completo
+// dominio/erros/ErroDominio.java — contrato mínimo de todo erro de domínio: só compõe os papéis,
+// cada um em seu arquivo (uma peça por arquivo, ver ESTRUTURA.md)
+public interface ErroDominio extends ComCategoria, ComCodigo, ComMensagem, ComCamposComErro { }
 
-    /** Campos da fronteira a que o erro se refere (corpo `errors` do 400); vazio quando não há campo. */
-    default Map<String, List<String>> camposComErro() { return Map.of(); }   // VALIDACAO.md §3
+// dominio/erros/ComCategoria.java
+public interface ComCategoria { CategoriaErro categoria(); }
+
+// dominio/erros/ComCodigo.java
+public interface ComCodigo { String codigo(); }       // ver seção 8
+
+// dominio/erros/ComMensagem.java
+public interface ComMensagem { String mensagem(); }   // texto para humano; nunca com dado sensível completo
+
+// dominio/erros/ComCamposComErro.java — campos da fronteira a que o erro se refere (corpo `errors` do 400)
+public interface ComCamposComErro {
+    default Map<String, List<String>> camposComErro() { return Map.of(); }   // vazio quando não há campo; VALIDACAO.md §3
 }
 
 // dominio/erros/naoencontrado/ErroNaoEncontrado.java — a categoria dá o status uma vez só
@@ -181,9 +189,9 @@ explícita** e devolve `ErroDominio` — sem exceção, sem `catch`:
 public Resultado<Consumidor, ErroDominio> inserir(Consumidor consumidor) {
     // guard (nível 11): documento duplicado é pré-condição de domínio sim/não
     if (repositorio.existsByDocumento(consumidor.documento()))
-        return Resultado.falha(new ErroDocumentoJaCadastrado(consumidor.documentoMascarado()));
+        return new Falha<>(new ErroDocumentoJaCadastrado(consumidor.documentoMascarado()));
 
-    return Resultado.sucesso(mapeador.paraDominio(repositorio.save(mapeador.paraEntidade(consumidor))));
+    return new Sucesso<>(mapeador.paraDominio(repositorio.save(mapeador.paraEntidade(consumidor))));
 }
 ```
 
@@ -454,7 +462,7 @@ dele.
 |---|---|
 | `ErroDominio` herdando de `Exception`/`RuntimeException` | `record` implementando a interface da categoria — dado puro (seção 2) |
 | Repositório devolvendo `null` para "não encontrado" | `Resultado<T, ErroDominio>` com `ErroNaoEncontrado` (seção 1) |
-| `throw`/`catch` como controle de fluxo de domínio | `Resultado.falha(...)` / `.resolver(...)` (seção 1) |
+| `throw`/`catch` como controle de fluxo de domínio | `new Falha<>(...)` / `.resolver(...)` (seção 1) |
 | `catch (Exception)` / `Throwable` / `RuntimeException` | Tipo exato; ou `@ExceptionHandler` por tipo; só **uma** última rede (seção 3) |
 | `catch` de exceção de persistência **dentro** de `@Transactional` devolvendo `Falha` | Verificação explícita antes (porta 1) ou deixar subir até o advice (porta 2) |
 | Esperar o banco falhar para descobrir documento duplicado | `existsBy…` antes, com erro tipado; `unique` só como rede de segurança |

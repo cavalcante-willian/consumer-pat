@@ -204,15 +204,21 @@ aplicacao/                                 # depende só de dominio (+ @Transact
 │   │   ├── ObterConsumidorCaso.java       # leitura por id — alvo do Location do POST
 │   │   └── ListarConsumidoresCaso.java    # paginado
 │   ├── cartao/
-│   │   ├── CreditarCartaoCaso.java
-│   │   └── RegistrarCompraCaso.java       # aplica fator do tipo, debita, grava extrato — uma transação
+│   │   ├── CreditarCartaoCaso.java        # só orquestra: busca travando, credita, grava, monta o comprovante
+│   │   ├── ComprovanteDoCredito.java      # como o crédito vira comprovante (função pura)
+│   │   ├── RegistrarCompraCaso.java       # só orquestra: aplica o fator do tipo, debita, grava — uma transação
+│   │   ├── ExtratoDaCompra.java           # como o pedido vira extrato (função pura; o instante entra como argumento)
+│   │   ├── ComprovanteDaCompra.java       # como o extrato e o cartão viram comprovante (função pura)
+│   │   └── GravadorDaCompra.java          # o que uma compra grava: o cartão debitado e o extrato
 │   └── saude/
 │       └── ConsultarSaudeCaso.java        # consulta a SaudePorta; o controller nunca toca o DataSource
 └── dtos/                                  # transferência interna entre camadas (nunca fronteira REST)
     ├── DtoDadosCadastrais.java
     ├── DtoNovoConsumidor.java
-    ├── DtoCompra.java
-    └── DtoComprovanteCompra.java
+    ├── DtoCompra.java                     # entrada já com os tipos do domínio: a borda converte antes
+    ├── DtoComprovanteCompra.java
+    ├── DtoCredito.java
+    └── DtoComprovanteCredito.java
 ```
 
 > Não há pasta `validadores/` aqui: a validação
@@ -306,13 +312,28 @@ src/test/java/…consumerpat/                # espelha produção, pacote a paco
 │   │   └── consumidor/
 │   │       └── AtualizarConsumidorCasoTeste.java   # saldo preservado
 │   └── fakes/                             # fakes de porta — vivem aqui, nunca em src/main
-│       ├── CartaoPortaFake.java           # mapa em memória, sem banco; obedece o contrato da porta (ausência → Falha)
+│       ├── CartaoPortaFake.java           # só guarda a memória e declara os papéis; obedece o contrato da porta (ausência → Falha)
+│       ├── CartoesEmMemoria.java          # o estado compartilhado: os cartões e, à parte, as gravações
+│       ├── ChaveDeCartao.java             # record (número, tipo): a chave do mapa, e não um texto concatenado
+│       ├── ComCartoesEmMemoria.java       # operação-base dos papéis do fake: memoria()
+│       ├── BuscaDeCartaoEmMemoria.java    # papel: a busca da porta
+│       ├── GravacaoDeCartaoEmMemoria.java # papel: a gravação da porta
+│       ├── ConsultaDoEstadoDoCartao.java  # papel só de teste: estado(número, tipo)
+│       ├── ConsultaDasGravacoesDeCartao.java  # papel só de teste: gravados()
 │       ├── ConsumidorPortaFake.java
 │       ├── SaidaDeLogFake.java            # captura eventos e campos: prova "o log não contém o número do cartão"
 │       ├── SaudePortaFake.java            # força SAUDAVEL/DEGRADADO no contrato do /api/v1/saude
-│       └── ExtratoPortaFake.java
+│       ├── ExtratoPortaFake.java          # só guarda a lista e declara os papéis
+│       ├── ComExtratosEmMemoria.java      # operação-base dos papéis do fake: extratosEmMemoria()
+│       ├── RegistroDeExtratoEmMemoria.java    # papel: registrar, só acrescenta
+│       └── ConsultaDosExtratosRegistrados.java    # papel só de teste: registrados()
 ├── fabricas/                              # fixtures programáticas — valores válidos por padrão, com*() para variar
-│   ├── FabricaDeCartoes.java              # número único por sequência (AtomicLong): testes nunca colidem no unique
+│   ├── FabricaDeCartoes.java              # ponto de partida: doTipo(tipo), com número e saldo padrão
+│   ├── ModeloDeCartao.java                # record imutável (tipo, número, saldo); só declara os papéis abaixo
+│   ├── ComDadosDeCartao.java              # operação-base dos papéis: tipo(), numero(), saldo()
+│   ├── ComSaldoTrocavel.java              # papel: comSaldo(...)
+│   ├── ComNumeroTrocavel.java             # papel: comNumero(...)
+│   ├── CartaoConstruivel.java             # papel: construir() — falha aqui se o número ou o saldo forem inválidos
 │   ├── FabricaDeConsumidores.java
 │   └── FabricaDeCompras.java
 ├── infraestrutura/
@@ -423,7 +444,8 @@ porta serve:
 ```text
 src/test/java/…consumerpat/aplicacao/fakes/
 ├── CartaoPortaFake.java           # implementa CartaoPorta com mapa em memória
-└── ExtratoPortaFake.java
+├── ExtratoPortaFake.java
+└── …                              # os papéis de cada fake, cada um em seu arquivo (árvore completa acima)
 ```
 
 Regras:
@@ -520,6 +542,19 @@ dominio/resultado/Sucesso.java          → a variante de sucesso (só `resolver
 dominio/resultado/Falha.java            → a variante de falha (só `resolver`)
 dominio/resultado/AusenciaComoErro.java → converter ausência em erro
 ```
+
+**Em `src/main`, nenhum método privado ou protegido: tudo é alcançável por
+teste.** Marcar um método como privado não dá direito de coabitação: o que seria
+"um detalhe do caso de uso" é uma segunda razão de mudar escondida no mesmo
+arquivo, e, por ser privado, só se testa pelo caminho de fora, com os testes mais
+limitados do que seriam se a peça fosse pública. Quando um método privado parece
+necessário, ele é uma peça: ganha arquivo próprio, público, com teste (foi o que
+aconteceu com o que cada caso de uso de compra e de crédito gravava e com a montagem
+do comprovante). O que fica privado são os campos e os construtores de classes
+utilitárias, que não têm lógica. A regra vale para `src/main`, e não para `src/test`:
+o código de teste não tem teste, e exigir um seria um laço sem fim. Ainda assim,
+fakes e fábricas de teste seguem a mesma estrutura de papéis, porque evoluem como o
+código de produção.
 
 **Como se faz em Java sem perder a API fluente (`a.mais(b)`):** cada operação é
 um papel (`interface`) com **método `default`**, escrito em cima de uma única
@@ -682,9 +717,10 @@ retornando `Resultado<T, E>`.
 // aplicacao/casosdeuso/cartao/RegistrarCompraCaso.java
 public class RegistrarCompraCaso {            // não é final — ver nota abaixo
     private final CartaoPorta cartaoPorta;
-    private final ExtratoPorta extratoPorta;
+    private final GravadorDaCompra gravador;   // o que a compra grava mora numa peça própria
+    private final Clock relogio;
 
-    public RegistrarCompraCaso(CartaoPorta cartaoPorta, ExtratoPorta extratoPorta) { /* ... */ }
+    public RegistrarCompraCaso(CartaoPorta cartaoPorta, GravadorDaCompra gravador, Clock relogio) { /* ... */ }
 
     @Transactional
     public Resultado<DtoComprovanteCompra, ErroDominio> registrar(DtoCompra compra) { /* ... */ }

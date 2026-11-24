@@ -376,7 +376,7 @@ importa o suficiente para ser verificado, ele vira um teste real em
 ```java
 /**
  * <pre>{@code
- * var comprovante = caso.registrar(new DtoCompra(1, "Mercado", "123", "Arroz", new BigDecimal("100.00")));
+ * var comprovante = caso.registrar(new DtoCompra(TipoCartao.ALIMENTACAO, "Mercado", numero, "Arroz", dinheiro));
  * // valor debitado: 90.00 (10% de desconto no cartão de alimentação)
  * // casos de borda cobertos em: RegistrarCompraCasoTeste#deve_aplicar_desconto_quando_cartao_de_alimentacao
  * }</pre>

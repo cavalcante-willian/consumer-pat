@@ -183,10 +183,10 @@ class CartaoAdaptadorTeste {
     void deve_recusar_numero_duplicado_quando_gravar_dois_cartoes_com_o_mesmo_numero() {
         // Preparar
         var adaptador = new CartaoAdaptador(repositorio);
-        adaptador.inserir(FabricaDeCartoes.alimentacao().comNumero("5555000011112222").construir());
+        adaptador.inserir(FabricaDeCartoes.doTipo(TipoCartao.ALIMENTACAO).comNumero("5555000011112222").construir());
 
         // Agir + Verificar — a restrição unique é o que o banco, e só ele, garante
-        assertThatThrownBy(() -> adaptador.inserir(FabricaDeCartoes.farmacia().comNumero("5555000011112222").construir()))
+        assertThatThrownBy(() -> adaptador.inserir(FabricaDeCartoes.doTipo(TipoCartao.FARMACIA).comNumero("5555000011112222").construir()))
             .isInstanceOf(DataIntegrityViolationException.class);
     }
 }
@@ -315,7 +315,7 @@ produção.
 
 ```java
 // CORRETO — a fábrica tem valores válidos por padrão; o teste declara só a diferença
-var cartao = FabricaDeCartoes.alimentacao().comSaldo("50.00").construir();
+var cartao = FabricaDeCartoes.doTipo(TipoCartao.ALIMENTACAO).comSaldo("50.00").construir();
 
 // ERRADO — fixture misteriosa vinda de fora
 var cartao = carregarJson("cartao-valido.json");   // de onde veio? o que contém?
@@ -326,9 +326,12 @@ var cartao = carregarJson("cartao-valido.json");   // de onde veio? o que conté
 - **Fábricas em `src/test`** (`FabricaDeCartoes`, `FabricaDeConsumidores`,
   `FabricaDeCompras`), com **método `com*`** para sobrescrever só o que
   importa ao cenário: o teste declara a diferença, o resto vem preenchido.
-- **Números únicos por padrão.** A fábrica de cartão gera o número de uma
-  sequência (`AtomicLong`) — dois testes nunca colidem no `unique`, o que
-  sustenta o isolamento da seção 4.
+- **Números únicos por padrão, onde há banco.** Nos testes de persistência a
+  fábrica de cartão gera o número de uma sequência (`AtomicLong`) — dois testes
+  nunca colidem no `unique`, o que sustenta o isolamento da seção 4. Enquanto só
+  há testes com fakes em memória, que não compartilham nada entre si, o número
+  padrão é fixo (`FabricaDeCartoes.NUMERO_PADRAO`), e a sequência chega junto do
+  primeiro teste de persistência.
 - **Dinheiro é construído de `String`** (`new BigDecimal("50.00")`, ou
   `Dinheiro` a partir dele), nunca de `double` — `new BigDecimal(0.1)` carrega
   o erro binário que o `BigDecimal` existe para evitar
@@ -471,8 +474,10 @@ as fases marcadas por comentário em português.
 @Test
 void deve_recusar_a_compra_quando_saldo_insuficiente() {
     // Preparar
-    var cartao = FabricaDeCartoes.alimentacao().comSaldo("50.00").construir();
-    var caso = new RegistrarCompraCaso(new CartaoPortaFake(cartao), new ExtratoPortaFake(), RELOGIO_FIXO);
+    var cartao = FabricaDeCartoes.doTipo(TipoCartao.ALIMENTACAO).comSaldo("50.00").construir();
+    var cartoes = new CartaoPortaFake(cartao);
+    var caso = new RegistrarCompraCaso(cartoes, new GravadorDaCompra(cartoes, new ExtratoPortaFake()),
+        RELOGIO_FIXO);
     var compra = FabricaDeCompras.noValor("100.00").paraOCartao(cartao).construir();
 
     // Agir

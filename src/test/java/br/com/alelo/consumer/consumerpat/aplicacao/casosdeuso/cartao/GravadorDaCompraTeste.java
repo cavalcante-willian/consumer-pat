@@ -48,7 +48,9 @@ class GravadorDaCompraTeste {
     void deve_registrar_o_extrato_quando_gravar_a_compra() {
         // Preparar
         var extratos = new ExtratoPortaFake();
-        var gravador = new GravadorDaCompra(new CartaoPortaFake(), extratos);
+        var gravador = new GravadorDaCompra(
+                new CartaoPortaFake(FabricaDeCartoes.doTipo(TipoCartao.ALIMENTACAO).construir()),
+                extratos);
 
         // Agir
         gravador.gravar(FabricaDeCartoes.doTipo(TipoCartao.ALIMENTACAO).construir(), extrato());
@@ -60,7 +62,9 @@ class GravadorDaCompraTeste {
     @Test
     void deve_devolver_o_cartao_como_ficou_gravado_quando_gravar_a_compra() {
         // Preparar
-        var gravador = new GravadorDaCompra(new CartaoPortaFake(), new ExtratoPortaFake());
+        var gravador = new GravadorDaCompra(
+                new CartaoPortaFake(FabricaDeCartoes.doTipo(TipoCartao.ALIMENTACAO).construir()),
+                new ExtratoPortaFake());
         var debitado = FabricaDeCartoes.doTipo(TipoCartao.ALIMENTACAO).comSaldo("10.00")
                 .construir();
 

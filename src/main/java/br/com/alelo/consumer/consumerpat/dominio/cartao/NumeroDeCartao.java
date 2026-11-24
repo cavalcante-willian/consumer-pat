@@ -11,8 +11,8 @@ import java.util.regex.Pattern;
  * Guarda a forma canônica, e é por isso que dois cartões com o mesmo número são o mesmo cartão:
  * {@code 5555 0000 1111 2222} e {@code 5555000011112222} são um número só, e uma restrição de
  * unicidade do banco só funciona se todo número passa pela mesma normalização. Este construtor é
- * para código que já tem o número normalizado; o texto vindo de fora precisa ser normalizado e
- * validado antes, sem lançar exceção.
+ * para código que já tem o número normalizado; o texto vindo de fora passa por
+ * {@link NumeroDeCartaoDeTexto}, que o normaliza e valida sem lançar exceção.
  *
  * <p>
  * É um dado sensível. O {@code toString()} gerado por um {@code record} imprimiria o número por

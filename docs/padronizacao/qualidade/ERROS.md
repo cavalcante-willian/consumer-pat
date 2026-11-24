@@ -220,7 +220,15 @@ exato**:
 | `PessimisticLockingFailureException` | 409 (tente novamente) | `CPT-CNF-SIS-002` |
 | `MethodArgumentNotValidException`, `ConstraintViolationException`, `HttpMessageNotReadableException` | 400 | `CPT-VAL-SIS-001` |
 | `NoHandlerFoundException` | 404 | `CPT-NEN-SIS-001` |
-| `HttpRequestMethodNotSupportedException` | 405 | `CPT-VAL-SIS-002` |
+| `HttpRequestMethodNotSupportedException` | 405 (com `Allow`) | `CPT-VAL-SIS-002` |
+| `HttpMediaTypeNotSupportedException` | 415 | `CPT-VAL-SIS-003` |
+| `Exception` (o único handler que a captura) | 500, sem a causa no corpo | `CPT-INT-SIS-001` |
+
+Cada linha é um papel em `api.comum.tratamento` (`TraducaoDe*`), e
+`FiltroDeProblemaDeApi` só os declara. O texto das bibliotecas nunca chega
+ao cliente: os campos do 400 vêm de `api.comum.campos`, que dá só o nome do
+campo do JSON e uma mensagem em português. O `DataIntegrityViolationException`
+só ganha handler junto com o consumidor, que é quem tem unicidade a violar.
 
 ```java
 // CORRETO — um handler por tipo exato; converte, loga com contexto e causa, não vaza internals
@@ -306,7 +314,7 @@ controller nem `status` escolhido dentro de cada um. A tabela completa vive
 em [`API.md`](API.md#3-erro-padronizado-rfc-7807).
 
 ```java
-// api/comum/RespostaDeResultado.java — o único ponto que traduz domínio em HTTP
+// api/comum/resposta/RespostaDeResultado.java — o único ponto que traduz domínio em HTTP
 public static <T> ResponseEntity<Object> responder(
         Resultado<T, ErroDominio> resultado, Function<T, ?> paraMensagem, HttpStatus aoSucesso) {
 
@@ -410,14 +418,16 @@ public record ErroSaldoInsuficiente(Dinheiro saldo, Dinheiro valor)
 ```
 
 Os problemas de **borda** (que não passam por `ErroDominio`) são **dado** de
-um `enum` em `api.comum` (nível 1 de `CONDICIONAIS.md`): código, título e
-status juntos, de modo que esquecer um deles não compila.
+um `enum` em `api.comum.problema` (nível 1 de `CONDICIONAIS.md`): código,
+título e status juntos, de modo que esquecer um deles não compila.
 
 ```java
 public enum ProblemaDeBorda {
     ENTRADA_INVALIDA("CPT-VAL-SIS-001", "Entrada inválida", 400),
-    CONFLITO_DE_PERSISTENCIA("CPT-CNF-SIS-001", "Conflito de concorrência", 409),
-    // ...
+    CONFLITO_DE_CONCORRENCIA("CPT-CNF-SIS-001", "Conflito de concorrência", 409),
+    // ... METODO_NAO_SUPORTADO 002/405, MIDIA_NAO_SUPORTADA 003/415,
+    // ROTA_NAO_ENCONTRADA NEN-001/404, RECURSO_EM_USO CNF-002/409,
+    // FALHA_INESPERADA INT-001/500
 }
 ```
 

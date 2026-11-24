@@ -279,20 +279,37 @@ api/                                       # composition root — único lugar q
 │   ├── MensagemConsumidor.java            # saída do detalhe (inclui cartões)
 │   ├── MensagemResumoConsumidor.java      # saída da listagem: id e nome
 │   └── MensagemCartao.java
-├── cartao/
-│   ├── CartaoController.java              # crédito e compra — POST, nunca GET
-│   ├── MensagemCreditarCartao.java
-│   ├── MensagemRegistrarCompra.java
-│   └── MensagemComprovanteCompra.java
+├── cartao/                                # um subpacote por operação: tudo de um endpoint junto
+│   ├── compra/                            # POST /api/v1/compras
+│   │   ├── CompraController.java          # fino; o status sai de RespostaDeResultado
+│   │   ├── MensagemRegistrarCompra.java   # entrada, com Bean Validation
+│   │   ├── MensagemComprovanteCompra.java # saída: número mascarado, dinheiro em texto
+│   │   ├── CompraDaMensagem.java          # mensagem → DtoCompra, com as leituras do domínio
+│   │   └── ComprovanteDaCompraEmMensagem.java
+│   └── credito/                           # POST /api/v1/creditos, com as mesmas cinco peças
 ├── saude/
 │   ├── SaudeController.java               # GET /api/v1/saude — 200 saudável, 503 degradado
 │   └── MensagemSaude.java
-├── comum/
+├── comum/                                 # dividido pelo que muda junto
+│   ├── problema/
+│   │   ├── MensagemProblema.java          # corpo de erro RFC 7807 (Spring 5 não tem ProblemDetail) — ver qualidade/API.md §3
+│   │   ├── ProblemaDeBorda.java           # enum: código + título + status dos erros que não passam por ErroDominio — ERROS.md §8
+│   │   ├── TituloDaCategoria.java         # categoria → título (EnumMap)
+│   │   ├── ProblemaDeErroDeDominio.java   # ErroDominio → MensagemProblema
+│   │   └── ProblemaDeBordaEmMensagem.java # ProblemaDeBorda → MensagemProblema
+│   ├── resposta/
+│   │   ├── RespostaDeResultado.java       # Resultado<T, ErroDominio> → ResponseEntity (categoria → status)
+│   │   └── RespostaDeProblema.java        # MensagemProblema → ResponseEntity application/problem+json
+│   ├── campos/                            # o que o framework diz de entrada ruim → campos com erro
+│   │   ├── ErrosDeCampoDeValidacao.java
+│   │   ├── ErrosDeCampoDoCorpo.java
+│   │   ├── TradutoresDoCorpo.java         # registro causa → tradutor (nível 7 de CONDICIONAIS.md)
+│   │   ├── TradutorDeCausa.java
+│   │   └── NomeDoCampoDoJackson.java
+│   ├── tratamento/
+│   │   ├── FiltroDeProblemaDeApi.java     # @RestControllerAdvice: só declara os papéis
+│   │   └── TraducaoDe*.java               # um papel por exceção, com o @ExceptionHandler num default
 │   ├── MensagemPagina.java
-│   ├── MensagemProblema.java              # corpo de erro RFC 7807 (Spring 5 não tem ProblemDetail) — ver qualidade/API.md §3
-│   ├── ProblemaDeBorda.java               # enum: código + título + status dos erros que não passam por ErroDominio — ERROS.md §8
-│   ├── FiltroDeProblemaDeApi.java         # @RestControllerAdvice: exceção de borda → MensagemProblema
-│   ├── RespostaDeResultado.java           # Resultado<T, ErroDominio> → ResponseEntity (categoria → status)
 │   ├── FiltroDeCabecalhosDeSeguranca.java # Servlet Filter mais externo, só /api/*: nosniff, frame, CSP — qualidade/SEGURANCA.md §6
 │   ├── FiltroDeCorrelacao.java            # Servlet Filter: gera/aceita idRequisicao, popula o MDC (única classe fora de infraestrutura.log com org.slf4j — só MDC)
 │   └── FiltroDeLogDeConclusao.java        # Servlet Filter: status e duração, com o id da correlação
@@ -934,9 +951,9 @@ Entidade JPA                      -> infraestrutura/persistencia/{agregado}/   (
 Repositório Spring Data           -> infraestrutura/persistencia/{agregado}/   (package-private)
 Mapeador entidade ⇄ domínio       -> infraestrutura/persistencia/{agregado}/
 Implementação de porta            -> infraestrutura/persistencia/{agregado}/   (único tipo público)
-Mensagem REST (fronteira)         -> api/{conceito}/   ou   api/comum/
-Controller                        -> api/{conceito}/
-Filtro / tradução de erro REST    -> api/comum/
+Mensagem REST (fronteira)         -> api/{conceito}/{operacao}/   ou   api/comum/{papel}/
+Controller                        -> api/{conceito}/{operacao}/
+Filtro / tradução de erro REST    -> api/comum/tratamento/   (corpo: api/comum/problema/)
 Composition root                  -> api/configuracao/   (só composição)
 Fake de porta (só teste)          -> src/test/.../aplicacao/fakes/
 Teste unitário/integração         -> src/test/... espelhando a produção

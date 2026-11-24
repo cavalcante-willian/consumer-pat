@@ -163,7 +163,7 @@ exceção crua, página HTML de erro, o JSON padrão do Spring
 endpoint.
 
 O Spring Boot 2.7 **não traz** esse tipo pronto; ele é a `record`
-`MensagemProblema`, em `api.comum` (ver `ESTRUTURA.md`):
+`MensagemProblema`, em `api.comum.problema` (ver `ESTRUTURA.md`):
 
 ```java
 /**

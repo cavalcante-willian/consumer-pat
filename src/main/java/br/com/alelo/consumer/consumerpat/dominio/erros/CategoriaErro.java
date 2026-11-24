@@ -17,7 +17,10 @@ public enum CategoriaErro {
     REGRA_DE_NEGOCIO(422),
 
     /** A entrada é válida, mas o que ela nomeia não existe. */
-    NAO_ENCONTRADO(404);
+    NAO_ENCONTRADO(404),
+
+    /** A entrada é válida, mas colide com o que já existe ou com uma escrita anterior. */
+    CONFLITO(409);
 
     private final int statusHttp;
 

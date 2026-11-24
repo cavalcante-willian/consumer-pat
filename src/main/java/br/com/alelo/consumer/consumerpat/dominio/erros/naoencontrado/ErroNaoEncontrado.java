@@ -11,7 +11,8 @@ import br.com.alelo.consumer.consumerpat.dominio.erros.ErroDominio;
  * próprio dela, o código e a mensagem. Como a interface é selada, a lista de variantes é fechada e
  * o compilador, e o teste de códigos, as conhecem.
  */
-public sealed interface ErroNaoEncontrado extends ErroDominio permits ErroCartaoNaoEncontrado {
+public sealed interface ErroNaoEncontrado extends ErroDominio
+        permits ErroCartaoNaoEncontrado, ErroConsumidorNaoEncontrado {
 
     @Override
     default CategoriaErro categoria() {

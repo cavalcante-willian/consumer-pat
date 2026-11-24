@@ -33,7 +33,8 @@ public class Extract {
     @Column
     double amount;
 
-    public Extract(int id, int establishmentNameId, String establishmentName, String productDescription, Date dateBuy, int cardNumber, double amount) {
+    public Extract(int id, int establishmentNameId, String establishmentName,
+            String productDescription, Date dateBuy, int cardNumber, double amount) {
         this.id = id;
         this.establishmentNameId = establishmentNameId;
         this.establishmentName = establishmentName;
@@ -43,14 +44,15 @@ public class Extract {
         this.amount = amount;
     }
 
-    public Extract( String productDescription, Date dateBuy, int cardNumber, double amount) {
+    public Extract(String productDescription, Date dateBuy, int cardNumber, double amount) {
         this.productDescription = productDescription;
         this.dateBuy = dateBuy;
         this.cardNumber = cardNumber;
         this.amount = amount;
     }
 
-    public Extract(String establishmentName, String productDescription, Date dateBuy, int cardNumber, double amount) {
+    public Extract(String establishmentName, String productDescription, Date dateBuy,
+            int cardNumber, double amount) {
         this.establishmentNameId = establishmentNameId;
         this.establishmentName = establishmentName;
         this.productDescription = productDescription;

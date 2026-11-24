@@ -13,14 +13,11 @@ public class OpenApiConfig {
     @Bean
     public OpenAPI openAPI() {
         log.info("starting open-api/swagger...");
-        return new OpenAPI()
-            .info(getInfo());
+        return new OpenAPI().info(getInfo());
     }
 
     private Info getInfo() {
-        return new Info()
-            .title("Consumer Pat")
-            .description("API docs.");
+        return new Info().title("Consumer Pat").description("API docs.");
     }
 
 }

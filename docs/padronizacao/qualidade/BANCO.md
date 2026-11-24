@@ -504,22 +504,23 @@ pela mesma função de normalização** — o que torna o `unique` verdadeiro.
 | Telefone, CEP | só dígitos | a decidir (seção 4) |
 
 ```java
-// dominio/cartao/NumeroDeCartao.java — esboço; validar ao implementar
-public record NumeroDeCartao(String digitos) {
+// dominio/cartao/NumeroDeCartao.java — o tipo guarda o dado e declara o papel
+public record NumeroDeCartao(String digitos) implements Mascaravel {
     public NumeroDeCartao {
-        // chega aqui já normalizado e válido (criar() é o caminho da entrada externa)
-        Objects.requireNonNull(digitos);
+        // chega aqui já normalizado: 13 a 19 dígitos, senão lança (sem `if`, via Optional)
     }
-
-    /** Entrada externa: normaliza (remove espaços e hifens) e valida; nunca lança. */
-    public static Resultado<NumeroDeCartao, ErroDominio> criar(String texto) { /* ... */ }
-
-    public String mascarado() { return "****" + digitos.substring(digitos.length() - 4); }
 
     // o toString gerado do record imprimiria o número completo em qualquer log:
     // sobrescrever fecha esse vazamento na origem (SEGURANCA.md §5)
     @Override public String toString() { return mascarado(); }
 }
+
+// dominio/cartao/Mascaravel.java — a máscara, em arquivo próprio, sobre ComDigitos
+// default String mascarado() → "****" + os 4 últimos dígitos
+
+// dominio/cartao/NumeroDeCartaoDeTexto.java — entrada externa: remove espaços e hifens,
+// valida 13–19 dígitos; devolve Resultado, nunca lança. A falha NÃO ecoa o texto recebido.
+// NumeroDeCartaoDeTexto.converter("5555 0000 1111 2222") → Sucesso(5555000011112222)
 ```
 
 **Consequências:**
@@ -534,7 +535,7 @@ public record NumeroDeCartao(String digitos) {
   ([`VALORES.md`](../codigo/VALORES.md#2-unidades-do-domínio)) — a
   `Mensagem*` valida só o **formato grosseiro** na borda (`@Pattern`).
 - **Dígito verificador** (CPF/CNPJ, Luhn) **não é exigido** nesta entrega;
-  entra no `criar()` se o negócio exigir, sem tocar no resto.
+  entra em `NumeroDeCartaoDeTexto` se o negócio exigir, sem tocar no resto.
 - **Texto livre** (`nome`, `rua`) **não** é normalizado nem pesquisado: não há
   busca por texto, então a colação do banco não influencia comportamento.
 

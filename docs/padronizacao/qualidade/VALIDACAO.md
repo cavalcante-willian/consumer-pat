@@ -110,7 +110,7 @@ Java traz à tona:
 | Tipo | Pergunta | Onde acontece | Falha vira |
 |---|---|---|---|
 | **Borda** | o dado tem o **formato** certo? | `Mensagem*`, anotações, **sem consulta alguma** | `400` + `errors` campo a campo |
-| **Domínio (forma)** | o dado é um valor **válido do tipo**? | `criar()` do tipo de valor, ou conversão de domínio (`TipoCartao.doCodigoDeEstabelecimento`) | `ErroValidacao` → **o mesmo `400` + `errors`** |
+| **Domínio (forma)** | o dado é um valor **válido do tipo**? | leitura do tipo de valor (`NumeroDeCartaoDeTexto.converter`), ou conversão de domínio (`TipoCartaoDoEstabelecimento.converter`) | `ErroValidacao` → **o mesmo `400` + `errors`** |
 | **Estado** | o dado, bem formado, é compatível com o **estado do sistema**? | caso de uso, **com** acesso às portas | `ErroDominio` tipado → `404`/`409`/`422` |
 
 - **Borda** pergunta: formato, tipo, tamanho, obrigatoriedade. **Não acessa o

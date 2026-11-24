@@ -134,8 +134,15 @@ dominio/                                   # zero Spring, zero JPA, zero Lombok 
 │   └── Endereco.java                      # tipo de valor: rua, número, cidade, país, CEP
 ├── cartao/
 │   ├── Cartao.java                        # saldo e regra de débito/crédito — record imutável
-│   ├── NumeroDeCartao.java                # tipo de valor: só dígitos (13–19), mascarado(), toString() mascarado — qualidade/BANCO.md §11
-│   └── TipoCartao.java                    # enum: código do estabelecimento + ajuste fracionário (-0.10 / 0.00 / +0.35)
+│   ├── NumeroDeCartao.java                # tipo de valor: só dígitos (13–19), toString() mascarado — qualidade/BANCO.md §11
+│   ├── NumeroDeCartaoDeTexto.java         # ler o número de texto vindo de fora: forma canônica, sem lançar
+│   ├── Mascaravel.java                    # papel: mascarado() — os 4 últimos dígitos
+│   ├── ComDigitos.java                    # operação-base do papel Mascaravel
+│   ├── TipoCartao.java                    # enum: código do estabelecimento + ajuste fracionário (-0.10 / 0.00 / +0.35)
+│   ├── TipoCartaoDoEstabelecimento.java   # ler o código de estabelecimento: tipo ou erro, sem lançar
+│   ├── Cobravel.java                      # papel: valorCobrado — valor × (1 + ajuste)
+│   ├── ComAjusteDoValor.java              # operação-base do papel Cobravel
+│   └── ComCodigoDeEstabelecimento.java    # papel: o código de estabelecimento do tipo
 ├── dinheiro/
 │   └── Dinheiro.java                      # record com BigDecimal, escala fixa de 6 casas — codigo/VALORES.md §6
 ├── extrato/

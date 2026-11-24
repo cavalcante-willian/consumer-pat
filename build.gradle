@@ -1,38 +1,66 @@
+// Build do consumer-pat: API Spring Boot de cartões de benefício.
+//
+// Requisito: JDK 17 em JAVA_HOME. O Gradle 7.6 do wrapper só roda em JDK 17 a 19; com um JDK
+// mais novo o build falha ao carregar o Gradle, antes de ler este arquivo. Por isso a versão do
+// JDK é exigida no README e não aqui: um teste no script só protegeria o caso em que ele já
+// conseguiu carregar.
+//
+// Comandos (sempre pelo wrapper): ./gradlew build | test | bootRun | javadoc
+
 plugins {
+    // Versões exatas: um plugin sem versão, ou com intervalo, mudaria o build sem nenhum diff.
     id 'java'
     id 'org.springframework.boot' version '2.7.8'
+    // Importa o BOM do Spring Boot. É dele que vêm as versões dos starters, do H2 e do Lombok,
+    // e é por isso que elas não aparecem em nenhuma linha de "dependencies".
     id 'io.spring.dependency-management' version '1.0.15.RELEASE'
 }
 
 group = 'br.com.alelo.consumer'
+// Fonte única da versão: nenhum outro arquivo a repete.
 version = '0.0.1'
 description = 'consumer-test'
 
-sourceCompatibility = 11
-targetCompatibility = 11
-assert System.properties["java.specification.version"] == "11" || "17"
-
 configurations {
+    // O processador de anotação (Lombok) também precisa estar no classpath de compilação.
     compileOnly {
         extendsFrom annotationProcessor
     }
 }
 
 repositories {
-    mavenLocal()
+    // Só o Maven Central: um repositório da máquina (mavenLocal) faria o mesmo commit resolver
+    // artefatos diferentes em cada computador.
     mavenCentral()
+}
+
+// Trava as versões resolvidas em gradle.lockfile, que é versionado. Assim o mesmo commit
+// resolve as mesmas versões em qualquer dia, e uma versão nova no Maven Central não altera o
+// build sem aparecer num diff. Para atualizar o arquivo depois de mexer em dependência:
+//   ./gradlew dependencies --write-locks
+dependencyLocking {
+    lockAllConfigurations()
 }
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    // Lombok só gera código na compilação: não vai para o JAR.
     compileOnly 'org.projectlombok:lombok'
-    runtimeOnly 'com.h2database:h2'
-    implementation 'org.springdoc:springdoc-openapi-ui:1.6.12'
-    implementation 'org.springdoc:springdoc-openapi-data-rest:1.6.12'
-    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
     annotationProcessor 'org.projectlombok:lombok'
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+    // Banco em memória do desafio; não é dependência de compilação.
+    runtimeOnly 'com.h2database:h2'
+
+    // O BOM do Spring Boot não gerencia o springdoc, então a versão vem de gradle.properties,
+    // num lugar só.
+    implementation "org.springdoc:springdoc-openapi-ui:${springdocVersion}"
+    // Não parece usada: o projeto não usa Spring Data REST. Removê-la é decisão à parte.
+    implementation "org.springdoc:springdoc-openapi-data-rest:${springdocVersion}"
+
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 
@@ -42,4 +70,8 @@ tasks.named('test') {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+    // Fixa a linguagem e a API do Java 17 qualquer que seja o JDK que executa o build (17 a 19).
+    // Não se usa toolchain: ela não corrige a JVM que roda o próprio Gradle, que é onde o
+    // problema aparece.
+    options.release = 17
 }

@@ -127,11 +127,28 @@ dominio/                                   # zero Spring, zero JPA, zero Lombok 
 ├── README.md                              # nasce com a camada — ver codigo/DOCUMENTACAO.md
 ├── package-info.java
 ├── consumidor/
-│   ├── Consumidor.java                    # agregado raiz — record imutável; dados cadastrais e cartões
+│   ├── Consumidor.java                    # agregado raiz — record imutável: id, dados, cartões e versão; comDados troca só o cadastro
+│   ├── ConsumidorId.java                  # id tipado, sempre positivo
+│   ├── DadosDoConsumidor.java             # o cadastro: o que a atualização troca, sem por onde carregar saldo
+│   ├── CartoesDoConsumidor.java           # os cartões, no máximo um de cada tipo
+│   ├── NovoConsumidor.java                # ainda não gravado: dados e cartões, sem id nem versão
 │   ├── ResumoDeConsumidor.java            # projeção de listagem: id e nome, sem cartões — qualidade/PERFORMANCE.md §3
-│   ├── Documento.java                     # tipo de valor: só dígitos (11/14), mascarado(), toString() mascarado — qualidade/BANCO.md §11
-│   ├── Contato.java                       # tipo de valor: celular, residencial, telefone, e-mail
-│   └── Endereco.java                      # tipo de valor: rua, número, cidade, país, CEP
+│   ├── documento/
+│   │   ├── Documento.java                 # tipo de valor: só dígitos (11/14), mascarado(), toString() mascarado — qualidade/BANCO.md §11
+│   │   └── DocumentoDeTexto.java          # ler o documento de texto vindo de fora: forma canônica, sem lançar
+│   ├── contato/
+│   │   ├── Contato.java                   # celular, dois telefones opcionais (Optional) e e-mail
+│   │   ├── Telefone.java                  # tipo de valor: 10 a 15 dígitos, toString() mascarado
+│   │   ├── TelefoneDeTexto.java           # ler o telefone; o erro aponta o campo
+│   │   ├── TelefoneOpcionalDeTexto.java   # ler o telefone que pode não ser informado
+│   │   ├── Email.java                     # tipo de valor: nome@dominio.sufixo, até 254; toString() esconde o nome
+│   │   └── EmailDeTexto.java
+│   └── endereco/
+│       ├── Endereco.java                  # rua, número (texto), cidade, país e CEP
+│       ├── Cep.java                       # tipo de valor: 8 dígitos
+│       └── CepDeTexto.java
+├── texto/
+│   └── TextoLimitado.java                 # exigir texto não vazio e dentro do tamanho da coluna
 ├── cartao/
 │   ├── Cartao.java                        # número, tipo e saldo — record imutável; só guarda o dado e declara os papéis
 │   ├── ComSaldo.java                      # operação-base: saldo() e comSaldo(novo) — o cartão é imutável
@@ -176,7 +193,11 @@ dominio/                                   # zero Spring, zero JPA, zero Lombok 
 │   └── validacao/
 │       ├── ErroValidacao.java
 │       ├── ErroTipoEstabelecimentoInvalido.java
-│       └── ErroValorNaoPositivo.java
+│       ├── ErroValorNaoPositivo.java
+│       ├── ErroDocumentoInvalido.java     # uma variante por leitura de texto do consumidor
+│       ├── ErroTelefoneInvalido.java      # aponta o campo (há três telefones)
+│       ├── ErroEmailInvalido.java
+│       └── ErroCepInvalido.java
 ├── log/                                   # vocabulário de log em português — sem tipo de biblioteca de log
 │   ├── SaidaDeLogPorta.java               # depuracao/informacao/aviso/erro/critico — runtime/OBSERVABILIDADE.md §1
 │   └── CampoDeLog.java                    # nome + valor; o dado separado do evento
@@ -184,7 +205,10 @@ dominio/                                   # zero Spring, zero JPA, zero Lombok 
 │   ├── SaudePorta.java                    # estado de cada dependência crítica (hoje: banco)
 │   └── EstadoDeSaude.java                 # SAUDAVEL / DEGRADADO + status por dependência
 └── portas/                                # contratos — pasta única enquanto forem poucas
-    ├── ConsumidorPorta.java
+    ├── ConsumidorPorta.java               # só compõe os três papéis abaixo
+    ├── BuscadorDeConsumidor.java          # papel: buscar por id, ou ErroConsumidorNaoEncontrado
+    ├── GravadorDeNovoConsumidor.java      # papel: criar com os cartões; o conflito volta como erro de domínio
+    ├── AtualizadorDeConsumidor.java       # papel: gravar só os dados cadastrais, comparando a versão
     ├── CartaoPorta.java                   # só compõe os dois papéis abaixo
     ├── BuscadorDeCartaoParaAtualizacao.java   # papel: buscar por número e tipo, travando para escrever
     ├── GravadorDeCartao.java              # papel: salvar

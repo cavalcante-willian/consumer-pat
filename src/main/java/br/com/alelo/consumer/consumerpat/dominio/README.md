@@ -13,8 +13,8 @@ próprio domínio — ver `docs/padronizacao/fundamentos/ESTRUTURA.md`.
 Dá ao resto do sistema quatro coisas que ele não pode inventar sozinho: uma
 maneira de dizer que uma operação falhou **sem lançar exceção**, uma maneira de
 dizer **por que** ela falhou, um tipo para **dinheiro** que não perde fração de
-centavo, e os tipos do **cartão**: o tipo e o número, com a regra de cobrança de
-cada tipo. Nenhum código de negócio usa `double`, `float` nem `BigDecimal` solto
+centavo, e o **cartão**: o tipo, o número e o próprio cartão, que debita e
+credita sem deixar o saldo ficar negativo. Nenhum código de negócio usa `double`, `float` nem `BigDecimal` solto
 para dinheiro, e nenhuma regra de negócio devolve `null` para dizer "não achei".
 
 - **`resultado`** — o resultado de uma operação que pode falhar, como dado.
@@ -38,15 +38,21 @@ para dinheiro, e nenhuma regra de negócio devolve `null` para dizer "não achei
   das categorias, com o status HTTP como dado. Cada categoria mora em um subpacote.
 - **`erros.validacao`** — a categoria dos erros em que a entrada está malformada.
   `ErroValidacao` é uma interface selada que dá a categoria uma vez só, e as
-  variantes são três: `ErroValorMonetarioInvalido` (o texto não é uma quantia
-  válida), `ErroTipoEstabelecimentoInvalido` (o código de estabelecimento não
-  corresponde a nenhum tipo; carrega o código recebido, que é só um número de
-  tipo) e `ErroNumeroDeCartaoInvalido` (o texto não é um número de cartão).
-  O erro de valor e o de número **não devolvem o texto recebido**: um valor
-  rejeitado pode ser um número de cartão quase certo, e devolvê-lo é uma forma de
-  vazar dado. Cada variante declara a própria constante `CODIGO`, no formato
-  `CPT-<CATEGORIA>-<ÁREA>-<NNN>` (`CPT-VAL-DIN-001`, `CPT-VAL-CRT-001` e
-  `CPT-VAL-CRT-002`).
+  variantes são quatro: `ErroValorMonetarioInvalido` (o texto não é uma quantia
+  válida), `ErroValorNaoPositivo` (a quantia é zero ou negativa),
+  `ErroTipoEstabelecimentoInvalido` (o código de estabelecimento não corresponde a
+  nenhum tipo; carrega o código recebido, que é só um número de tipo) e
+  `ErroNumeroDeCartaoInvalido` (o texto não é um número de cartão). O erro de
+  valor e o de número **não devolvem o texto recebido**: um valor rejeitado pode
+  ser um número de cartão quase certo, e devolvê-lo é uma forma de vazar dado.
+  Cada variante declara a própria constante `CODIGO`, no formato
+  `CPT-<CATEGORIA>-<ÁREA>-<NNN>` (`CPT-VAL-DIN-001`, `CPT-VAL-DIN-002`,
+  `CPT-VAL-CRT-001` e `CPT-VAL-CRT-002`).
+- **`erros.regradenegocio`** — a categoria dos erros em que a entrada é válida e
+  uma regra a recusa diante do estado, com status 422. `ErroRegraDeNegocio` é
+  selada e dá a categoria, e `ErroSaldoInsuficiente` (`CPT-REG-CRT-001`) é a
+  variante: o saldo não cobre o valor. Carrega o saldo e o valor para o log, mas
+  a mensagem não os repete, porque ela vai para quem fez o pedido.
 - **`dinheiro`** — quantias em reais. `Dinheiro` guarda a quantia com **seis casas
   decimais**, para não perder a fração de centavo que os cálculos produzem (10% de
   desconto sobre 33,33 é 29,997), e garante a escala: um valor com casas a mais é
@@ -57,10 +63,18 @@ para dinheiro, e nenhuma regra de negócio devolve `null` para dizer "não achei
   operação que arredonda, uma vez, com `HALF_EVEN`) e `ComparavelPorQuantia`
   (`compareTo`). `DinheiroDeTexto` lê uma quantia de texto vindo de fora, sem
   lançar exceção: aceita decimal com ponto, de até 13 dígitos inteiros e 6 casas,
-  com sinal opcional. `ApresentacaoDeDinheiro` mostra a quantia em centavos, e o
+  com sinal opcional. `DinheiroPositivo` exige que a quantia seja maior que zero,
+  também sem lançar exceção: sem ele, um débito de -50 aumentaria o saldo sem que
+  a regra de saldo percebesse. `ApresentacaoDeDinheiro` mostra a quantia em centavos, e o
   modo de arredondar é um argumento obrigatório, sem padrão, porque `HALF_UP` e
   `HALF_EVEN` dão resultados diferentes em 29,985.
-- **`cartao`** — os tipos do cartão. `TipoCartao` é o enum dos três tipos, e cada
+- **`cartao`** — o cartão e os seus tipos. `Cartao` é um record imutável com
+  número, tipo e saldo, e o saldo nunca é negativo: criar um cartão assim lança.
+  Debitar e creditar não alteram o cartão, devolvem outro com o novo saldo, e são
+  papéis em arquivos próprios, `Debitavel` e `Creditavel`, escritos em cima de
+  `ComSaldo` (`saldo()` e `comSaldo(novo)`). Os dois recusam valor zero ou
+  negativo com `ErroValorNaoPositivo`, e o débito recusa o que passa do saldo com
+  `ErroSaldoInsuficiente`; debitar exatamente o saldo é permitido. `TipoCartao` é o enum dos três tipos, e cada
   um guarda como **dado** o código de estabelecimento e o ajuste do valor, como
   fração com sinal: alimentação `-0.10`, farmácia `0.00`, combustível `0.35`. O
   cálculo é escrito em cima desse dado, em arquivos próprios: `Cobravel`
@@ -76,9 +90,8 @@ para dinheiro, e nenhuma regra de negócio devolve `null` para dizer "não achei
   caractere em vez de descartá-lo.
 
 Uma categoria de erro só nasce junto do primeiro erro que a usa. Por isso só existe
-`VALIDACAO` por enquanto; não encontrado, regra de negócio e conflito entram com
-os casos de uso que os produzem. Da mesma forma, o `Cartao`, que debita e credita,
-não está aqui ainda: vem na etapa seguinte, quando há a regra de saldo que o usa.
+`VALIDACAO` e `REGRA_DE_NEGOCIO` por enquanto; não encontrado e conflito entram
+com os casos de uso que os produzem.
 
 ## Estrutura
 
@@ -100,10 +113,14 @@ Saída real de `tree` (regenerar e colar aqui a cada PR que mudar a árvore — 
 ```text
 dominio
 ├── cartao
+│   ├── Cartao.java                   # número, tipo e saldo; só guarda o dado e declara os papéis
 │   ├── Cobravel.java                 # calcular o valor cobrado: valor × (1 + ajuste)
 │   ├── ComAjusteDoValor.java         # operação-base: o ajuste do tipo, como fração
 │   ├── ComCodigoDeEstabelecimento.java   # o código de estabelecimento do tipo
 │   ├── ComDigitos.java               # operação-base: os dígitos do número
+│   ├── ComSaldo.java                 # operação-base: saldo() e comSaldo(novo)
+│   ├── Creditavel.java               # creditar, recusando valor não positivo
+│   ├── Debitavel.java                # debitar, recusando valor não positivo e saldo insuficiente
 │   ├── Mascaravel.java               # mostrar só os quatro últimos dígitos
 │   ├── NumeroDeCartao.java           # o número, na forma canônica, mascarado ao imprimir
 │   ├── NumeroDeCartaoDeTexto.java    # ler o número de texto vindo de fora
@@ -116,6 +133,7 @@ dominio
 │   ├── ComparavelPorQuantia.java     # ordenar pelo valor numérico
 │   ├── Dinheiro.java                 # a quantia e a escala, e nada mais
 │   ├── DinheiroDeTexto.java          # ler uma quantia de texto vindo de fora
+│   ├── DinheiroPositivo.java         # exigir uma quantia maior que zero
 │   ├── Multiplicavel.java            # multiplicar por um fator, com HALF_EVEN
 │   ├── Somavel.java                  # somar, exato
 │   ├── Subtraivel.java               # subtrair, exato
@@ -128,11 +146,16 @@ dominio
 │   ├── ComMensagem.java              # o texto para uma pessoa
 │   ├── ErroDominio.java              # só compõe os quatro papéis
 │   ├── package-info.java
+│   ├── regradenegocio
+│   │   ├── ErroRegraDeNegocio.java   # categoria: a regra recusa diante do estado (422)
+│   │   ├── ErroSaldoInsuficiente.java    # o saldo não cobre o valor
+│   │   └── package-info.java
 │   └── validacao
 │       ├── ErroNumeroDeCartaoInvalido.java   # o texto não é um número de cartão
 │       ├── ErroTipoEstabelecimentoInvalido.java   # o código não é um tipo conhecido
 │       ├── ErroValidacao.java        # categoria: entrada malformada
 │       ├── ErroValorMonetarioInvalido.java   # o texto não é uma quantia válida
+│       ├── ErroValorNaoPositivo.java # a quantia é zero ou negativa
 │       └── package-info.java
 ├── package-info.java
 └── resultado
@@ -209,6 +232,10 @@ inventário. Atualize-a a cada PR que mudar a árvore.
 | `NumeroDeCartao`, `Mascaravel`, `ComDigitos` | `NumeroDeCartaoTeste` (formato, máscara, `toString` que não vaza, igualdade) |
 | `NumeroDeCartaoDeTexto` | `NumeroDeCartaoDeTextoTeste` (forma canônica, formatos recusados, texto recusado que não volta) |
 | `ErroNumeroDeCartaoInvalido` | `ErroNumeroDeCartaoInvalidoTeste` |
+| `DinheiroPositivo` | `DinheiroPositivoTeste` (zero, negativo e nulo recusados; o menor valor positivo aceito) |
+| `ErroValorNaoPositivo` | `ErroValorNaoPositivoTeste` |
+| `Cartao`, `Debitavel`, `Creditavel`, `ComSaldo` | `CartaoTeste` (débito até o saldo exato, e um milionésimo a mais; crédito; valor não positivo e nulo; saldo negativo no construtor; o original não muda) |
+| `ErroSaldoInsuficiente` | `ErroSaldoInsuficienteTeste` (categoria 422, e a mensagem que não repete saldo nem valor) |
 | Códigos de erro (formato e unicidade) | `CodigosDeErroTeste`, que percorre a hierarquia |
 | Regra de dependência do domínio | `RegraDeDependenciaTeste`, na raiz de `src/test` |
 
@@ -218,7 +245,7 @@ Peças sem teste próprio, cobertas junto de quem as torna observáveis:
 |---|---|---|
 | `Somavel`, `Subtraivel`, `Multiplicavel`, `ComparavelPorQuantia`, `ComQuantia` | `DinheiroTeste` | existem só como partes do `Dinheiro`; o único caminho até elas é `mais`, `menos`, `vezes` e `compareTo` |
 | `Resolvivel` | `SucessoTeste`, `FalhaTeste` | é a operação-base, e o único caminho até ela é o `resolver` das variantes |
-| `ComCategoria`, `ComCodigo`, `ComMensagem`, `ComCamposComErro`, `ErroDominio`, `ErroValidacao`, `CategoriaErro` | os testes das variantes de erro | só existem como contrato de uma variante, e cada variante os exercita |
+| `ComCategoria`, `ComCodigo`, `ComMensagem`, `ComCamposComErro`, `ErroDominio`, `ErroValidacao`, `ErroRegraDeNegocio`, `CategoriaErro` | os testes das variantes de erro | só existem como contrato de uma variante, e cada variante os exercita |
 
 ## Evolução
 
@@ -226,3 +253,4 @@ Peças sem teste próprio, cobertas junto de quem as torna observáveis:
 |---|---|
 | `#6` | Cria a camada: `resultado` (`Resultado`, `Sucesso`, `Falha`, os papéis `Resolvivel`, `Transformavel` e `Encadeavel`, e `AusenciaComoErro`), `erros` (`ErroDominio` e os papéis `ComCategoria`, `ComCodigo`, `ComMensagem` e `ComCamposComErro`, `CategoriaErro`), `erros.validacao` (`ErroValidacao` e `ErroValorMonetarioInvalido`) e `dinheiro` (`Dinheiro`, os papéis `Somavel`, `Subtraivel`, `Multiplicavel`, `ComparavelPorQuantia` e `ComQuantia`, `DinheiroDeTexto` e `ApresentacaoDeDinheiro`). Nenhum código do legado depende ainda dela. |
 | `#8` | Acrescenta o pacote `cartao` (`TipoCartao`, os papéis `Cobravel`, `ComAjusteDoValor` e `ComCodigoDeEstabelecimento`, `TipoCartaoDoEstabelecimento`, `NumeroDeCartao`, os papéis `Mascaravel` e `ComDigitos`, e `NumeroDeCartaoDeTexto`) e duas variantes de `ErroValidacao`: `ErroTipoEstabelecimentoInvalido` (`CPT-VAL-CRT-001`) e `ErroNumeroDeCartaoInvalido` (`CPT-VAL-CRT-002`). O `CodigosDeErroTeste` passa a instanciar as variantes por reflexão. Nenhum código do legado depende ainda dos tipos novos. |
+| `#11` | Acrescenta o `Cartao` (record imutável de número, tipo e saldo, que não aceita saldo negativo) e os papéis `ComSaldo`, `Debitavel` e `Creditavel`, `DinheiroPositivo`, a categoria `REGRA_DE_NEGOCIO` (422) com `erros.regradenegocio` (`ErroRegraDeNegocio` e `ErroSaldoInsuficiente`, `CPT-REG-CRT-001`) e `ErroValorNaoPositivo` (`CPT-VAL-DIN-002`) em `ErroValidacao`. O `CodigosDeErroTeste` passa a percorrer as duas categorias. Nenhum código do legado depende ainda do cartão. |

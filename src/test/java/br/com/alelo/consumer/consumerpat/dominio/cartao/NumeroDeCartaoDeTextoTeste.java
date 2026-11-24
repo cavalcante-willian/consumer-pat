@@ -15,10 +15,10 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 class NumeroDeCartaoDeTextoTeste {
 
     @ParameterizedTest
-    @CsvSource(delimiter = '|', value = { "5555000011112222|5555000011112222",
-            "5555 0000 1111 2222|5555000011112222", "5555-0000-1111-2222|5555000011112222",
-            "5555 0000-1111 2222|5555000011112222", "1234567890123|1234567890123",
-            "1234567890123456789|1234567890123456789" })
+    @CsvSource(delimiter = '|',
+            value = { "5555000011112222|5555000011112222", "5555 0000 1111 2222|5555000011112222",
+                    "5555-0000-1111-2222|5555000011112222", "5555 0000-1111 2222|5555000011112222",
+                    "1234567890123|1234567890123", "1234567890123456789|1234567890123456789" })
     void deve_ser_sucesso_com_a_forma_canonica_quando_o_texto_tem_de_treze_a_dezenove_digitos(
             String texto, String canonico) {
         // Agir

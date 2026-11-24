@@ -20,6 +20,7 @@
 
     <!-- Largura: 100 colunas para código e para comentário, contadas desde o início da linha -->
     <setting id="org.eclipse.jdt.core.formatter.lineSplit" value="100"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_arguments_in_annotation" value="16"/>
     <setting id="org.eclipse.jdt.core.formatter.comment.line_length" value="100"/>
     <setting id="org.eclipse.jdt.core.formatter.comment.count_line_length_from_starting_position" value="false"/>
     <setting id="org.eclipse.jdt.core.formatter.join_wrapped_lines" value="true"/>

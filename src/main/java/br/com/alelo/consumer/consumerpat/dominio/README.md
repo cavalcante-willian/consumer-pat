@@ -60,6 +60,35 @@ para dinheiro, e nenhuma regra de negócio devolve `null` para dizer "não achei
   cartão de outro tipo com o mesmo número também conta como não encontrado, para
   não revelar a quem pergunta quais cartões existem. Carrega o `NumeroDeCartao`, de
   modo que a mensagem só mostra a forma mascarada.
+- **`erros.conflito`** — a categoria dos erros em que o pedido é válido e colide com
+  o que já existe ou com uma escrita anterior, com status 409. `ErroConflito` é selada,
+  e as variantes são `ErroDocumentoJaCadastrado` (`CPT-CNF-CON-001`),
+  `ErroNumeroDeCartaoJaCadastrado` (`CPT-CNF-CRT-001`) e `ErroVersaoDivergente`
+  (`CPT-CNF-CON-002`, o consumidor mudou depois da leitura que o cliente usou). O
+  documento e o número vêm como tipos de valor, de modo que a mensagem só os mostra
+  mascarados. O consumidor ganhou ainda quatro erros de validação, um por leitura
+  (`ErroDocumentoInvalido`, `ErroTelefoneInvalido`, `ErroEmailInvalido` e
+  `ErroCepInvalido`, de `CPT-VAL-CON-001` a `004`) e `ErroConsumidorNaoEncontrado`
+  (`CPT-NEN-CON-001`).
+- **`consumidor`** — quem é o cliente, como falar com ele, onde mora e que cartões tem.
+  `Consumidor` é o agregado raiz: id, dados, cartões e a versão da linha, que quem
+  atualiza reenvia para dois clientes não se sobrescreverem em silêncio. Os dados
+  cadastrais (`DadosDoConsumidor`) ficam separados dos cartões (`CartoesDoConsumidor`,
+  no máximo um de cada tipo) de propósito: o que a atualização troca é só o cadastro,
+  e `comDados` devolve um consumidor com os mesmos cartões, de modo que atualizar um
+  cadastro não tem por onde mexer em saldo. `NovoConsumidor` é o que ainda não foi
+  gravado, sem id nem versão, para nenhum chamador ter de lembrar do que um zero quer
+  dizer. `ResumoDeConsumidor` é a projeção da listagem, só id e nome. Em subpacotes, o
+  `documento` (CPF ou CNPJ, 11 ou 14 dígitos; o dígito verificador **não** é conferido, de
+  propósito: a unicidade só precisa da forma canônica, e recusar ou aceitar um número
+  por ele ser ou não um CPF válido de alguém real não é papel desta camada), o
+  `contato` (celular obrigatório, dois telefones opcionais e e-mail) e o `endereco`
+  (número do imóvel como texto, e CEP de 8 dígitos). Cada tipo de valor guarda a forma
+  canônica, e a leitura do texto de fora é uma peça à parte que não lança: aceita a
+  pontuação comum, e uma falha não repete o texto recebido. Documento, telefone e
+  e-mail são dados pessoais, e o `toString()` de cada um é mascarado.
+- **`texto`** — `TextoLimitado`, que exige um texto não vazio e dentro do tamanho da
+  coluna que o guardará, para o nome, a rua e a cidade não repetirem a conferência.
 - **`dinheiro`** — quantias em reais. `Dinheiro` guarda a quantia com **seis casas
   decimais**, para não perder a fração de centavo que os cálculos produzem (10% de
   desconto sobre 33,33 é 29,997), e garante a escala: um valor com casas a mais é
@@ -107,14 +136,18 @@ para dinheiro, e nenhuma regra de negócio devolve `null` para dizer "não achei
   junta `BuscadorDeCartaoParaAtualizacao` (devolve o cartão travado até o fim da
   transação, ou `ErroCartaoNaoEncontrado`) e `GravadorDeCartao` (`salvar`, que
   atualiza o saldo de um cartão que já existe e lança se ele não existe: criar
-  um cartão exige o consumidor dono).
+  um cartão exige o consumidor dono). `ConsumidorPorta` junta `BuscadorDeConsumidor`
+  (por id, ou `ErroConsumidorNaoEncontrado`), `GravadorDeNovoConsumidor` (o consumidor
+  e os cartões numa só operação, ou o conflito de documento ou de número) e
+  `AtualizadorDeConsumidor` (só os dados cadastrais; o saldo que vier no consumidor é
+  ignorado na gravação).
   `ExtratoPorta` só oferece `registrar`: extrato é registro financeiro, nunca
   atualizado nem apagado, e o que nenhuma interface oferece ninguém chama por
   engano.
 
-Uma categoria de erro só nasce junto do primeiro erro que a usa. Por isso existem
-`VALIDACAO`, `REGRA_DE_NEGOCIO` e `NAO_ENCONTRADO` por enquanto; conflito entra
-com o caso de uso que o produz.
+Uma categoria de erro só nasce junto do primeiro erro que a usa. Existem
+`VALIDACAO`, `REGRA_DE_NEGOCIO`, `NAO_ENCONTRADO` e `CONFLITO`; a última entrou com
+o consumidor, cujo documento e cujos números de cartão são únicos.
 
 ## Estrutura
 
@@ -150,6 +183,31 @@ dominio
 │   ├── TipoCartao.java               # os três tipos, com o ajuste como dado
 │   ├── TipoCartaoDoEstabelecimento.java  # ler o código de estabelecimento
 │   └── package-info.java
+├── consumidor
+│   ├── CartoesDoConsumidor.java      # os cartões, no máximo um de cada tipo
+│   ├── Consumidor.java               # o agregado raiz: id, dados, cartões e versão; comDados troca só o cadastro
+│   ├── ConsumidorId.java             # o id, sempre positivo
+│   ├── DadosDoConsumidor.java        # o cadastro: nome, documento, nascimento, contato, endereço
+│   ├── NovoConsumidor.java           # ainda não gravado: dados e cartões, sem id nem versão
+│   ├── ResumoDeConsumidor.java       # a projeção da listagem: id e nome
+│   ├── contato
+│   │   ├── Contato.java              # celular, dois telefones opcionais e e-mail
+│   │   ├── Email.java                # o e-mail; ao imprimir, só o domínio aparece
+│   │   ├── EmailDeTexto.java         # ler o e-mail de texto vindo de fora
+│   │   ├── Telefone.java             # de 10 a 15 dígitos, mascarado ao imprimir
+│   │   ├── TelefoneDeTexto.java      # ler o telefone, apontando o campo no erro
+│   │   ├── TelefoneOpcionalDeTexto.java  # ler o telefone que pode não ser informado
+│   │   └── package-info.java
+│   ├── documento
+│   │   ├── Documento.java            # CPF ou CNPJ na forma canônica, mascarado ao imprimir
+│   │   ├── DocumentoDeTexto.java     # ler o documento de texto vindo de fora
+│   │   └── package-info.java
+│   ├── endereco
+│   │   ├── Cep.java                  # 8 dígitos
+│   │   ├── CepDeTexto.java           # ler o CEP de texto vindo de fora
+│   │   ├── Endereco.java             # rua, número como texto, cidade, país e CEP
+│   │   └── package-info.java
+│   └── package-info.java
 ├── dinheiro
 │   ├── ApresentacaoDeDinheiro.java   # apresentar em centavos, com o modo de arredondar obrigatório
 │   ├── ComQuantia.java               # operação-base: expõe o valor
@@ -168,8 +226,15 @@ dominio
 │   ├── ComCodigo.java                # o código estável da variante
 │   ├── ComMensagem.java              # o texto para uma pessoa
 │   ├── ErroDominio.java              # só compõe os quatro papéis
+│   ├── conflito
+│   │   ├── ErroConflito.java         # categoria: colide com o que existe ou com escrita anterior (409)
+│   │   ├── ErroDocumentoJaCadastrado.java    # já existe consumidor com o documento
+│   │   ├── ErroNumeroDeCartaoJaCadastrado.java   # já existe cartão com o número
+│   │   ├── ErroVersaoDivergente.java # o consumidor mudou depois da leitura do cliente
+│   │   └── package-info.java
 │   ├── naoencontrado
 │   │   ├── ErroCartaoNaoEncontrado.java  # não existe cartão com aquele número e tipo
+│   │   ├── ErroConsumidorNaoEncontrado.java  # não existe consumidor com aquele id
 │   │   ├── ErroNaoEncontrado.java    # categoria: o recurso nomeado não existe (404)
 │   │   └── package-info.java
 │   ├── package-info.java
@@ -178,7 +243,11 @@ dominio
 │   │   ├── ErroSaldoInsuficiente.java    # o saldo não cobre o valor
 │   │   └── package-info.java
 │   └── validacao
+│       ├── ErroCepInvalido.java      # o texto não é um CEP
+│       ├── ErroDocumentoInvalido.java    # o texto não é um documento
+│       ├── ErroEmailInvalido.java    # o texto não é um e-mail
 │       ├── ErroNumeroDeCartaoInvalido.java   # o texto não é um número de cartão
+│       ├── ErroTelefoneInvalido.java # o texto não é um telefone; aponta o campo
 │       ├── ErroTipoEstabelecimentoInvalido.java   # o código não é um tipo conhecido
 │       ├── ErroValidacao.java        # categoria: entrada malformada
 │       ├── ErroValorMonetarioInvalido.java   # o texto não é uma quantia válida
@@ -189,19 +258,26 @@ dominio
 │   └── package-info.java
 ├── package-info.java
 ├── portas
+│   ├── AtualizadorDeConsumidor.java  # papel: gravar os dados de um consumidor que existe
 │   ├── BuscadorDeCartaoParaAtualizacao.java  # papel: buscar o cartão travando para escrever
+│   ├── BuscadorDeConsumidor.java     # papel: buscar o consumidor por id
 │   ├── CartaoPorta.java              # só compõe os dois papéis do cartão
+│   ├── ConsumidorPorta.java          # só compõe os três papéis do consumidor
 │   ├── ExtratoPorta.java             # só registrar
 │   ├── GravadorDeCartao.java         # papel: salvar o cartão
+│   ├── GravadorDeNovoConsumidor.java # papel: gravar um consumidor novo, com os cartões
 │   └── package-info.java
-└── resultado
-    ├── AusenciaComoErro.java         # converter Optional em resultado
-    ├── Encadeavel.java               # encadear uma operação que também pode falhar
-    ├── Falha.java                    # variante de falha: só `resolver`
-    ├── Resolvivel.java               # consumir: a operação-base
-    ├── Resultado.java                # compõe os papéis e fecha as variantes
-    ├── Sucesso.java                  # variante de sucesso: só `resolver`
-    ├── Transformavel.java            # transformar o valor, sem poder falhar
+├── resultado
+│   ├── AusenciaComoErro.java         # converter Optional em resultado
+│   ├── Encadeavel.java               # encadear uma operação que também pode falhar
+│   ├── Falha.java                    # variante de falha: só `resolver`
+│   ├── Resolvivel.java               # consumir: a operação-base
+│   ├── Resultado.java                # compõe os papéis e fecha as variantes
+│   ├── Sucesso.java                  # variante de sucesso: só `resolver`
+│   ├── Transformavel.java            # transformar o valor, sem poder falhar
+│   └── package-info.java
+└── texto
+    ├── TextoLimitado.java            # exigir texto não vazio e de tamanho limitado
     └── package-info.java
 ```
 
@@ -276,6 +352,17 @@ inventário. Atualize-a a cada PR que mudar a árvore.
 | `Extrato` | `ExtratoTeste` (os dois valores guardados, componente nulo lança, `toString` que não vaza) |
 | `ExtratoPorta` | `ExtratoPortaTeste` (só oferece `registrar`: não há atualizar nem excluir) |
 | `CartaoPorta`, `BuscadorDeCartaoParaAtualizacao`, `GravadorDeCartao` | `CartaoPortaTeste` (compõe os dois papéis e não declara operação própria) |
+| `Documento`, `DocumentoDeTexto`, `ErroDocumentoInvalido` | `DocumentoTeste`, `DocumentoDeTextoTeste` (11 e 14 dígitos, pontuação aceita, `toString` mascarado, texto recusado que não volta), `ErroDocumentoInvalidoTeste` |
+| `Telefone`, `TelefoneDeTexto`, `TelefoneOpcionalDeTexto`, `ErroTelefoneInvalido` | os quatro `*Teste` de mesmo nome (de 10 a 15 dígitos; o opcional ausente é vazio e o mal escrito é recusado; o campo vai no erro) |
+| `Email`, `EmailDeTexto`, `ErroEmailInvalido` | `EmailTeste` (formato, limite de 254, `toString` que esconde o nome), `EmailDeTextoTeste`, `ErroEmailInvalidoTeste` |
+| `Contato` | `ContatoTeste` (opcionais vazios, e nulo no lugar de vazio lança) |
+| `Cep`, `CepDeTexto`, `Endereco`, `ErroCepInvalido` | `CepTeste`, `CepDeTextoTeste`, `EnderecoTeste` (número como texto, limites das colunas), `ErroCepInvalidoTeste` |
+| `TextoLimitado` | `TextoLimitadoTeste` (vazio, nulo, limite exato e um a mais; a mensagem que não traz o valor) |
+| `ConsumidorId`, `DadosDoConsumidor`, `CartoesDoConsumidor`, `NovoConsumidor`, `ResumoDeConsumidor` | os `*Teste` de mesmo nome; `DadosDoConsumidorTeste` e `NovoConsumidorTeste` provam que o tipo não tem por onde carregar saldo, id nem versão |
+| `Consumidor` | `ConsumidorTeste` (`comDados` troca só o cadastro e mantém cartões, saldo e versão; versão negativa lança; o `toString` não vaza documento nem cartão) |
+| `ErroConsumidorNaoEncontrado` | `ErroConsumidorNaoEncontradoTeste` |
+| `ErroDocumentoJaCadastrado`, `ErroNumeroDeCartaoJaCadastrado`, `ErroVersaoDivergente` | os três `*Teste` de mesmo nome (categoria 409, e a mensagem que só mostra o documento e o número mascarados) |
+| `ConsumidorPorta`, `BuscadorDeConsumidor`, `GravadorDeNovoConsumidor`, `AtualizadorDeConsumidor` | `ConsumidorPortaTeste` (compõe os três papéis, não declara operação própria, uma operação por papel) |
 | Códigos de erro (formato e unicidade) | `CodigosDeErroTeste`, que percorre a hierarquia |
 | Regra de dependência do domínio | `RegraDeDependenciaTeste`, na raiz de `src/test` |
 
@@ -285,7 +372,7 @@ Peças sem teste próprio, cobertas junto de quem as torna observáveis:
 |---|---|---|
 | `Somavel`, `Subtraivel`, `Multiplicavel`, `ComparavelPorQuantia`, `ComQuantia` | `DinheiroTeste` | existem só como partes do `Dinheiro`; o único caminho até elas é `mais`, `menos`, `vezes` e `compareTo` |
 | `Resolvivel` | `SucessoTeste`, `FalhaTeste` | é a operação-base, e o único caminho até ela é o `resolver` das variantes |
-| `ComCategoria`, `ComCodigo`, `ComMensagem`, `ComCamposComErro`, `ErroDominio`, `ErroValidacao`, `ErroRegraDeNegocio`, `ErroNaoEncontrado`, `CategoriaErro` | os testes das variantes de erro | só existem como contrato de uma variante, e cada variante os exercita |
+| `ComCategoria`, `ComCodigo`, `ComMensagem`, `ComCamposComErro`, `ErroDominio`, `ErroValidacao`, `ErroRegraDeNegocio`, `ErroNaoEncontrado`, `ErroConflito`, `CategoriaErro` | os testes das variantes de erro | só existem como contrato de uma variante, e cada variante os exercita |
 
 ## Evolução
 
@@ -296,3 +383,4 @@ Peças sem teste próprio, cobertas junto de quem as torna observáveis:
 | `#11` | Acrescenta o `Cartao` (record imutável de número, tipo e saldo, que não aceita saldo negativo) e os papéis `ComSaldo`, `Debitavel` e `Creditavel`, `DinheiroPositivo`, a categoria `REGRA_DE_NEGOCIO` (422) com `erros.regradenegocio` (`ErroRegraDeNegocio` e `ErroSaldoInsuficiente`, `CPT-REG-CRT-001`) e `ErroValorNaoPositivo` (`CPT-VAL-DIN-002`) em `ErroValidacao`. O `CodigosDeErroTeste` passa a percorrer as duas categorias. Nenhum código do legado depende ainda do cartão. |
 | `#12` | Acrescenta o `Extrato` (compra efetivada, com o valor informado e o cobrado) e o pacote `portas`: `CartaoPorta`, que compõe os papéis `BuscadorDeCartaoParaAtualizacao` e `GravadorDeCartao`, e `ExtratoPorta`, que só registra. Acrescenta também a categoria `NAO_ENCONTRADO` (404) com `erros.naoencontrado` (`ErroNaoEncontrado` e `ErroCartaoNaoEncontrado`, `CPT-NEN-CRT-001`); o `CodigosDeErroTeste` passa a percorrer as três categorias. Nenhum código do legado depende ainda das portas. |
 | `#14` | Fixa o contrato do `GravadorDeCartao`: grava o novo estado de um cartão **que já existe**, e lança `IllegalStateException` se ele não existe, em vez de criá-lo. Nenhuma outra peça do domínio muda. |
+| `#16` | Acrescenta o `consumidor` (`Consumidor`, `DadosDoConsumidor`, `CartoesDoConsumidor`, `NovoConsumidor`, `ConsumidorId`, `ResumoDeConsumidor`, e os subpacotes `documento`, `contato` e `endereco`, com as leituras de texto), `texto` (`TextoLimitado`) e o `ConsumidorPorta`, que compõe três papéis. Acrescenta a categoria `CONFLITO` (409) com `erros.conflito`, e variantes de validação (`CPT-VAL-CON-001` a `004`), de não encontrado (`CPT-NEN-CON-001`) e de conflito (`CPT-CNF-CON-001`, `CPT-CNF-CON-002` e `CPT-CNF-CRT-001`). O `CodigosDeErroTeste` passa a percorrer as quatro categorias. Nenhum código do legado depende ainda do consumidor novo. |

@@ -1,0 +1,16 @@
+name: EditorConfig
+
+on:
+  workflow_call:
+
+jobs:
+  editorconfig:
+    name: Verificar EditorConfig
+    runs-on: [self-hosted, linux, x64, arch]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      # editorconfig-checker já vem pré-instalado na imagem do runner (pacman) — a action de
+      # terceiros baixa um binário por release do GitHub cujo nome de asset não é estável.
+      - name: Verificar conformidade
+        run: editorconfig-checker -config .ecrc

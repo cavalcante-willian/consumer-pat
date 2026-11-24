@@ -1,0 +1,30 @@
+# CODEOWNERS — consumer-pat
+#
+# Todo PR exige aprovação de @cavalcante-willian.
+#
+# IMPORTANTE: para que CODEOWNERS tenha efeito, a proteção de branch
+# precisa ter "Require review from Code Owners" ativado em
+# Settings → Branches → main → Require a pull request before merging.
+# O status check obrigatório é o job "CI" (gate do ci.yml).
+
+# ── Regra global ─────────────────────────────────────────────────────
+*                                   @cavalcante-willian
+
+# ── Caminhos críticos (proteção explícita adicional) ─────────────────
+
+# Workflows — impede troca silenciosa de secrets ou runners
+.github/workflows/**                @cavalcante-willian
+.github/actionlint.yaml            @cavalcante-willian
+.github/CODEOWNERS                  @cavalcante-willian
+
+# Padronização — decisões de arquitetura, qualidade e CI/CD
+docs/padronizacao/**                @cavalcante-willian
+
+# Toolchain e qualidade
+.editorconfig                       @cavalcante-willian
+.ecrc                               @cavalcante-willian
+.markdownlint-cli2.yaml             @cavalcante-willian
+build.gradle                        @cavalcante-willian
+gradle.properties                   @cavalcante-willian
+gradle.lockfile                     @cavalcante-willian
+gradle/wrapper/**                   @cavalcante-willian

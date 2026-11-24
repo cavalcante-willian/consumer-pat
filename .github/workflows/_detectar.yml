@@ -1,0 +1,39 @@
+name: Detectar Alterações
+
+on:
+  workflow_call:
+    outputs:
+      tem_java:
+        description: "Código Java, recursos ou configuração Gradle foram alterados"
+        value: ${{ jobs.detectar.outputs.tem_java }}
+      tem_md:
+        description: "Arquivos Markdown foram alterados"
+        value: ${{ jobs.detectar.outputs.tem_md }}
+
+jobs:
+  detectar:
+    name: Filtrar Paths
+    runs-on: [self-hosted, linux, x64, arch]
+    outputs:
+      tem_java: ${{ steps.filtro.outputs.java }}
+      tem_md: ${{ steps.filtro.outputs.md }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Avaliar filtros
+        id: filtro
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
+        with:
+          filters: |
+            java:
+              - '**/*.java'
+              - '**/*.gradle'
+              - 'src/main/resources/**'
+              - 'src/test/resources/**'
+              - 'gradle.properties'
+              - 'gradle.lockfile'
+              - 'gradle/wrapper/**'
+              - 'gradlew'
+              - 'gradlew.bat'
+            md:
+              - '**/*.md'

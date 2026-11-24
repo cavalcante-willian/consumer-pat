@@ -8,6 +8,8 @@ import org.springframework.data.repository.query.Param;
 
 import javax.persistence.LockModeType;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -40,4 +42,26 @@ interface CartaoRepositorioJpa extends JpaRepository<CartaoEntidade, Long> {
      */
     @Query("select c from CartaoEntidade c where c.numero = :numero")
     Optional<CartaoEntidade> buscarPorNumero(@Param("numero") String numero);
+
+    /**
+     * Busca os cartões de um consumidor, sem trava, ordenados pelo tipo.
+     *
+     * <p>
+     * É a leitura do consumidor: uma consulta por consumidor, e não uma por cartão.
+     *
+     * @param consumidorId o id do consumidor
+     * @return os cartões dele, possivelmente nenhum
+     */
+    @Query("select c from CartaoEntidade c where c.consumidor.id = :consumidorId "
+            + "order by c.tipo")
+    List<CartaoEntidade> buscarDoConsumidor(@Param("consumidorId") Long consumidorId);
+
+    /**
+     * Diz quais dos números informados já são de algum cartão.
+     *
+     * @param numeros os números, só dígitos
+     * @return os que já existem, na ordem em que o banco os devolver
+     */
+    @Query("select c.numero from CartaoEntidade c where c.numero in :numeros")
+    List<String> numerosJaCadastrados(@Param("numeros") Collection<String> numeros);
 }

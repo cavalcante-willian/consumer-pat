@@ -1,0 +1,33 @@
+# markdownlint-cli2 — configuração local dos hooks do consumer-pat.
+ignores:
+- "**/build/**"
+- ".gradle/**"
+- "tools/**"
+#
+# Regras desabilitadas (justificativa):
+# - MD009: a documentação usa 2 espaços no fim da linha como quebra forçada.
+# - MD013: tabelas, URLs e parágrafos contínuos têm linhas longas por legibilidade.
+# - MD022/MD032: estilo compacto proposital em tabelas e blocos curtos.
+# - MD024/MD025: documentos de padronização repetem subtítulos (ex.: "Por quê").
+# - MD026: títulos terminados em "?" nas árvores de decisão.
+# - MD029: listas numeradas que continuam após um bloco de código.
+# - MD033: HTML inline nos exemplos de markdown da mensagem de commit.
+# - MD036: negrito como subtítulo em notas de rodapé.
+# - MD038/MD041/MD056/MD060: code spans com espaço interno; primeira linha de
+#   navegação (não H1); colunas variáveis e alinhamento estrito de tabelas.
+config:
+  default: true
+  MD009: false
+  MD013: false
+  MD022: false
+  MD024: false
+  MD025: false
+  MD026: false
+  MD029: false
+  MD032: false
+  MD033: false
+  MD036: false
+  MD038: false
+  MD041: false
+  MD056: false
+  MD060: false

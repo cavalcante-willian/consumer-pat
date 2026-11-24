@@ -18,6 +18,6 @@ package br.com.alelo.consumer.consumerpat.dominio.resultado;
  * @param <T> tipo do valor, quando a operação tem sucesso
  * @param <E> tipo do erro, quando a operação falha
  */
-public sealed interface Resultado<T, E>
-        extends Resolvivel<T, E>, Transformavel<T, E>, Encadeavel<T, E> permits Sucesso, Falha {
+public sealed interface Resultado<T, E> extends Transformavel<T, E>, Encadeavel<T, E>
+        permits Sucesso, Falha {
 }

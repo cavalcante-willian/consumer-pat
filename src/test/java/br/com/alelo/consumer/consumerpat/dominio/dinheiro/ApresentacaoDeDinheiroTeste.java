@@ -11,14 +11,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ApresentacaoDeDinheiroTeste {
 
     @ParameterizedTest
-    @CsvSource({
-            "29.985, HALF_UP, 29.99",
-            "29.985, HALF_EVEN, 29.98",
-            "29.997, HALF_UP, 30.00",
-            "29.997, DOWN, 29.99",
-            "10, HALF_EVEN, 10.00" })
-    void deve_arredondar_como_o_modo_escolhido_quando_apresentar_em_centavos(
-            String valor, RoundingMode modo, String esperado) {
+    @CsvSource({ "29.985, HALF_UP, 29.99", "29.985, HALF_EVEN, 29.98", "29.997, HALF_UP, 30.00",
+            "29.997, DOWN, 29.99", "10, HALF_EVEN, 10.00" })
+    void deve_arredondar_como_o_modo_escolhido_quando_apresentar_em_centavos(String valor,
+            RoundingMode modo, String esperado) {
         // Preparar
         var dinheiro = new Dinheiro(new BigDecimal(valor));
 

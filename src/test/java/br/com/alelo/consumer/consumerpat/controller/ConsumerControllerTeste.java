@@ -21,15 +21,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Caracteriza as regras do enunciado contra o contrato legado (rotas
- * {@code /consumer/*}).
+ * Caracteriza as regras do enunciado contra o contrato legado (rotas {@code /consumer/*}).
  *
  * <p>
- * O oráculo são os comentários do controller, não o comportamento do legado:
- * onde os dois
- * divergem, o teste afirma a regra. Cada teste cria o próprio consumidor, com
- * números de cartão
- * exclusivos, para não depender de dado deixado por outro.
+ * O oráculo são os comentários do controller, não o comportamento do legado: onde os dois divergem,
+ * o teste afirma a regra. Cada teste cria o próprio consumidor, com números de cartão exclusivos,
+ * para não depender de dado deixado por outro.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -67,12 +64,12 @@ class ConsumerControllerTeste {
         return consumidores.findById(consumidor.getId()).orElseThrow();
     }
 
-    private MockHttpServletRequestBuilder compra(int tipoDoEstabelecimento, int cartao, double valor) {
+    private MockHttpServletRequestBuilder compra(int tipoDoEstabelecimento, int cartao,
+            double valor) {
         return get("/consumer/buy")
                 .param("establishmentType", String.valueOf(tipoDoEstabelecimento))
                 .param("establishmentName", "Estabelecimento")
-                .param("cardNumber", String.valueOf(cartao))
-                .param("productDescription", "Produto")
+                .param("cardNumber", String.valueOf(cartao)).param("productDescription", "Produto")
                 .param("value", String.valueOf(valor));
     }
 
@@ -81,10 +78,8 @@ class ConsumerControllerTeste {
     }
 
     private void creditar(int cartao, double valor) throws Exception {
-        mockMvc.perform(get("/consumer/setcardbalance")
-                .param("cardNumber", String.valueOf(cartao))
-                .param("value", String.valueOf(valor)))
-                .andReturn();
+        mockMvc.perform(get("/consumer/setcardbalance").param("cardNumber", String.valueOf(cartao))
+                .param("value", String.valueOf(valor))).andReturn();
     }
 
     @Test
@@ -97,7 +92,8 @@ class ConsumerControllerTeste {
     }
 
     @Test
-    void deve_cobrar_cento_e_trinta_e_cinco_por_cento_quando_compra_no_cartao_de_combustivel() throws Exception {
+    void deve_cobrar_cento_e_trinta_e_cinco_por_cento_quando_compra_no_cartao_de_combustivel()
+            throws Exception {
         var consumidor = consumidorComSaldoEmTodosOsCartoes(200.0);
 
         comprar(COMBUSTIVEL, consumidor.getFuelCardNumber(), 100.0);
@@ -115,7 +111,8 @@ class ConsumerControllerTeste {
     }
 
     @Test
-    void deve_debitar_so_o_cartao_do_tipo_do_estabelecimento_quando_compra_no_cartao_de_alimentacao() throws Exception {
+    void deve_debitar_so_o_cartao_do_tipo_do_estabelecimento_quando_compra_na_alimentacao()
+            throws Exception {
         var consumidor = consumidorComSaldoEmTodosOsCartoes(200.0);
 
         comprar(ALIMENTACAO, consumidor.getFoodCardNumber(), 100.0);
@@ -126,15 +123,14 @@ class ConsumerControllerTeste {
     }
 
     @Test
-    void deve_registrar_no_extrato_o_valor_efetivamente_debitado_quando_compra_no_cartao_de_alimentacao()
+    void deve_registrar_no_extrato_o_valor_efetivamente_debitado_quando_compra_na_alimentacao()
             throws Exception {
         var consumidor = consumidorComSaldoEmTodosOsCartoes(200.0);
         var cartao = consumidor.getFoodCardNumber();
 
         comprar(ALIMENTACAO, cartao, 100.0);
 
-        var lancamentos = extratos.findAll().stream()
-                .filter(e -> e.getCardNumber() == cartao)
+        var lancamentos = extratos.findAll().stream().filter(e -> e.getCardNumber() == cartao)
                 .toList();
         assertThat(lancamentos).hasSize(1);
         assertThat(lancamentos.get(0).getAmount()).isEqualTo(90.0);
@@ -173,12 +169,12 @@ class ConsumerControllerTeste {
         var json = "{\"name\": \"Cadastrado " + documento + "\", \"documentNumber\": " + documento
                 + ", \"email\": \"cadastrado@exemplo.com\", \"city\": \"São Paulo\"}";
 
-        mockMvc.perform(post("/consumer/createConsumer").contentType("application/json").content(json))
+        mockMvc.perform(
+                post("/consumer/createConsumer").contentType("application/json").content(json))
                 .andExpect(status().isOk());
 
         var cadastrado = consumidores.findAll().stream()
-                .filter(c -> c.getDocumentNumber() == documento)
-                .toList();
+                .filter(c -> c.getDocumentNumber() == documento).toList();
         assertThat(cadastrado).hasSize(1);
         assertThat(cadastrado.get(0).getName()).isEqualTo("Cadastrado " + documento);
         assertThat(cadastrado.get(0).getCity()).isEqualTo("São Paulo");
@@ -188,8 +184,7 @@ class ConsumerControllerTeste {
     void deve_listar_o_consumidor_quando_listar_todos() throws Exception {
         var consumidor = consumidorComSaldoEmTodosOsCartoes(200.0);
 
-        mockMvc.perform(get("/consumer/consumerList"))
-                .andExpect(status().isOk())
+        mockMvc.perform(get("/consumer/consumerList")).andExpect(status().isOk())
                 .andExpect(content().string(containsString(consumidor.getName())));
     }
 
@@ -198,31 +193,32 @@ class ConsumerControllerTeste {
         var consumidor = consumidorComSaldoEmTodosOsCartoes(200.0);
         var json = """
                 {"id": %d, "name": "Nome novo", "documentNumber": %d,
-                 "foodCardNumber": %d, "foodCardBalance": 200.0,
-                 "fuelCardNumber": %d, "fuelCardBalance": 200.0,
-                 "drugstoreNumber": %d, "drugstoreCardBalance": 200.0}
-                """.formatted(consumidor.getId(), consumidor.getDocumentNumber(), consumidor.getFoodCardNumber(),
-                consumidor.getFuelCardNumber(), consumidor.getDrugstoreNumber());
+                    "foodCardNumber": %d, "foodCardBalance": 200.0,
+                    "fuelCardNumber": %d, "fuelCardBalance": 200.0,
+                    "drugstoreNumber": %d, "drugstoreCardBalance": 200.0}
+                """.formatted(consumidor.getId(), consumidor.getDocumentNumber(),
+                consumidor.getFoodCardNumber(), consumidor.getFuelCardNumber(),
+                consumidor.getDrugstoreNumber());
 
-        mockMvc.perform(post("/consumer/updateConsumer").contentType("application/json").content(json))
+        mockMvc.perform(
+                post("/consumer/updateConsumer").contentType("application/json").content(json))
                 .andExpect(status().isOk());
 
         assertThat(recarregar(consumidor).getName()).isEqualTo("Nome novo");
     }
 
     @Test
-    @Disabled("Defeito do legado: o crédito em cartão inexistente vira NullPointerException (resposta "
-            + "500) em vez de uma resposta de cliente. Habilitar no commit que corrige.")
+    @Disabled("Defeito do legado: o crédito em cartão inexistente vira NullPointerException "
+            + "(resposta 500) em vez de uma resposta de cliente. "
+            + "Habilitar no commit que corrige.")
     void deve_recusar_o_credito_quando_o_cartao_nao_existe() throws Exception {
-        mockMvc.perform(get("/consumer/setcardbalance")
-                .param("cardNumber", "987654321")
-                .param("value", "10.0"))
-                .andExpect(status().is4xxClientError());
+        mockMvc.perform(get("/consumer/setcardbalance").param("cardNumber", "987654321")
+                .param("value", "10.0")).andExpect(status().is4xxClientError());
     }
 
     @Test
-    @Disabled("Defeito do legado: o valor da compra não é validado, e um valor negativo AUMENTA o saldo "
-            + "(a compra de -50,0 soma 50,0). Habilitar no commit que corrige.")
+    @Disabled("Defeito do legado: o valor da compra não é validado, e um valor negativo "
+            + "AUMENTA o saldo (a compra de -50,0 soma 50,0). Habilitar no commit que corrige.")
     void deve_recusar_a_compra_quando_o_valor_nao_e_positivo() throws Exception {
         var consumidor = consumidorComSaldoEmTodosOsCartoes(200.0);
 
@@ -233,22 +229,22 @@ class ConsumerControllerTeste {
     }
 
     @Test
-    @Disabled("Defeito do legado: o valor do crédito não é validado, e um crédito negativo DIMINUI o "
-            + "saldo. Habilitar no commit que corrige.")
+    @Disabled("Defeito do legado: o valor do crédito não é validado, e um crédito negativo "
+            + "DIMINUI o saldo. Habilitar no commit que corrige.")
     void deve_recusar_o_credito_quando_o_valor_nao_e_positivo() throws Exception {
         var consumidor = consumidorComSaldoEmTodosOsCartoes(200.0);
 
         mockMvc.perform(get("/consumer/setcardbalance")
                 .param("cardNumber", String.valueOf(consumidor.getDrugstoreNumber()))
-                .param("value", "-50.0"))
-                .andExpect(status().is4xxClientError());
+                .param("value", "-50.0")).andExpect(status().is4xxClientError());
 
         assertThat(recarregar(consumidor).getDrugstoreCardBalance()).isEqualTo(200.0);
     }
 
     @Test
-    @Disabled("Defeito do legado: qualquer tipo de estabelecimento diferente de 1 e 2 cai no ramo do "
-            + "combustível (o tipo 9 cobra 135% do cartão de combustível). Habilitar no commit que corrige.")
+    @Disabled("Defeito do legado: qualquer tipo de estabelecimento diferente de 1 e 2 cai no "
+            + "ramo do combustível (o tipo 9 cobra 135% do cartão de combustível). "
+            + "Habilitar no commit que corrige.")
     void deve_recusar_a_compra_quando_o_tipo_de_estabelecimento_e_desconhecido() throws Exception {
         var consumidor = consumidorComSaldoEmTodosOsCartoes(200.0);
 
@@ -259,19 +255,23 @@ class ConsumerControllerTeste {
     }
 
     @Test
-    @Disabled("Defeito do legado: updateConsumer grava o objeto recebido, inclusive o saldo, contra "
-            + "a regra 'não deve ser possível alterar o saldo do cartão'. Habilitar no commit que corrige.")
+    @Disabled("Defeito do legado: updateConsumer grava o objeto recebido, inclusive o saldo, "
+            + "contra a regra 'não deve ser possível alterar o saldo do cartão'. "
+            + "Habilitar no commit que corrige.")
     void deve_preservar_o_saldo_quando_atualizar_dados_cadastrais() throws Exception {
         var consumidor = consumidorComSaldoEmTodosOsCartoes(200.0);
         var json = """
                 {"id": %d, "name": "Nome novo", "documentNumber": %d,
-                 "foodCardNumber": %d, "foodCardBalance": 999999.0,
-                 "fuelCardNumber": %d, "fuelCardBalance": 999999.0,
-                 "drugstoreNumber": %d, "drugstoreCardBalance": 999999.0}
-                """.formatted(consumidor.getId(), consumidor.getDocumentNumber(), consumidor.getFoodCardNumber(),
-                consumidor.getFuelCardNumber(), consumidor.getDrugstoreNumber());
+                    "foodCardNumber": %d, "foodCardBalance": 999999.0,
+                    "fuelCardNumber": %d, "fuelCardBalance": 999999.0,
+                    "drugstoreNumber": %d, "drugstoreCardBalance": 999999.0}
+                """.formatted(consumidor.getId(), consumidor.getDocumentNumber(),
+                consumidor.getFoodCardNumber(), consumidor.getFuelCardNumber(),
+                consumidor.getDrugstoreNumber());
 
-        mockMvc.perform(post("/consumer/updateConsumer").contentType("application/json").content(json)).andReturn();
+        mockMvc.perform(
+                post("/consumer/updateConsumer").contentType("application/json").content(json))
+                .andReturn();
 
         var depois = recarregar(consumidor);
         assertThat(depois.getName()).isEqualTo("Nome novo");
@@ -293,8 +293,10 @@ class ConsumerControllerTeste {
 
     @Test
     @Disabled("Defeito do legado: o cartão do tipo errado não é achado e o controller lança "
-            + "NullPointerException (resposta 500) em vez de recusar a compra. Habilitar no commit que corrige.")
-    void deve_recusar_a_compra_quando_o_tipo_do_cartao_difere_do_estabelecimento() throws Exception {
+            + "NullPointerException (resposta 500) em vez de recusar a compra. "
+            + "Habilitar no commit que corrige.")
+    void deve_recusar_a_compra_quando_o_tipo_do_cartao_difere_do_estabelecimento()
+            throws Exception {
         var consumidor = consumidorComSaldoEmTodosOsCartoes(200.0);
 
         mockMvc.perform(compra(ALIMENTACAO, consumidor.getDrugstoreNumber(), 100.0))
@@ -304,8 +306,8 @@ class ConsumerControllerTeste {
     }
 
     @Test
-    @Disabled("Defeito do legado: cartão inexistente vira NullPointerException (resposta 500) em vez "
-            + "de uma resposta de cliente. Habilitar no commit que corrige.")
+    @Disabled("Defeito do legado: cartão inexistente vira NullPointerException (resposta 500) "
+            + "em vez de uma resposta de cliente. Habilitar no commit que corrige.")
     void deve_recusar_a_compra_quando_o_cartao_nao_existe() throws Exception {
         mockMvc.perform(compra(ALIMENTACAO, 987654321, 10.0))
                 .andExpect(status().is4xxClientError());

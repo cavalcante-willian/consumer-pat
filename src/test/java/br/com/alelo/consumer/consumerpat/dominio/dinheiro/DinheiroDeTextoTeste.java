@@ -17,16 +17,11 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 class DinheiroDeTextoTeste {
 
     @ParameterizedTest
-    @CsvSource({
-            "0, 0",
-            "10, 10",
-            "10.5, 10.5",
-            "10.50, 10.5",
-            "0.000001, 0.000001",
-            "-5.25, -5.25",
-            "9999999999999, 9999999999999",
+    @CsvSource({ "0, 0", "10, 10", "10.5, 10.5", "10.50, 10.5", "0.000001, 0.000001",
+            "-5.25, -5.25", "9999999999999, 9999999999999",
             "9999999999999.999999, 9999999999999.999999" })
-    void deve_ser_sucesso_com_a_quantia_quando_o_texto_e_um_decimal_valido(String texto, String esperado) {
+    void deve_ser_sucesso_com_a_quantia_quando_o_texto_e_um_decimal_valido(String texto,
+            String esperado) {
         // Agir
         var resultado = DinheiroDeTexto.converter(texto);
 
@@ -36,8 +31,8 @@ class DinheiroDeTextoTeste {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = { "", " ", "abc", "1,5", "1e3", "10.1234567", "99999999999999", ".5", "5.", "+5", " 5", "5 ",
-            "--5" })
+    @ValueSource(strings = { "", " ", "abc", "1,5", "1e3", "10.1234567", "99999999999999", ".5",
+            "5.", "+5", " 5", "5 ", "--5" })
     @NullSource
     void deve_ser_falha_quando_o_texto_nao_e_um_decimal_valido(String texto) {
         // Agir

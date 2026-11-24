@@ -8,19 +8,14 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * Gera consumidores em volume para medir desempenho. Vive só em
- * {@code src/test}: o dado é
- * construído em código, nunca carregado de arquivo, e não faz parte da
- * aplicação.
+ * Gera consumidores em volume para medir desempenho. Vive só em {@code src/test}: o dado é
+ * construído em código, nunca carregado de arquivo, e não faz parte da aplicação.
  *
  * <p>
- * Os números de documento e de cartão são sequenciais a partir de uma base,
- * então são
- * únicos e previsíveis: o consumidor de índice {@code i} tem os cartões
- * {@code base + 3i},
- * {@code base + 3i + 1} e {@code base + 3i + 2}, o que permite escolher um
- * registro do meio ou
- * do fim da tabela sem consultar o banco.
+ * Os números de documento e de cartão são sequenciais a partir de uma base, então são únicos e
+ * previsíveis: o consumidor de índice {@code i} tem os cartões {@code base + 3i},
+ * {@code base + 3i + 1} e {@code base + 3i + 2}, o que permite escolher um registro do meio ou do
+ * fim da tabela sem consultar o banco.
  */
 public final class GeradorDeConsumidores {
 
@@ -45,8 +40,7 @@ public final class GeradorDeConsumidores {
     }
 
     /**
-     * Grava {@code quantidade} consumidores, em lotes, e devolve quantos foram
-     * gravados.
+     * Grava {@code quantidade} consumidores, em lotes, e devolve quantos foram gravados.
      */
     public static int gravar(ConsumerRepository repositorio, int quantidade, int base) {
         for (int inicio = 0; inicio < quantidade; inicio += TAMANHO_DO_LOTE) {

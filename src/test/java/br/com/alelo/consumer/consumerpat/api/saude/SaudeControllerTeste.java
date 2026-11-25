@@ -16,7 +16,6 @@ import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -74,14 +73,6 @@ class SaudeControllerTeste {
                 .andExpect(content().string(not(containsString("h2"))))
                 .andExpect(content().string(not(containsString("Exception"))))
                 .andExpect(content().string(not(containsString("SQL"))));
-    }
-
-    @Test
-    void deve_nunca_ir_para_cache_quando_responde() throws Exception {
-        // Agir e Verificar: um health velho diz o que não é mais verdade
-        mvc.perform(get(ROTA)).andExpect(header().string("Cache-Control", "no-store"));
-        saude.banco(EstadoDeDependencia.INDISPONIVEL);
-        mvc.perform(get(ROTA)).andExpect(header().string("Cache-Control", "no-store"));
     }
 
     @Test

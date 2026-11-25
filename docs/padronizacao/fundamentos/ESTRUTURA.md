@@ -476,7 +476,11 @@ src/test/java/…consumerpat/                # espelha produção, pacote a paco
 │   ├── ComNumeroTrocavel.java             # papel: comNumero(...)
 │   ├── CartaoConstruivel.java             # papel: construir() — falha aqui se o número ou o saldo forem inválidos
 │   ├── FabricaDeConsumidores.java
-│   └── FabricaDeCompras.java
+│   ├── FabricaDeCompras.java
+│   ├── DocumentosDeTeste.java             # documento de 11 dígitos que nenhum outro teste usa (o banco é um só)
+│   ├── NumerosDeCartaoDeTeste.java        # número de cartão de 16 dígitos que nenhum outro teste usa
+│   ├── CorposDaApi.java                   # o JSON do cadastro, do crédito e da compra
+│   └── DisputaSimultanea.java             # largada comum, prazo em toda espera, resultados na ordem
 ├── infraestrutura/
 │   └── persistencia/
 │       └── consumidor/
@@ -486,7 +490,12 @@ src/test/java/…consumerpat/                # espelha produção, pacote a paco
 ├── api/
 │   ├── cartao/
 │   │   ├── CartaoControllerContratoTeste.java   # status, serialização, corpo de erro
-│   │   └── ConcorrenciaDeCompraTeste.java       # N compras simultâneas, saldo final exato
+│   │   └── concorrencia/
+│   │       ├── ConcorrenciaDeCompraTeste.java        # 20 compras simultâneas, saldo final exato
+│   │       ├── ConcorrenciaDeCreditoTeste.java       # 20 créditos simultâneos, nenhum se perde
+│   │       ├── ConcorrenciaDeCompraECreditoTeste.java  # débito e crédito na mesma linha, saldo intacto
+│   │       ├── ConcorrenciaDeCadastroTeste.java      # mesmo documento 20 vezes: um 201, o resto 409
+│   │       └── ChamadasDaApi.java                    # prepara o cartão, chama a API e lê o saldo por ela
 │   └── consumidor/
 │       └── ConsumidorControllerContratoTeste.java
 └── arquitetura/

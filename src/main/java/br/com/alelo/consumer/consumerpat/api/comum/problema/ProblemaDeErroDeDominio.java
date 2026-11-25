@@ -1,5 +1,6 @@
 package br.com.alelo.consumer.consumerpat.api.comum.problema;
 
+import br.com.alelo.consumer.consumerpat.api.comum.requisicao.IdDaRequisicaoAtual;
 import br.com.alelo.consumer.consumerpat.dominio.erros.ErroDominio;
 
 /**
@@ -28,6 +29,6 @@ public final class ProblemaDeErroDeDominio {
     public static MensagemProblema montar(ErroDominio erro, String instancia) {
         return new MensagemProblema(PREFIXO_DO_TIPO + erro.codigo(),
                 TituloDaCategoria.de(erro.categoria()), erro.categoria().statusHttp(),
-                erro.mensagem(), instancia, erro.camposComErro());
+                erro.mensagem(), instancia, IdDaRequisicaoAtual.ler(), erro.camposComErro());
     }
 }

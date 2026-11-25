@@ -6,8 +6,9 @@ import java.util.function.Function;
  * Variante de {@link Resultado} em que a operação teve sucesso e há um valor.
  *
  * <p>
- * Implementa uma única operação, {@link #resolver}: as demais ({@link Transformavel#mapear} e
- * {@link Encadeavel#encadear}) são escritas em cima dela, cada uma em seu arquivo.
+ * Implementa uma única operação, {@link #resolver}: as demais ({@link Transformavel#mapear},
+ * {@link Encadeavel#encadear}, {@link ObservavelNoSucesso#aoSucesso} e
+ * {@link ObservavelNaFalha#aoFalhar}) são escritas em cima dela, cada uma em seu arquivo.
  *
  * @param valor valor produzido pela operação
  * @param <T>   tipo do valor

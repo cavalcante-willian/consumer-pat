@@ -2,6 +2,7 @@ package br.com.alelo.consumer.consumerpat.api.configuracao;
 
 import br.com.alelo.consumer.consumerpat.api.comum.requisicao.FiltroDeCorrelacao;
 import br.com.alelo.consumer.consumerpat.api.comum.requisicao.FiltroDeLogDeConclusao;
+import br.com.alelo.consumer.consumerpat.api.comum.seguranca.FiltroDeCabecalhosDeSeguranca;
 import br.com.alelo.consumer.consumerpat.dominio.log.SaidaDeLogPorta;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -12,13 +13,28 @@ import org.springframework.core.Ordered;
  * Registra os filtros da requisição, na ordem do contrato.
  *
  * <p>
- * A ordem é parte do contrato, e menor número é mais externo: a correlação vem primeiro, para que o
- * log de conclusão, logo dentro dela, ainda escreva com o id. Trocá-los é mudança revisada. O
- * número {@code HIGHEST_PRECEDENCE} está reservado ao filtro dos cabeçalhos de segurança, que é o
- * mais externo e protege toda resposta, inclusive as de erro.
+ * A ordem é parte do contrato, e menor número é mais externo: os cabeçalhos de segurança vêm
+ * primeiro, para proteger toda resposta, inclusive as de erro; depois a correlação, e só então o
+ * log de conclusão, que logo dentro dela ainda escreve com o id. Trocá-los é mudança revisada.
  */
 @Configuration
 public class ConfiguracaoDeFiltros {
+
+    /**
+     * Registra os cabeçalhos de segurança, a etapa 1, só para {@code /api/*}.
+     *
+     * <p>
+     * Não vale para o Swagger nem para o console do H2, que a política de conteúdo quebraria.
+     *
+     * @return o registro do filtro
+     */
+    @Bean
+    public FilterRegistrationBean<FiltroDeCabecalhosDeSeguranca> filtroDeCabecalhosDeSeguranca() {
+        var registro = new FilterRegistrationBean<>(new FiltroDeCabecalhosDeSeguranca());
+        registro.addUrlPatterns("/api/*");
+        registro.setOrder(Ordered.HIGHEST_PRECEDENCE);
+        return registro;
+    }
 
     /**
      * Registra a correlação, a etapa 2.

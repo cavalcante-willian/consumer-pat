@@ -401,7 +401,9 @@ api/                                       # composition root — único lugar q
 │   │   ├── FiltroDeProblemaDeApi.java     # @RestControllerAdvice: só declara os papéis
 │   │   └── TraducaoDe*.java               # um papel por exceção, com o @ExceptionHandler num default
 │   ├── MensagemPagina.java
-│   ├── FiltroDeCabecalhosDeSeguranca.java # Servlet Filter mais externo, só /api/*: nosniff, frame, CSP — qualidade/SEGURANCA.md §6
+│   ├── seguranca/                         # os cabeçalhos de segurança de toda resposta de /api/* — qualidade/SEGURANCA.md §6
+│   │   ├── CabecalhosDeSeguranca.java     # os cinco cabeçalhos, num Map imutável: nosniff, DENY, CSP, no-referrer e no-store
+│   │   └── FiltroDeCabecalhosDeSeguranca.java # Servlet Filter mais externo, só /api/*: aplica o Map, sem decidir nada
 │   ├── requisicao/                        # o id, a correlação e a conclusão (única exceção: org.slf4j.MDC fora de infraestrutura.log)
 │   │   ├── FiltroDeCorrelacao.java        # Servlet Filter: gera/aceita idRequisicao (só UUID), popula o MDC, X-Request-Id em toda resposta
 │   │   ├── FiltroDeLogDeConclusao.java    # Servlet Filter: requisicao.concluida, com status, duração e o id da correlação
@@ -414,7 +416,7 @@ api/                                       # composition root — único lugar q
     ├── ConfiguracaoDeCasosDeUso.java      # instancia casos de uso com as portas injetadas e o Clock (Clock.systemUTC())
     ├── ConfiguracaoDeAuditoria.java       # @EnableJpaAuditing com o Clock do domínio (qualidade/BANCO.md §6)
     ├── ConfiguracaoDeFiltros.java         # registra os filtros na ordem do contrato (qualidade/API.md §4)
-    └── ConfiguracaoDeWeb.java             # Cache-Control: no-store em /api/v1/** (PERFORMANCE.md §5) e CORS fechado por padrão (SEGURANCA.md §8)
+    └── ConfiguracaoDeWeb.java             # só quando houver cliente de navegador de origem conhecida: o CORS, hoje fechado por padrão (SEGURANCA.md §8)
 ```
 
 A classe `ConsumerTestApplication` (`@SpringBootApplication`) fica na raiz

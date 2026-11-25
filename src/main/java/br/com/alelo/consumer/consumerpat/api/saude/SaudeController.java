@@ -1,7 +1,6 @@
 package br.com.alelo.consumer.consumerpat.api.saude;
 
 import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.saude.ConsultarSaudeCaso;
-import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,7 +12,9 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>
  * Para o balanceador e o orquestrador: {@code 200} se tudo responde e {@code 503} se uma
  * dependência crítica não responde. É público e sem autenticação, e por isso o corpo não leva nada
- * interno. A resposta nunca vai para cache, porque um health velho diz o que não é mais verdade.
+ * interno. A resposta nunca vai para cache, porque um health velho diz o que não é mais verdade, e
+ * o {@code Cache-Control: no-store} vem do filtro dos cabeçalhos de segurança, como o de toda
+ * resposta da API.
  */
 @RestController
 @RequestMapping("/api/v1/saude")
@@ -34,6 +35,6 @@ public class SaudeController {
     public ResponseEntity<MensagemSaude> consultar() {
         var estado = caso.consultar();
         return ResponseEntity.status(StatusDaSaude.de(estado.situacao()))
-                .cacheControl(CacheControl.noStore()).body(SaudeEmMensagem.montar(estado));
+                .body(SaudeEmMensagem.montar(estado));
     }
 }

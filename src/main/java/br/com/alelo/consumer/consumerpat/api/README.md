@@ -243,6 +243,7 @@ Os testes ficam em `src/test/java/.../api/` e espelham os pacotes.
 | `cartao.*.*DaMensagemTeste` | conversão em tipos do domínio e primeira falha |
 | `cartao.*.Comprovante*Teste` | número mascarado, escala completa, sem notação científica |
 | `cartao.*.*ControllerTeste` | `@WebMvcTest` sobre fakes e relógio fixo: 201, 400 (todos os campos, sem valor rejeitado), 404, 405 com `Allow`, 415, 422 |
+| `cartao.concorrencia.*Teste` | o contexto inteiro e o H2 real, com vinte requisições na mesma largada: compras (10 `201`, 10 `422`, saldo zero), créditos (nenhum se perde), compra e crédito juntos (saldo intacto) e cadastros do mesmo documento (um `201`, dezenove `409`). A mutação que tira o `@Lock` derruba os três de saldo, com `409` do `@Version`; a que tira a restrição `unique` derruba o de cadastro |
 
 `ConfiguracaoDeCasosDeUsoComFakes` monta os casos de uso sobre os fakes das portas.
 `ConfiguracaoDePortasTeste` sobe o contexto e prova que cada porta do domínio tem o

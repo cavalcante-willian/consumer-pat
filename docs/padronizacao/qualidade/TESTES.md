@@ -605,6 +605,14 @@ void deve_manter_o_saldo_exato_quando_compras_simultaneas_no_mesmo_cartao() thro
 }
 ```
 
+O esboço mostra o desenho; a largada, o prazo e a coleta dos resultados estão
+em `DisputaSimultanea` (`src/test`, pacote `fabricas`), que todo teste de
+concorrência usa. Cada thread espera numa trava até que **todas** estejam
+prontas, e só então ela abre: a largada é comum de fato, e não de boa vontade.
+O cartão e o consumidor do teste, com documento e número que nenhum outro
+usa, vêm de `DocumentosDeTeste` e `NumerosDeCartaoDeTeste`, porque o banco é
+um só para a execução inteira.
+
 **Regras específicas:**
 
 - **Largada sincronizada** (`CountDownLatch`), para forçar a disputa — sem
@@ -656,6 +664,8 @@ quem muda o que a coluna "Documento" descreve atualiza o teste no mesmo PR.
 | `deve_enviar_no_store_quando_responder` | [`PERFORMANCE.md`](PERFORMANCE.md#5-cache-de-leitura--recusado-de-propósito) | `Cache-Control: no-store` em `/api/v1/**` | Contrato |
 | `deve_desabilitar_o_h2_console_quando_perfil_prod` | `SEGURANCA.md` §3 | com `@ActiveProfiles("prod")`, `/h2-console` não responde | Contrato |
 | `ConcorrenciaDeCompraTeste` | `API.md` §11, `PERFORMANCE.md` §7 | compras simultâneas → saldo exato | Concorrência |
+| `ConcorrenciaDeCreditoTeste`, `ConcorrenciaDeCompraECreditoTeste` | [`CONCORRENCIA.md`](../runtime/CONCORRENCIA.md#8-testes-de-concorrência) §8 | créditos simultâneos somam; crédito e débito simultâneos não se apagam | Concorrência |
+| `ConcorrenciaDeCadastroTeste` | `ERROS.md` §3, `CONCORRENCIA.md` §8 | cadastros simultâneos do mesmo documento → um `201` e o resto `409` | Concorrência |
 | `deve_disparar_o_timeout_de_lock_quando_cartao_esta_travado` | `PERFORMANCE.md` §9 | o timeout de lock **de fato dispara** no H2 | Integração |
 | `deve_lancar_rollback_only_quando_capturar_excecao_de_persistencia` | `ERROS.md` §3 | prova a suposição das duas portas de conversão | Integração |
 | `deve_registrar_so_a_restricao_quando_violar_integridade` | `ERROS.md` §4, `SEGURANCA.md` §5 | o log **não** contém o valor duplicado (cartão/documento) | Integração |

@@ -355,9 +355,30 @@ O que este documento acrescenta é **o que cada teste prova**:
 
 | Teste | Prova |
 |---|---|
-| `ConcorrenciaDeCompraTeste` | 20 compras simultâneas no mesmo cartão → saldo final exato; **a garantia é do banco** |
+| `ConcorrenciaDeCompraTeste` | 20 compras simultâneas de 10,00 num cartão de 100,00 → exatamente 10 `201`, 10 `422` e saldo final 0,00; **a garantia é do banco** |
+| `ConcorrenciaDeCreditoTeste` | 20 créditos simultâneos no mesmo cartão → todos `201` e saldo igual à soma: nenhum crédito se perde |
+| `ConcorrenciaDeCompraECreditoTeste` | 10 compras e 10 créditos simultâneos → todos `201` e saldo inicial intacto: débito e crédito travam a mesma linha, e um não apaga o outro |
+| `ConcorrenciaDeCadastroTeste` | 20 cadastros simultâneos do mesmo documento → um `201` e dezenove `409`, nunca erro de servidor: a janela da consulta prévia é coberta pela restrição `unique` |
 | `deve_disparar_o_timeout_de_lock_quando_cartao_esta_travado` | a espera pelo lock **tem prazo** e ele dispara |
 | `EstadoCompartilhadoTeste` | nenhum estado mutável compartilhado nem construção de concorrência proibida em `src/main` |
+
+Os quatro primeiros percorrem a API com o contexto inteiro e o H2 real: o
+cartão é preparado e o saldo é lido pela própria API, como um cliente faria,
+e a largada é a de `DisputaSimultanea`, em `src/test`. Cada teste confere
+primeiro que **só** os status esperados apareceram, para uma falha dizer o que
+veio no lugar.
+
+**Provado por mutação**, que é o que separa um teste de concorrência de um
+decorativo:
+
+- **Sem o `@Lock(PESSIMISTIC_WRITE)`**, os três testes de saldo caem, e não
+  por perda de atualização: o `@Version` a impede, e a disputa vira `409`.
+  Das 20 compras, 17 voltaram `409` e só 3 passaram (e em outra execução, 4),
+  quando 10 eram legítimas. É a razão de a decisão ser o lock pessimista, e
+  não a versão sozinha: com ela, compras legítimas simultâneas são recusadas.
+- **Sem a restrição `unique` do documento**, 10 dos 20 cadastros do mesmo
+  documento passaram, e o teste de cadastro cai. A verificação prévia sozinha
+  não basta, como o `ERROS.md` avisa.
 
 *(Entram na tabela da seção 14 de [`TESTES.md`](../qualidade/TESTES.md).)*
 

@@ -326,7 +326,16 @@ GET /api/v1/saude   →   503     (banco fora do ar)
 - **A verificação é barata e tem prazo**: pede uma conexão ao pool e a valida
   (`Connection.isValid(timeout)`) com **timeout curto** (1–2 s). Se o pool
   estiver esgotado, **o próprio health falha** — e esse é o sinal certo, não
-  um defeito do health.
+  um defeito do health. O prazo curto vale para a **validação**; a espera por
+  uma conexão do pool é a do próprio pool (`hikari.connection-timeout`, 5 s
+  aqui), que o health não muda por chamada.
+- **O `catch` da fronteira converte para `Resultado`**, como `CONDICIONAIS.md`
+  §4 exige: `SQLException` vira `Falha<ErroBancoIndisponivel>` (categoria
+  `INDISPONIVEL`, 503, `CPT-BAN-SIS-001`), e uma conexão que não passa na
+  validação, sem exceção nenhuma, vira o mesmo erro. O erro leva o **tipo** da
+  falha e o **estado SQL** para o log, e nunca a mensagem do driver. Cada
+  passo é uma peça com uma razão só de mudar: a fronteira com o JDBC, a leitura
+  do veredito, a tradução da exceção e o registro.
 - **Sem nada interno no corpo**: nem URL de conexão, host, versão do banco ou
   mensagem de exceção
   ([`SEGURANCA.md`](../qualidade/SEGURANCA.md#6-cabeçalhos-de-segurança)). O
@@ -338,7 +347,8 @@ GET /api/v1/saude   →   503     (banco fora do ar)
 - **Não exige o Actuator, mas respeita a arquitetura**: `SaudePorta` no
   domínio, `SaudeDoBancoAdaptador` na infraestrutura (usa o `DataSource`),
   `ConsultarSaudeCaso`, `SaudeController` — o controller não toca o
-  `DataSource`.
+  `DataSource`. A resposta leva `Cache-Control: no-store`: um health velho
+  diz o que não é mais verdade.
 
 **Por quê:** health check é o contrato entre o sistema e quem o opera —
 balanceador tirando instância de rotação, orquestrador reiniciando. Contrato
@@ -363,7 +373,7 @@ ninguém lê ocupa rotação e tempo de leitura de quem investiga.
 | `conflito.detectado` | `aviso` | `operacao` e `restricao` (violação de integridade: só o nome, **nunca** o valor duplicado) **ou** `entidade` (versão de linha divergente) |
 | `lock.timeout` | `aviso` | `operacao` (o tratador não sabe o tipo do cartão; ele fica no corpo da requisição, que o log não leva) |
 | `falha.inesperada` | `erro` | `operacao` e a pilha completa, **sem a mensagem** da exceção (`FalhaSemMensagem`), que pode trazer SQL ou um valor vinculado |
-| `banco.indisponivel` | `critico` | `operacao` |
+| `banco.indisponivel` | `critico` | `operacao`, `tipoDaFalha` e `estadoSql` (nunca a mensagem do driver); registrado no adaptador, onde a causa existe |
 
 **Regras:**
 

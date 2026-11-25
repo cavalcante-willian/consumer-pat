@@ -56,6 +56,9 @@ grava o cartão e o extrato, tudo numa transação.
     pela versão de linha do banco.
   - `obter` lê por id, numa transação só de leitura, e devolve a versão que a
     atualização exige de volta.
+  - `saude` consulta o estado de cada dependência crítica, e **não tem transação**: a
+    verificação não toca nenhuma tabela. Só entrega a consulta à porta, porque quem sabe a
+    causa de uma dependência fora do ar é o adaptador, e é ele quem a registra.
   - `listar` entrega o pedido de página à porta, numa transação só de leitura, e devolve
     uma `Pagina` de `ResumoDeConsumidor` (só id e nome). Não devolve `Resultado`: um
     pedido já chega válido, e uma página além da última é uma página vazia.
@@ -113,6 +116,11 @@ aplicacao
 │       │   ├── ComGravadorDeNovoConsumidor.java  # operação-base: quem grava o consumidor novo
 │       │   ├── CriarConsumidorCaso.java  # só guarda a porta e declara o papel
 │       │   ├── NovoConsumidorDoPedido.java   # pedido → consumidor a gravar
+│       │   └── package-info.java
+│       ├── saude
+│       │   ├── ComConsultorDeSaude.java  # operação-base: quem diz a saúde
+│       │   ├── ConsultaDeSaude.java  # papel: consultar(), sem transação
+│       │   ├── ConsultarSaudeCaso.java  # só guarda a porta e declara o papel
 │       │   └── package-info.java
 │       ├── listar
 │       │   ├── ComListadorDeConsumidores.java  # operação-base: quem lista

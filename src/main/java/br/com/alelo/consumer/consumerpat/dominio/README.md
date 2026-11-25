@@ -130,6 +130,16 @@ para dinheiro, e nenhuma regra de negócio devolve `null` para dizer "não achei
   diferença entre eles é o ajuste do tipo, e só com o cobrado um desconto de 10%
   sobre 33,33 seria indistinguível de uma compra de 29,997. O instante vem de quem
   registra, e não do relógio, para o extrato ser um dado que o teste possa fixar.
+- **`saude`** — o que o health check mede: o estado de cada dependência crítica
+  (`DependenciaCritica`, hoje só o banco) e a situação geral. `EstadoDeSaude` guarda só
+  as dependências e recusa um mapa vazio, porque "saudável" por não ter o que conferir
+  seria verificação vazia; a situação (`SAUDAVEL` ou `DEGRADADO`) é **derivada** pelo
+  papel `ApuracaoDaSituacao`, e por isso nunca diverge delas. A `SaudePorta` nunca lança
+  por causa de uma dependência fora do ar: isso é o dado que ela devolve.
+- **`erros.indisponivel`** — a categoria dos erros em que uma dependência crítica não
+  responde (`INDISPONIVEL`, **503**). `ErroBancoIndisponivel` (`CPT-BAN-SIS-001`) leva o
+  tipo da falha e o estado SQL para o log de quem o produz, e a mensagem é a mesma
+  qualquer que seja a causa: pode sair num corpo público.
 - **`log`** — o vocabulário de log, sem nenhum tipo de biblioteca de log. A
   `SaidaDeLogPorta` só compõe seis papéis, um por nível (`depuracao`, `informacao`,
   `aviso`, `erro`, `erroComCausa` e `critico`), todos escritos em cima de **uma única
@@ -262,6 +272,15 @@ dominio
 │       └── package-info.java
 ├── extrato
 │   ├── Extrato.java                  # a compra efetivada, com o valor informado e o cobrado
+│   └── package-info.java
+├── saude                             # a saúde das dependências críticas
+│   ├── ApuracaoDaSituacao.java       # papel: situacao() derivada das dependências
+│   ├── ComDependenciasDeSaude.java   # operação-base: dependencias()
+│   ├── DependenciaCritica.java       # BANCO("banco")
+│   ├── EstadoDeDependencia.java      # DISPONIVEL, INDISPONIVEL
+│   ├── EstadoDeSaude.java            # as dependências, nunca vazio
+│   ├── SaudePorta.java               # consultar(): o estado de cada dependência
+│   ├── SituacaoDeSaude.java          # SAUDAVEL, DEGRADADO
 │   └── package-info.java
 ├── log                               # o vocabulário de log em português, sem biblioteca de log
 │   ├── AvisoDeLog.java               # papel: aviso(evento, campos)
@@ -397,6 +416,8 @@ inventário. Atualize-a a cada PR que mudar a árvore.
 | `ConsumidorPorta`, `BuscadorDeConsumidor`, `ListadorDeConsumidores`, `GravadorDeNovoConsumidor`, `AtualizadorDeConsumidor` | `ConsumidorPortaTeste` (compõe os quatro papéis, não declara operação própria, uma operação por papel) |
 | `Pagina`, `PedidoDePagina`, `PedidoDePaginaDeParametros`, as leituras de página, tamanho, ordenação e direção | `PaginaTeste`, `PedidoDePaginaTeste`, `PedidoDePaginaDeParametrosTeste` (bordas, maiúsculas, texto recusado sem eco, quatro erros de uma vez) |
 | `SaidaDeLogPorta`, os seis papéis de nível, `CampoDeLog` | `SaidaDeLogPortaTeste` (uma só operação abstrata, nível de cada papel, causa só no erro com causa, campo sem nome recusado) |
+| `EstadoDeSaude`, `ApuracaoDaSituacao`, `DependenciaCritica` | `EstadoDeSaudeTeste` (saudável, degradado, mapa vazio ou nulo recusado, cópia imutável, situação derivada e não campo) e `DependenciaCriticaTeste` |
+| `ErroBancoIndisponivel`, `ErroIndisponivel` | `ErroBancoIndisponivelTeste` (503, código, mensagem igual para toda causa) e `CodigosDeErroTeste`, que passa a percorrer a categoria nova |
 | Regra do log | `RegraDeLogTeste`, na raiz de `src/test/.../consumerpat` (só `infraestrutura.log` importa biblioteca de log, e nada usa a saída padrão) |
 | `ErroPaginaInvalida`, `ErroTamanhoDePaginaInvalido`, `ErroOrdenacaoInvalida`, `ErroDirecaoInvalida` | `ErrosDePaginacaoTeste` e o teste de códigos por reflexão |
 | Códigos de erro (formato e unicidade) | `CodigosDeErroTeste`, que percorre a hierarquia |

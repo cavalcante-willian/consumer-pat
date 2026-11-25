@@ -58,3 +58,21 @@ server:
     include-message: never
     include-stacktrace: never
     include-binding-errors: never
+# Destino, formato e nível do log são do Logback, por propriedade: nenhum código os define.
+logging:
+  level:
+    root: INFO
+    # A depuração existe só aqui, no perfil padrão. O perfil prod a desliga.
+    br.com.alelo.consumer: DEBUG
+  pattern:
+    # Data em UTC, para o log de uma máquina ser comparável ao de outra, e o id da requisição em
+    # toda linha, sem que nenhum código o passe à mão. O %replace é a rede de segurança: mascara
+    # qualquer sequência de 11 dígitos (documento) ou de 13 a 19 (cartão) na mensagem, mesmo vinda
+    # de texto livre. Ele não alcança a pilha de uma exceção, e por isso o log não leva a causa de
+    # quem pode carregar dado sensível.
+    console: >-
+      %d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX,UTC} %5p [%X{idRequisicao:-sem-requisicao}] %logger{36} -
+      %replace(%msg){'\b(\d{11}|\d{13,19})\b','***'}%n%wEx
+    file: >-
+      %d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX,UTC} %5p [%X{idRequisicao:-sem-requisicao}] %logger{36} -
+      %replace(%msg){'\b(\d{11}|\d{13,19})\b','***'}%n%wEx

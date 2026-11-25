@@ -1,4 +1,6 @@
 HELP.md
+# Saída de runtime nunca é versionada: o log de produção.
+logs/
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar

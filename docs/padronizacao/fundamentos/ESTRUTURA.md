@@ -199,7 +199,10 @@ dominio/                                   # zero Spring, zero JPA, zero Lombok 
 │       ├── ErroEmailInvalido.java
 │       └── ErroCepInvalido.java
 ├── log/                                   # vocabulário de log em português — sem tipo de biblioteca de log
-│   ├── SaidaDeLogPorta.java               # depuracao/informacao/aviso/erro/critico — runtime/OBSERVABILIDADE.md §1
+│   ├── SaidaDeLogPorta.java               # compõe os seis papéis (depuracao/informacao/aviso/erro/erroComCausa/critico) — runtime/OBSERVABILIDADE.md §1
+│   ├── RegistradorDeLog.java              # a única operação abstrata: registrar(nivel, evento, causa, campos)
+│   ├── InformacaoDeLog.java               # um papel por nível, cada um em seu arquivo (idem DepuracaoDeLog, AvisoDeLog, ErroDeLog, ErroComCausaDeLog, CriticoDeLog)
+│   ├── NivelDeLog.java                    # DEPURACAO, INFORMACAO, AVISO, ERRO, CRITICO
 │   └── CampoDeLog.java                    # nome + valor; o dado separado do evento
 ├── saude/
 │   ├── SaudePorta.java                    # estado de cada dependência crítica (hoje: banco)
@@ -271,7 +274,11 @@ infraestrutura/                            # implementa as portas de dominio; co
 ├── README.md
 ├── package-info.java
 ├── log/
-│   └── SaidaDeLogAdaptador.java           # ÚNICA classe com SLF4J/Logback: formata evento chave=valor, máscara por nome, marker CRITICO
+│   ├── SaidaDeLogAdaptador.java           # ÚNICA classe com SLF4J/Logback: implementa só registrar; marker CRITICO
+│   ├── MensagemDeLog.java                 # monta a linha evento chave=valor
+│   ├── ValorDeCampoDeLog.java             # máscara por nome de campo
+│   ├── TextoDeUmaLinha.java               # troca as quebras de linha (injeção de log)
+│   └── EscritaNoSlf4j.java                # como cada nível é escrito
 ├── saude/
 │   └── SaudeDoBancoAdaptador.java         # Connection.isValid(timeout) no DataSource — sem expor internals
 └── persistencia/                          # organizada por agregado (conceito), não por tipo técnico

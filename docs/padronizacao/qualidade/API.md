@@ -342,8 +342,8 @@ public class ConfiguracaoDeFiltros {
     }
 
     @Bean
-    FilterRegistrationBean<FiltroDeLogDeConclusao> filtroDeLogDeConclusao() {
-        var registro = new FilterRegistrationBean<>(new FiltroDeLogDeConclusao());
+    FilterRegistrationBean<FiltroDeLogDeConclusao> filtroDeLogDeConclusao(SaidaDeLogPorta saida) {
+        var registro = new FilterRegistrationBean<>(new FiltroDeLogDeConclusao(saida));
         registro.setOrder(Ordered.HIGHEST_PRECEDENCE + 2);
         return registro;
     }
@@ -369,7 +369,15 @@ apagado quando ele escrevesse a linha.
 - O `idRequisicao` é devolvido no cabeçalho `X-Request-Id` **de toda
   resposta**, não só nas de erro.
 - Ordem trocada é mudança revisada: o filtro de log passar a ser mais
-  externo que o de correlação perde o ID em toda linha de conclusão.
+  externo que o de correlação perde o ID em toda linha de conclusão. Um
+  teste do contexto inteiro (`PipelineDeRequisicaoTeste`) a fixa: trocar os
+  números de `setOrder` o derruba.
+- **O `idRequisicao` também sai no corpo de erro**, lido do `MDC` num ponto
+  só, e não passado de mão em mão: quem monta o corpo (`MensagemProblema`)
+  o pega de `IdDaRequisicaoAtual`.
+- Os filtros estendem `OncePerRequestFilter` e são registrados só aqui, por
+  `FilterRegistrationBean`; eles não são beans soltos, para o Spring não os
+  registrar uma segunda vez fora da ordem.
 
 ---
 

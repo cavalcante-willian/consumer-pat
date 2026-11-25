@@ -374,8 +374,12 @@ api/                                       # composition root — único lugar q
 │   │   └── TraducaoDe*.java               # um papel por exceção, com o @ExceptionHandler num default
 │   ├── MensagemPagina.java
 │   ├── FiltroDeCabecalhosDeSeguranca.java # Servlet Filter mais externo, só /api/*: nosniff, frame, CSP — qualidade/SEGURANCA.md §6
-│   ├── FiltroDeCorrelacao.java            # Servlet Filter: gera/aceita idRequisicao, popula o MDC (única classe fora de infraestrutura.log com org.slf4j — só MDC)
-│   └── FiltroDeLogDeConclusao.java        # Servlet Filter: status e duração, com o id da correlação
+│   ├── requisicao/                        # o id, a correlação e a conclusão (única exceção: org.slf4j.MDC fora de infraestrutura.log)
+│   │   ├── FiltroDeCorrelacao.java        # Servlet Filter: gera/aceita idRequisicao (só UUID), popula o MDC, X-Request-Id em toda resposta
+│   │   ├── FiltroDeLogDeConclusao.java    # Servlet Filter: requisicao.concluida, com status, duração e o id da correlação
+│   │   ├── IdDeRequisicao.java            # aceita só UUID; senão gera
+│   │   ├── IdDaRequisicaoAtual.java       # lê o id do MDC, para o corpo de erro
+│   │   └── NivelDaConclusao.java          # 5xx erro, 409 aviso, o resto informação
 └── configuracao/                          # ÚNICO lugar com @Bean e que importa infraestrutura
     ├── ConfiguracaoDePortas.java          # importa os adaptadores concretos (@Import): só nomeia quais existem
     ├── ConfiguracaoDeRelogio.java         # o único Clock: de parede, em UTC

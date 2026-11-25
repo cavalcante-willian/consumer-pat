@@ -354,15 +354,15 @@ ninguém lê ocupa rotação e tempo de leitura de quem investiga.
 
 | Evento | Nível | Campos principais |
 |---|---|---|
-| `requisicao.concluida` | `informacao` — ou o nível da falha quando o status é de erro | `metodo`, `caminho`, `status`, `duracaoMs` |
+| `requisicao.concluida` | `informacao`; `aviso` se o status é 409; `erro` se é 5xx (um 4xx de negócio, como 404 ou 422, é resultado esperado) | `metodo`, `caminho` (sem a query), `status`, `duracaoMs` |
 | `consumidor.criado` | `informacao` | `consumidorId` |
 | `consumidor.atualizado` | `informacao` | `consumidorId`, `versao` |
 | `cartao.creditado` | `informacao` | `consumidorId`, `tipoCartao`, `valor` |
 | `compra.registrada` | `informacao` | `consumidorId`, `tipoCartao`, `valorCobrado` |
 | `compra.recusada` | `informacao` (`aviso` se a taxa fugir do normal) | `consumidorId`, `tipoCartao`, `motivo` (código do erro) |
-| `conflito.detectado` | `aviso` | `restricao` **ou** `versao` — **nunca** o valor duplicado |
-| `lock.timeout` | `aviso` | `operacao`, `tipoCartao` |
-| `falha.inesperada` | `erro` | `operacao`, exceção com pilha (só se **não** carrega dado sensível) |
+| `conflito.detectado` | `aviso` | `operacao` e `restricao` (violação de integridade: só o nome, **nunca** o valor duplicado) **ou** `entidade` (versão de linha divergente) |
+| `lock.timeout` | `aviso` | `operacao` (o tratador não sabe o tipo do cartão; ele fica no corpo da requisição, que o log não leva) |
+| `falha.inesperada` | `erro` | `operacao` e a pilha completa, **sem a mensagem** da exceção (`FalhaSemMensagem`), que pode trazer SQL ou um valor vinculado |
 | `banco.indisponivel` | `critico` | `operacao` |
 
 **Regras:**

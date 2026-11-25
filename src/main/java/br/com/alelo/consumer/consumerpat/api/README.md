@@ -32,7 +32,20 @@ remove; as duas convivem sem se tocar.
     consulta sobe a hierarquia de classes, então a ordem não importa.
   - `tratamento`: `FiltroDeProblemaDeApi`, o `@RestControllerAdvice`, que só declara os
     papéis `TraducaoDe*`. Cada papel tem o seu `@ExceptionHandler` num método
-    `default`, e o único que captura `Exception` é o da falha inesperada.
+    `default`, e o único que captura `Exception` é o da falha inesperada. Os quatro
+    papéis de falha de infraestrutura registram o que traduzem, pela porta de log que o
+    tratador guarda (`ComSaidaDeLog`): `falha.inesperada` (a pilha, **sem a mensagem**
+    da exceção, em `FalhaSemMensagem`), `conflito.detectado` (o nome da restrição, em
+    `NomeDaRestricao`, ou a entidade, e nunca o valor) e `lock.timeout`.
+  - `requisicao`: o que acontece antes e depois do controller. `FiltroDeCorrelacao` gera
+    ou aceita o `idRequisicao` (só se for um UUID: texto livre do cliente num log é
+    injeção de log), o põe no `MDC`, o devolve em `X-Request-Id` **em toda resposta** e o
+    remove no `finally`. `FiltroDeLogDeConclusao`, logo dentro dele, registra
+    `requisicao.concluida` com método, caminho (sem a query), status e duração, e por
+    isso a linha ainda leva o id. O nível vem do status (`NivelDaConclusao`): 5xx é erro,
+    409 é aviso, e o resto, inclusive 404 e 422, é informação. O corpo de erro leva o mesmo
+    `idRequisicao`, lido por `IdDaRequisicaoAtual`. **É o único pacote fora de
+    `infraestrutura.log` que importa o SLF4J, e só o `MDC`.**
 - **`consumidor`** — `POST /api/v1/consumidores` (cadastra com os cartões, `201` com
   `Location`), `PUT /api/v1/consumidores/{id}` (só o cadastro, com a `versao` que o
   cliente leu) e `GET /api/v1/consumidores/{id}`, um pacote por operação. **Todos os
@@ -129,12 +142,23 @@ api
 │   │   ├── ProblemaDeBorda.java                  # enum: código, título e status
 │   │   ├── ProblemaDeErroDeDominio.java
 │   │   └── TituloDaCategoria.java
+│   ├── requisicao
+│   │   ├── FiltroDeCorrelacao.java               # id no MDC e em X-Request-Id, etapa 2
+│   │   ├── FiltroDeLogDeConclusao.java           # requisicao.concluida, etapa 3
+│   │   ├── IdDaRequisicaoAtual.java              # lê o id do MDC, para o corpo de erro
+│   │   ├── IdDeRequisicao.java                   # aceita só UUID; senão gera
+│   │   ├── NivelDaConclusao.java                 # 5xx erro, 409 aviso, o resto informação
+│   │   └── package-info.java
 │   ├── resposta
 │   │   ├── package-info.java
 │   │   ├── RespostaDeProblema.java
 │   │   └── RespostaDeResultado.java              # único ponto que decide o status
 │   └── tratamento
+│       ├── ComSaidaDeLog.java                    # operação-base: a porta de log do tratador
+│       ├── FalhaSemMensagem.java                 # a pilha sem a mensagem da exceção
 │       ├── FiltroDeProblemaDeApi.java            # @RestControllerAdvice
+│       ├── NomeDaRestricao.java                  # a restrição violada, nunca o valor
+│       ├── OperacaoDaRequisicao.java             # método e caminho, para o log
 │       ├── package-info.java
 │       ├── TraducaoDeConflitoDeVersao.java       # 409
 │       ├── TraducaoDeCorpoIlegivel.java          # 400
@@ -146,6 +170,7 @@ api
 │       └── TraducaoDeTravaEsgotada.java          # 409
 ├── configuracao
 │   ├── ConfiguracaoDeAuditoria.java              # @EnableJpaAuditing, com o instante do Clock
+│   ├── ConfiguracaoDeFiltros.java                # registra os filtros na ordem do contrato
 │   ├── ConfiguracaoDePortas.java                 # importa os adaptadores, um por porta
 │   ├── ConfiguracaoDeRelogio.java                # o único Clock: de parede, em UTC
 │   ├── ConfiguracaoDoCasoDeCreditarCartao.java
@@ -177,7 +202,11 @@ Os testes ficam em `src/test/java/.../api/` e espelham os pacotes.
 | `consumidor.*.*ControllerTeste` | `@WebMvcTest` sobre fakes: `201` com `Location` que aponta o id certo, documento e número nunca inteiros, `400` com todos os campos inválidos de uma vez (documento, CEP, tipo e número do cartão), saldo recusado no cadastro e na atualização, `409` de documento e de versão, `404`, id que não é positivo ou número, e `405` |
 | `consumidor.criar.LocalizacaoDoConsumidorTeste`, `comum.resposta.RespostaDeResultadoCriadoTeste` | o `Location` relativo, sem host; o `201` só no sucesso e a localização não calculada numa falha |
 | `comum.campos.*Teste` | tradução com exceções **reais** do Jackson; subclasse cai no tradutor mais geral; corpo ausente de verdade; nada de classe ou valor no texto |
-| `comum.tratamento.FiltroDeProblemaDeApiTeste` | 409 de trava e de versão; 500 sem a causa |
+| `comum.tratamento.FiltroDeProblemaDeApiTeste` | 409 de trava e de versão; 500 sem a causa; o log de cada falha (`lock.timeout`, `conflito.detectado`, `falha.inesperada`) sem a mensagem da exceção nem o valor |
+| `comum.tratamento.FalhaSemMensagemTeste`, `NomeDaRestricaoTeste` | a pilha e a cadeia de causas sem nenhuma mensagem; o nome da restrição contra o **H2 de verdade**, sem o valor que colidiu |
+| `comum.requisicao.IdDeRequisicaoTeste`, `FiltroDeCorrelacaoTeste` | só UUID é aceito (quebra de linha, tamanho e caracteres fora do formato são regerados); o id volta em toda resposta, está no `MDC` durante a requisição e é removido no `finally`, inclusive se ela lançar |
+| `comum.requisicao.NivelDaConclusaoTeste`, `FiltroDeLogDeConclusaoTeste` | 5xx erro, 409 aviso, o resto informação; método, caminho sem query, status e duração medida; o evento sai mesmo se a requisição lançar |
+| `comum.requisicao.PipelineDeRequisicaoTeste` | o contexto inteiro: o id em todo cabeçalho e em todo corpo de erro, e **na linha de conclusão do log** (a mutação que inverte a ordem dos filtros a derruba) |
 | `cartao.*.*DaMensagemTeste` | conversão em tipos do domínio e primeira falha |
 | `cartao.*.Comprovante*Teste` | número mascarado, escala completa, sem notação científica |
 | `cartao.*.*ControllerTeste` | `@WebMvcTest` sobre fakes e relógio fixo: 201, 400 (todos os campos, sem valor rejeitado), 404, 405 com `Allow`, 415, 422 |
@@ -198,3 +227,4 @@ do controller que posta sem corpo faz o build quebrar se o Spring mudar o texto.
 | `#14` | Cria a camada, só com a composition root: o relógio, a auditoria e as portas do cartão e do extrato. |
 | `#15` | Cria `POST /api/v1/compras` e `POST /api/v1/creditos`, o corpo de erro RFC 7807 e o tratador de exceções. O Jackson passa a ser estrito para toda a aplicação, inclusive o legado. |
 | `#19` | Cria `POST`, `PUT` e `GET` de `/api/v1/consumidores`, com `201` e `Location`, a versão no corpo e os erros de conversão reunidos. O tratador ganha dois papéis: a restrição do banco violada (`409`) e o parâmetro de tipo errado (`400`). Os três casos de uso do consumidor viram beans. |
+| `#22` | Acrescenta `comum.requisicao` e `ConfiguracaoDeFiltros`: a correlação (`X-Request-Id` em toda resposta, `idRequisicao` no corpo de erro) e o log de conclusão. Os papéis de falha de infraestrutura do tratador passam a registrar `falha.inesperada`, `conflito.detectado` e `lock.timeout`. `MensagemProblema` ganha o campo `idRequisicao`. |

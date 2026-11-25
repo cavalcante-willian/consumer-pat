@@ -250,8 +250,9 @@ catch (Exception e) { throw new RuntimeException("falha no banco", e); }
 **A última rede.** Existe **exatamente um** `@ExceptionHandler(Exception.class)`
 no projeto — a falha inesperada (bug, `NullPointerException`, banco fora do
 ar). É a **única** exceção declarada à proibição de captura genérica: ele
-não trata, não decide nada; só **registra com stack completa** e devolve 500
-genérico com `idRequisicao`. Um segundo handler genérico, em qualquer outro
+não trata, não decide nada; só **registra a pilha completa, sem a mensagem da
+exceção** (que pode trazer SQL ou um valor vinculado, e nada no log a
+mascara) e devolve 500 genérico com `idRequisicao`. Um segundo handler genérico, em qualquer outro
 lugar, é rejeitado em revisão.
 
 ### Outras proibições (Java)

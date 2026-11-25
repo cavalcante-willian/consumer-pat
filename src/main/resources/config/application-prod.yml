@@ -15,3 +15,18 @@ logging:
       max-file-size: 10MB
       max-history: 14
       total-size-cap: 500MB
+spring:
+  h2:
+    console:
+      # O console do H2 com sa/sa dá leitura e escrita irrestritas no banco pelo navegador:
+      # contorna a API, a validação e a trava do saldo. O perfil padrão o mantém, porque o README
+      # do desafio o documenta; produção nunca. O web-allow-others segue no padrão, falso: só a
+      # própria máquina.
+      enabled: false
+springdoc:
+  swagger-ui:
+    # O contrato não precisa estar público em produção, e a página carrega recursos que a política
+    # de conteúdo dos cabeçalhos de segurança não permite.
+    enabled: false
+  api-docs:
+    enabled: false

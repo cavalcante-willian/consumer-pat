@@ -130,6 +130,13 @@ para dinheiro, e nenhuma regra de negócio devolve `null` para dizer "não achei
   diferença entre eles é o ajuste do tipo, e só com o cobrado um desconto de 10%
   sobre 33,33 seria indistinguível de uma compra de 29,997. O instante vem de quem
   registra, e não do relógio, para o extrato ser um dado que o teste possa fixar.
+- **`log`** — o vocabulário de log, sem nenhum tipo de biblioteca de log. A
+  `SaidaDeLogPorta` só compõe seis papéis, um por nível (`depuracao`, `informacao`,
+  `aviso`, `erro`, `erroComCausa` e `critico`), todos escritos em cima de **uma única
+  operação**, `RegistradorDeLog.registrar`: é a única que um adaptador ou um fake
+  implementa. O evento é um nome estável (`compra.registrada`), e os dados vão em
+  `CampoDeLog` nomeados, nunca concatenados. Quem mascara o dado sensível pelo nome do
+  campo é o adaptador, em `infraestrutura.log`.
 - **`portas`** — os contratos que o domínio exige do mundo de fora; a
   infraestrutura os implementa, e a dependência aponta sempre para o domínio.
   Cada operação é um papel em seu arquivo, e a porta só os compõe: `CartaoPorta`
@@ -256,6 +263,18 @@ dominio
 ├── extrato
 │   ├── Extrato.java                  # a compra efetivada, com o valor informado e o cobrado
 │   └── package-info.java
+├── log                               # o vocabulário de log em português, sem biblioteca de log
+│   ├── AvisoDeLog.java               # papel: aviso(evento, campos)
+│   ├── CampoDeLog.java               # nome + valor; o dado separado do evento
+│   ├── CriticoDeLog.java             # papel: critico(evento, campos)
+│   ├── DepuracaoDeLog.java           # papel: depuracao(evento, campos)
+│   ├── ErroComCausaDeLog.java        # papel: erroComCausa(evento, causa, campos)
+│   ├── ErroDeLog.java                # papel: erro(evento, campos)
+│   ├── InformacaoDeLog.java          # papel: informacao(evento, campos)
+│   ├── NivelDeLog.java               # DEPURACAO, INFORMACAO, AVISO, ERRO, CRITICO
+│   ├── RegistradorDeLog.java         # operação-base: registrar(nivel, evento, causa, campos)
+│   ├── SaidaDeLogPorta.java          # compõe os seis papéis
+│   └── package-info.java
 ├── package-info.java
 ├── pagina                            # a paginação das listagens (base 1, sem Spring)
 │   ├── ComTotalDePaginas.java        # papel: o total de páginas, arredondado para cima
@@ -377,6 +396,8 @@ inventário. Atualize-a a cada PR que mudar a árvore.
 | `ErroDocumentoJaCadastrado`, `ErroNumeroDeCartaoJaCadastrado`, `ErroVersaoDivergente` | os três `*Teste` de mesmo nome (categoria 409, e a mensagem que só mostra o documento e o número mascarados) |
 | `ConsumidorPorta`, `BuscadorDeConsumidor`, `ListadorDeConsumidores`, `GravadorDeNovoConsumidor`, `AtualizadorDeConsumidor` | `ConsumidorPortaTeste` (compõe os quatro papéis, não declara operação própria, uma operação por papel) |
 | `Pagina`, `PedidoDePagina`, `PedidoDePaginaDeParametros`, as leituras de página, tamanho, ordenação e direção | `PaginaTeste`, `PedidoDePaginaTeste`, `PedidoDePaginaDeParametrosTeste` (bordas, maiúsculas, texto recusado sem eco, quatro erros de uma vez) |
+| `SaidaDeLogPorta`, os seis papéis de nível, `CampoDeLog` | `SaidaDeLogPortaTeste` (uma só operação abstrata, nível de cada papel, causa só no erro com causa, campo sem nome recusado) |
+| Regra do log | `RegraDeLogTeste`, na raiz de `src/test/.../consumerpat` (só `infraestrutura.log` importa biblioteca de log, e nada usa a saída padrão) |
 | `ErroPaginaInvalida`, `ErroTamanhoDePaginaInvalido`, `ErroOrdenacaoInvalida`, `ErroDirecaoInvalida` | `ErrosDePaginacaoTeste` e o teste de códigos por reflexão |
 | Códigos de erro (formato e unicidade) | `CodigosDeErroTeste`, que percorre a hierarquia |
 | Regra de dependência do domínio | `RegraDeDependenciaTeste`, na raiz de `src/test` |

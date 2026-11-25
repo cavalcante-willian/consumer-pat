@@ -34,6 +34,14 @@ registra; a infraestrutura diz com que tabela, com que restrição e com que tra
   primeira coluna, já serve a busca. O tipo é gravado pelo nome, e nunca pela posição.
 - **`persistencia.extrato`** — a tabela `extratos`: imutável, só `data_criacao`, sem
   versão, e a chave estrangeira para o cartão nunca cascateia exclusão.
+- **`log`** — o `SaidaDeLogAdaptador`, **a única classe do projeto que fala com o
+  SLF4J**. Implementa só `registrar`: monta a linha `evento chave=valor`, troca o
+  valor de um campo de nome sensível (`numeroCartao`, `documento`, `celular`, `email`,
+  `telefone`, `senha`, `token`, `segredo`, ou que os contenha) por `***`, troca as
+  quebras de linha do valor por `_` e marca o crítico como `ERROR` com o marcador
+  `CRITICO`. Destino, formato e rotação não são código: vêm do `application.yml`
+  (padrão com data em UTC, `idRequisicao` e a barreira que mascara 11 e 13 a 19 dígitos)
+  e do `application-prod.yml` (`INFO`, arquivo em `logs/` e rotação por tamanho e histórico).
 - **`persistencia.cadastro`** — o `ConsumidorAdaptador`: a busca (duas consultas por
   consumidor, a da linha e a dos cartões), a listagem, a criação e a atualização.
   **A listagem pede a página ao banco** e lê só id e nome (`ResumoDeConsumidorLinha`):
@@ -88,6 +96,13 @@ Saída real de `tree` (regenerar e colar aqui a cada PR que mudar a árvore — 
 
 ```text
 infraestrutura
+├── log
+│   ├── EscritaNoSlf4j.java               # como cada nível é escrito no SLF4J
+│   ├── MensagemDeLog.java                # monta a linha: evento chave=valor
+│   ├── SaidaDeLogAdaptador.java          # implementa SaidaDeLogPorta: a única com SLF4J
+│   ├── TextoDeUmaLinha.java              # troca as quebras de linha, contra a injeção de log
+│   ├── ValorDeCampoDeLog.java            # o valor do campo, mascarado pelo nome
+│   └── package-info.java
 ├── package-info.java
 └── persistencia
     ├── ErroDeTravaNaoDescartaConexao.java    # estourar a espera por trava não fecha a conexão
@@ -174,6 +189,8 @@ teste que falharia sem ela, e a tabela abaixo é o inventário.
 | A trava e o teto da espera | `TravaDeCartaoTeste` (a segunda transação falha dentro do teto, e a que termina antes tem sucesso) |
 | `ErroDeTravaNaoDescartaConexao` | `ErroDeTravaNaoDescartaConexaoTeste` |
 | A configuração do banco | `ConfiguracaoDoBancoTeste` (teto de trava na URL, menor que a espera por conexão; o avaliador ligado ao pool) |
+| `SaidaDeLogAdaptador`, `MensagemDeLog`, `ValorDeCampoDeLog`, `TextoDeUmaLinha` | `SaidaDeLogAdaptadorTeste` (contra o Logback, com `ListAppender`: formato, máscara por nome, nível, marcador crítico, causa, quebra de linha) |
+| O padrão de linha do log | `PadraoDeLinhaDoLogTeste` (a barreira de dígitos no console e no arquivo, UTC, `idRequisicao`), `ConfiguracaoDeLogTeste` (o console do contexto inteiro) e `ConfiguracaoDeLogDeProducaoTeste` (`INFO` e rotação em `prod`) |
 | Regra de dependência da infraestrutura | `RegraDeDependenciaDaInfraestruturaTeste`, na raiz de `src/test/.../infraestrutura` |
 
 Peças sem teste próprio, cobertas junto de quem as torna observáveis:
@@ -189,3 +206,4 @@ Peças sem teste próprio, cobertas junto de quem as torna observáveis:
 |---|---|
 | `#14` | Cria a camada: `CartaoAdaptador` e `ExtratoAdaptador`, as entidades `cartoes` e `extratos`, a busca com trava de escrita, e `ErroDeTravaNaoDescartaConexao`. O teto de espera por trava é o `LOCK_TIMEOUT` da URL do H2, e não a dica do JPA, que ele ignora. A tabela de cartões nasce sem `consumidor_id`, que entra com o consumidor. |
 | `#18` | Acrescenta a persistência do consumidor: a tabela `consumidores`, o `consumidor_id` não nulo e `uk_cartoes_consumidor_tipo` no cartão, e o `ConsumidorAdaptador` (busca, criação e atualização, com o conflito conferido antes de gravar). A persistência passa a quatro pacotes por conceito (`consumidor`, `cartao`, `extrato` e `cadastro`), e entidades e repositórios passam de pacote-privados a públicos, com a barreira em `RegraDeDependenciaDaPersistenciaTeste`. Nenhum código do legado depende ainda dela. |
+| `#21` | Acrescenta `infraestrutura.log`: o `SaidaDeLogAdaptador`, a única classe do projeto com SLF4J, que mascara o dado sensível pelo nome do campo e marca o crítico. O padrão de linha e o perfil `prod` vêm do `application.yml` e do `application-prod.yml`. |

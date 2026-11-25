@@ -54,15 +54,23 @@ Nenhuma classe do projeto — fora do adaptador — importa SLF4J, Logback ou
 Log4j, nem chama `System.out`/`printStackTrace`.
 
 ```java
-// dominio/log/SaidaDeLogPorta.java — vocabulário em português, sem tipo de biblioteca de log
-public interface SaidaDeLogPorta {
-    void depuracao(String evento, CampoDeLog... campos);
-    void informacao(String evento, CampoDeLog... campos);
-    void aviso(String evento, CampoDeLog... campos);
-    void erro(String evento, CampoDeLog... campos);
-    void erroComCausa(String evento, Throwable causa, CampoDeLog... campos);
-    void critico(String evento, CampoDeLog... campos);     // ERROR + marker CRITICO
+// dominio/log/RegistradorDeLog.java — a ÚNICA operação que um adaptador ou um fake implementa
+public interface RegistradorDeLog {
+    void registrar(NivelDeLog nivel, String evento, Optional<Throwable> causa,
+            CampoDeLog... campos);
 }
+
+// dominio/log/InformacaoDeLog.java — um papel por nível, cada um em seu arquivo
+public interface InformacaoDeLog extends RegistradorDeLog {
+    default void informacao(String evento, CampoDeLog... campos) {
+        registrar(NivelDeLog.INFORMACAO, evento, Optional.empty(), campos);
+    }
+}
+// DepuracaoDeLog, AvisoDeLog, ErroDeLog, ErroComCausaDeLog e CriticoDeLog seguem o mesmo molde.
+
+// dominio/log/SaidaDeLogPorta.java — só compõe os seis papéis; o vocabulário não tem tipo de biblioteca
+public interface SaidaDeLogPorta extends DepuracaoDeLog, InformacaoDeLog, AvisoDeLog, ErroDeLog,
+        ErroComCausaDeLog, CriticoDeLog { }     // critico = ERROR + marker CRITICO, no adaptador
 
 // dominio/log/CampoDeLog.java — o dado, separado da mensagem
 public record CampoDeLog(String nome, Object valor) {
@@ -76,7 +84,8 @@ saida.informacao("compra.registrada",
     campo("consumidorId", consumidor.id()),
     campo("tipoCartao", tipo),
     campo("valorCobrado", cobrado.paraTexto()));
-// → 2026-... INFO [0f1c9c1e-…] c.a.c.…RegistrarCompraCaso - compra.registrada consumidorId=42 tipoCartao=ALIMENTACAO valorCobrado=29.997000
+// → 2026-...Z  INFO [0f1c9c1e-…] b.c.a.c.c.eventos - compra.registrada consumidorId=42 tipoCartao=ALIMENTACAO valorCobrado=29.997000
+//   (o logger é um só, `…consumerpat.eventos`: a porta é injetada, e não conhece quem a chamou)
 
 // ERRADO — saída solta, e valor convertido antes de qualquer mascaramento
 System.out.println("compra " + numeroCartao + " registrada");
@@ -85,7 +94,8 @@ log.info("compra do cartão " + numeroCartao);
 
 **A implementação** (`infraestrutura/log/SaidaDeLogAdaptador`) é a **única**
 classe do projeto que fala com o SLF4J: monta `evento chave=valor …`, aplica a
-máscara por nome de campo (seção 4) e delega ao Logback. **Nada de destino,
+máscara por nome de campo (seção 4) e delega ao Logback. Um valor com quebra de
+linha não forja outra linha: cada quebra vira `_` (injeção de log). **Nada de destino,
 formato ou rotação é código nosso** — vem da configuração (seção 9).
 
 **Regras:**
@@ -211,8 +221,12 @@ camadas, da mais forte à mais fraca:
    mensagem de exceção**:
 
    ```yaml
-   # application.yml — esboço; validar o escape e o comportamento de %replace
-   logging.pattern.console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX,UTC} %5p [%X{idRequisicao:-sem-requisicao}] %logger{36} - %replace(%msg){'\\b(\\d{11}|\\d{13,19})\\b','***'}%n"
+   # application.yml — validado por teste. Num bloco `>-` a barra não é escape do YAML: UMA barra
+   # (`\b`, `\d`) chega ao Logback. Com duas, a expressão procuraria uma barra literal e não
+   # mascararia nada, em silêncio. O mesmo padrão vale para `console` e para `file`.
+   logging.pattern.console: >-
+     %d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX,UTC} %5p [%X{idRequisicao:-sem-requisicao}] %logger{36} -
+     %replace(%msg){'\b(\d{11}|\d{13,19})\b','***'}%n%wEx
    ```
 
    *Limites declarados:* pode mascarar um identificador legítimo longo; **não**
@@ -379,7 +393,8 @@ logging:
     root: INFO
     br.com.alelo.consumer: DEBUG           # depuração só aqui
   pattern:
-    level: "%5p [%X{idRequisicao:-sem-requisicao}]"
+    console: "…"     # padrão completo da seção 4: data em UTC, id da requisição e a barreira
+    file: "…"        # o mesmo padrão: um teste confere que os dois são iguais
 
 # application-prod.yml — produção
 logging:
@@ -407,6 +422,9 @@ logging:
   nenhum pacote do projeto abaixo de `INFO`).
 - **`logs/` entra no `.gitignore`** — saída de runtime nunca é versionada.
 - **Destino é local por definição** (seção 5).
+- **O Spring Boot aplica padrão e arquivo só na primeira inicialização do Logback da JVM**:
+  os contextos de teste seguintes só reaplicam os níveis. Por isso o padrão é provado
+  montando o `PatternLayout` direto do YAML (`PadraoDeLinhaDoLogTeste`), e não por contexto.
 - **O formato leva UTC e o ID de requisição**
   (`%d{…,UTC}`, `%X{idRequisicao}`), para o log de uma máquina ser
   comparável ao de outra.
@@ -422,6 +440,7 @@ ocupe o lugar do log real em produção.
 
 | Teste | Garante | Tipo |
 |---|---|---|
+| `PadraoDeLinhaDoLogTeste`, `ConfiguracaoDeLogTeste`, `ConfiguracaoDeLogDeProducaoTeste` | a barreira de dígitos no padrão (console e arquivo), UTC, `idRequisicao`, `INFO` em `prod` e a rotação | Integração |
 | `SaidaDeLogAdaptadorTeste` — `deve_formatar_evento_e_campos_quando_registrar` | `evento chave=valor …` | Integração (Logback `ListAppender`) |
 | `SaidaDeLogAdaptadorTeste` — `deve_mascarar_o_valor_quando_o_nome_do_campo_e_sensivel` | `numeroCartao=***` | Integração |
 | `SaidaDeLogAdaptadorTeste` — `deve_marcar_como_critico_quando_registrar_critico` | `ERROR` + marker `CRITICO` | Integração |

@@ -4,7 +4,12 @@ import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.CreditarCar
 import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.GravadorDaCompra;
 import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.RegistrarCompraCaso;
 import br.com.alelo.consumer.consumerpat.aplicacao.fakes.CartaoPortaFake;
+// editorconfig-checker-disable-next-line
+import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.consumidor.atualizar.AtualizarConsumidorCaso;
+import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.consumidor.criar.CriarConsumidorCaso;
+import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.consumidor.obter.ObterConsumidorCaso;
 import br.com.alelo.consumer.consumerpat.aplicacao.fakes.ExtratoPortaFake;
+import br.com.alelo.consumer.consumerpat.aplicacao.fakes.consumidor.ConsumidorPortaFake;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 
@@ -50,5 +55,25 @@ public class ConfiguracaoDeCasosDeUsoComFakes {
     @Bean
     CreditarCartaoCaso creditarCartaoCaso(CartaoPortaFake cartoes) {
         return new CreditarCartaoCaso(cartoes);
+    }
+
+    @Bean
+    ConsumidorPortaFake consumidorPortaFake() {
+        return new ConsumidorPortaFake();
+    }
+
+    @Bean
+    CriarConsumidorCaso criarConsumidorCaso(ConsumidorPortaFake consumidores) {
+        return new CriarConsumidorCaso(consumidores);
+    }
+
+    @Bean
+    AtualizarConsumidorCaso atualizarConsumidorCaso(ConsumidorPortaFake consumidores) {
+        return new AtualizarConsumidorCaso(consumidores, consumidores);
+    }
+
+    @Bean
+    ObterConsumidorCaso obterConsumidorCaso(ConsumidorPortaFake consumidores) {
+        return new ObterConsumidorCaso(consumidores);
     }
 }

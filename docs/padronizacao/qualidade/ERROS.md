@@ -222,6 +222,7 @@ exato**:
 | `NoHandlerFoundException` | 404 | `CPT-NEN-SIS-001` |
 | `HttpRequestMethodNotSupportedException` | 405 (com `Allow`) | `CPT-VAL-SIS-002` |
 | `HttpMediaTypeNotSupportedException` | 415 | `CPT-VAL-SIS-003` |
+| `MethodArgumentTypeMismatchException` (id da rota que não é número) | 400, com o parâmetro apontado | `CPT-VAL-SIS-001` |
 | `Exception` (o único handler que a captura) | 500, sem a causa no corpo | `CPT-INT-SIS-001` |
 
 Cada linha é um papel em `api.comum.tratamento` (`TraducaoDe*`), e

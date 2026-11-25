@@ -3,6 +3,7 @@ package br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.credito;
 import br.com.alelo.consumer.consumerpat.aplicacao.dtos.DtoCredito;
 import br.com.alelo.consumer.consumerpat.aplicacao.fakes.CartaoPortaFake;
 import br.com.alelo.consumer.consumerpat.aplicacao.fakes.GerenciadorDeTransacaoFake;
+import br.com.alelo.consumer.consumerpat.aplicacao.fakes.SaidaDeLogFake;
 import br.com.alelo.consumer.consumerpat.dominio.cartao.NumeroDeCartao;
 import br.com.alelo.consumer.consumerpat.dominio.cartao.TipoCartao;
 import br.com.alelo.consumer.consumerpat.dominio.dinheiro.Dinheiro;
@@ -44,7 +45,7 @@ class TransacaoDoCreditoTeste {
 
         @Bean
         CreditarCartaoCaso caso(CartaoPortaFake cartoes) {
-            return new CreditarCartaoCaso(cartoes, cartoes);
+            return new CreditarCartaoCaso(cartoes, cartoes, new SaidaDeLogFake());
         }
     }
 

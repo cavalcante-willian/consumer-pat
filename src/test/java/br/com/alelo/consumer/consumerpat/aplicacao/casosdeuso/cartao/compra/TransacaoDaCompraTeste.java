@@ -4,6 +4,7 @@ import br.com.alelo.consumer.consumerpat.aplicacao.dtos.DtoCompra;
 import br.com.alelo.consumer.consumerpat.aplicacao.fakes.CartaoPortaFake;
 import br.com.alelo.consumer.consumerpat.aplicacao.fakes.ExtratoPortaFake;
 import br.com.alelo.consumer.consumerpat.aplicacao.fakes.GerenciadorDeTransacaoFake;
+import br.com.alelo.consumer.consumerpat.aplicacao.fakes.SaidaDeLogFake;
 import br.com.alelo.consumer.consumerpat.dominio.cartao.NumeroDeCartao;
 import br.com.alelo.consumer.consumerpat.dominio.cartao.TipoCartao;
 import br.com.alelo.consumer.consumerpat.dominio.dinheiro.Dinheiro;
@@ -50,7 +51,8 @@ class TransacaoDaCompraTeste {
         RegistrarCompraCaso caso(CartaoPortaFake cartoes) {
             return new RegistrarCompraCaso(cartoes,
                     new GravadorDaCompra(cartoes, new ExtratoPortaFake()),
-                    Clock.fixed(Instant.parse("2026-11-24T12:00:00Z"), ZoneOffset.UTC));
+                    Clock.fixed(Instant.parse("2026-11-24T12:00:00Z"), ZoneOffset.UTC),
+                    new SaidaDeLogFake());
         }
     }
 

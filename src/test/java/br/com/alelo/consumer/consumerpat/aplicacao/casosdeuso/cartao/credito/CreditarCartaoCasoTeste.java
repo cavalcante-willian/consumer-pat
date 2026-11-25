@@ -3,12 +3,14 @@ package br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.credito;
 import br.com.alelo.consumer.consumerpat.aplicacao.dtos.DtoComprovanteCredito;
 import br.com.alelo.consumer.consumerpat.aplicacao.dtos.DtoCredito;
 import br.com.alelo.consumer.consumerpat.aplicacao.fakes.CartaoPortaFake;
+import br.com.alelo.consumer.consumerpat.aplicacao.fakes.SaidaDeLogFake;
 import br.com.alelo.consumer.consumerpat.dominio.cartao.NumeroDeCartao;
 import br.com.alelo.consumer.consumerpat.dominio.cartao.TipoCartao;
 import br.com.alelo.consumer.consumerpat.dominio.dinheiro.Dinheiro;
 import br.com.alelo.consumer.consumerpat.dominio.erros.ErroDominio;
 import br.com.alelo.consumer.consumerpat.dominio.erros.naoencontrado.ErroCartaoNaoEncontrado;
 import br.com.alelo.consumer.consumerpat.dominio.erros.validacao.ErroValorNaoPositivo;
+import br.com.alelo.consumer.consumerpat.dominio.log.NivelDeLog;
 import br.com.alelo.consumer.consumerpat.dominio.resultado.Falha;
 import br.com.alelo.consumer.consumerpat.dominio.resultado.Resultado;
 import br.com.alelo.consumer.consumerpat.dominio.resultado.Sucesso;
@@ -27,6 +29,8 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 class CreditarCartaoCasoTeste {
 
     private static final NumeroDeCartao NUMERO = new NumeroDeCartao(FabricaDeCartoes.NUMERO_PADRAO);
+
+    private final SaidaDeLogFake saida = new SaidaDeLogFake();
 
     private static Dinheiro dinheiro(String valor) {
         return new Dinheiro(new BigDecimal(valor));
@@ -49,7 +53,7 @@ class CreditarCartaoCasoTeste {
         // Preparar
         var cartoes = new CartaoPortaFake(
                 FabricaDeCartoes.doTipo(tipo).comSaldo("50.00").construir());
-        var caso = new CreditarCartaoCaso(cartoes, cartoes);
+        var caso = new CreditarCartaoCaso(cartoes, cartoes, saida);
 
         // Agir
         var resultado = caso.creditar(credito(tipo, "100.00"));
@@ -67,7 +71,7 @@ class CreditarCartaoCasoTeste {
         // Preparar
         var cartoes = new CartaoPortaFake(
                 FabricaDeCartoes.doTipo(TipoCartao.ALIMENTACAO).comSaldo("0.00").construir());
-        var caso = new CreditarCartaoCaso(cartoes, cartoes);
+        var caso = new CreditarCartaoCaso(cartoes, cartoes, saida);
 
         // Agir
         var resultado = caso.creditar(credito(TipoCartao.ALIMENTACAO, "29.997"));
@@ -81,7 +85,7 @@ class CreditarCartaoCasoTeste {
     void deve_gravar_o_cartao_uma_vez_quando_o_credito_tem_sucesso() {
         // Preparar
         var cartoes = new CartaoPortaFake(FabricaDeCartoes.doTipo(TipoCartao.FARMACIA).construir());
-        var caso = new CreditarCartaoCaso(cartoes, cartoes);
+        var caso = new CreditarCartaoCaso(cartoes, cartoes, saida);
 
         // Agir
         caso.creditar(credito(TipoCartao.FARMACIA, "10.00"));
@@ -97,7 +101,7 @@ class CreditarCartaoCasoTeste {
         // Preparar
         var cartoes = new CartaoPortaFake(
                 FabricaDeCartoes.doTipo(TipoCartao.ALIMENTACAO).construir());
-        var caso = new CreditarCartaoCaso(cartoes, cartoes);
+        var caso = new CreditarCartaoCaso(cartoes, cartoes, saida);
 
         // Agir
         var resultado = caso.creditar(credito(TipoCartao.ALIMENTACAO, valor));
@@ -114,7 +118,7 @@ class CreditarCartaoCasoTeste {
     void deve_ser_cartao_nao_encontrado_quando_o_cartao_nao_existe() {
         // Preparar
         var cartoes = new CartaoPortaFake();
-        var caso = new CreditarCartaoCaso(cartoes, cartoes);
+        var caso = new CreditarCartaoCaso(cartoes, cartoes, saida);
 
         // Agir
         var resultado = caso.creditar(credito(TipoCartao.ALIMENTACAO, "10.00"));
@@ -129,7 +133,7 @@ class CreditarCartaoCasoTeste {
     void deve_ser_cartao_nao_encontrado_e_nao_creditar_quando_o_numero_existe_com_outro_tipo() {
         // Preparar
         var cartoes = new CartaoPortaFake(FabricaDeCartoes.doTipo(TipoCartao.FARMACIA).construir());
-        var caso = new CreditarCartaoCaso(cartoes, cartoes);
+        var caso = new CreditarCartaoCaso(cartoes, cartoes, saida);
 
         // Agir
         var resultado = caso.creditar(credito(TipoCartao.ALIMENTACAO, "10.00"));
@@ -145,7 +149,7 @@ class CreditarCartaoCasoTeste {
     void deve_nao_revelar_o_numero_quando_converter_o_comprovante_em_texto() {
         // Preparar
         var cartoes = new CartaoPortaFake(FabricaDeCartoes.doTipo(TipoCartao.FARMACIA).construir());
-        var caso = new CreditarCartaoCaso(cartoes, cartoes);
+        var caso = new CreditarCartaoCaso(cartoes, cartoes, saida);
 
         // Agir
         var resultado = caso.creditar(credito(TipoCartao.FARMACIA, "10.00"));
@@ -154,6 +158,40 @@ class CreditarCartaoCasoTeste {
         var sucesso = sucessoDe(resultado);
         assertThat(sucesso.valor().toString()).contains("****2222")
                 .doesNotContain("5555000011112222");
+    }
+
+    @Test
+    void deve_registrar_cartao_creditado_com_o_valor_e_o_cartao_mascarado_quando_creditar() {
+        // Preparar
+        var cartoes = new CartaoPortaFake(
+                FabricaDeCartoes.doTipo(TipoCartao.ALIMENTACAO).comSaldo("50.00").construir());
+        var caso = new CreditarCartaoCaso(cartoes, cartoes, saida);
+
+        // Agir
+        caso.creditar(credito(TipoCartao.ALIMENTACAO, "100.00"));
+
+        // Verificar: o valor creditado, e não o saldo que ficou; o cartão só mascarado
+        assertThat(saida.eventos()).singleElement().satisfies(evento -> {
+            assertThat(evento.nivel()).isEqualTo(NivelDeLog.INFORMACAO);
+            assertThat(evento.evento()).isEqualTo("cartao.creditado");
+            assertThat(evento.valorDe("tipoCartao")).contains(TipoCartao.ALIMENTACAO);
+            assertThat(evento.valorDe("valor")).contains("100.000000");
+            assertThat(evento.texto()).contains("****2222").doesNotContain("5555000011112222")
+                    .doesNotContain("150");
+        });
+    }
+
+    @Test
+    void deve_nao_registrar_nada_quando_o_credito_e_recusado() {
+        // Preparar
+        var cartoes = new CartaoPortaFake();
+        var caso = new CreditarCartaoCaso(cartoes, cartoes, saida);
+
+        // Agir
+        caso.creditar(credito(TipoCartao.ALIMENTACAO, "10.00"));
+
+        // Verificar: a tabela de eventos só prevê o crédito efetivado
+        assertThat(saida.eventos()).isEmpty();
     }
 
     @Test

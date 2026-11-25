@@ -250,12 +250,20 @@ aplicacao/                                 # depende só de dominio (+ @Transact
 │   │       ├── ListarConsumidoresCaso.java    # paginado, só id e nome
 │   │       └── ListagemDeConsumidores.java    # papel: listar(PedidoDePagina), @Transactional(readOnly = true)
 │   ├── cartao/
-│   │   ├── CreditarCartaoCaso.java        # só orquestra: busca travando, credita, grava, monta o comprovante
-│   │   ├── ComprovanteDoCredito.java      # como o crédito vira comprovante (função pura)
-│   │   ├── RegistrarCompraCaso.java       # só orquestra: aplica o fator do tipo, debita, grava — uma transação
-│   │   ├── ExtratoDaCompra.java           # como o pedido vira extrato (função pura; o instante entra como argumento)
-│   │   ├── ComprovanteDaCompra.java       # como o extrato e o cartão viram comprovante (função pura)
-│   │   └── GravadorDaCompra.java          # o que uma compra grava: o cartão debitado e o extrato
+│   │   ├── ComBuscadorDeCartaoParaAtualizacao.java  # operação-base compartilhada: buscador()
+│   │   ├── compra/
+│   │   │   ├── RegistrarCompraCaso.java   # só guarda o buscador, o gravador e o relógio
+│   │   │   ├── RegistroDeCompra.java      # papel: registrar(DtoCompra), @Transactional — aplica o fator do tipo, debita, grava
+│   │   │   ├── ComGravadorDaCompra.java   # operação-base: gravador()
+│   │   │   ├── ComRelogioDaCompra.java    # operação-base: relogio()
+│   │   │   ├── ExtratoDaCompra.java       # como o pedido vira extrato (função pura; o instante entra como argumento)
+│   │   │   ├── ComprovanteDaCompra.java   # como o extrato e o cartão viram comprovante (função pura)
+│   │   │   └── GravadorDaCompra.java      # o que uma compra grava: o cartão debitado e o extrato
+│   │   └── credito/
+│   │       ├── CreditarCartaoCaso.java    # só guarda o buscador e o gravador
+│   │       ├── CreditoDeCartao.java       # papel: creditar(DtoCredito), @Transactional — busca travando, credita, grava
+│   │       ├── ComGravadorDeCartao.java   # operação-base: gravador()
+│   │       └── ComprovanteDoCredito.java  # como o crédito vira comprovante (função pura)
 │   └── saude/
 │       ├── ConsultarSaudeCaso.java        # só guarda a SaudePorta; o controller nunca toca o DataSource
 │       ├── ConsultaDeSaude.java           # papel: consultar(), sem transação
@@ -418,7 +426,12 @@ src/test/java/…consumerpat/                # espelha produção, pacote a paco
 ├── aplicacao/
 │   ├── casosdeuso/
 │   │   ├── cartao/
-│   │   │   └── RegistrarCompraCasoTeste.java
+│   │   │   ├── compra/
+│   │   │   │   ├── RegistrarCompraCasoTeste.java
+│   │   │   │   └── TransacaoDaCompraTeste.java        # o proxy abre e confirma a transação
+│   │   │   └── credito/
+│   │   │       ├── CreditarCartaoCasoTeste.java
+│   │   │       └── TransacaoDoCreditoTeste.java
 │   │   └── consumidor/
 │   │       └── AtualizarConsumidorCasoTeste.java   # saldo preservado
 │   └── fakes/                             # fakes de porta — vivem aqui, nunca em src/main
@@ -837,18 +850,30 @@ classe pública isolada na camada de Aplicação, recebendo DTOs de entrada e
 retornando `Resultado<T, E>`.
 
 ```java
-// aplicacao/casosdeuso/cartao/RegistrarCompraCaso.java
-public class RegistrarCompraCaso {            // não é final — ver nota abaixo
-    private final CartaoPorta cartaoPorta;
+// aplicacao/casosdeuso/cartao/compra/RegistroDeCompra.java — a operação mora no papel
+public interface RegistroDeCompra
+        extends ComBuscadorDeCartaoParaAtualizacao, ComGravadorDaCompra, ComRelogioDaCompra {
+
+    @Transactional
+    default Resultado<DtoComprovanteCompra, ErroDominio> registrar(DtoCompra compra) { /* ... */ }
+}
+
+// aplicacao/casosdeuso/cartao/compra/RegistrarCompraCaso.java — a classe só guarda e declara o papel
+public class RegistrarCompraCaso implements RegistroDeCompra {   // não é final — ver nota abaixo
+    private final BuscadorDeCartaoParaAtualizacao buscador;
     private final GravadorDaCompra gravador;   // o que a compra grava mora numa peça própria
     private final Clock relogio;
 
-    public RegistrarCompraCaso(CartaoPorta cartaoPorta, GravadorDaCompra gravador, Clock relogio) { /* ... */ }
-
-    @Transactional
-    public Resultado<DtoComprovanteCompra, ErroDominio> registrar(DtoCompra compra) { /* ... */ }
+    public RegistrarCompraCaso(BuscadorDeCartaoParaAtualizacao buscador, GravadorDaCompra gravador,
+            Clock relogio) { /* ... */ }
 }
 ```
+
+A operação não mora na classe do caso de uso: é um método `default` de um
+papel, em arquivo próprio, sobre uma operação-base que expõe cada
+dependência (`buscador()`, `gravador()`, `relogio()`). É o mesmo desenho
+dos casos do consumidor, e deixa a classe só com o que a distingue: as
+dependências que guarda.
 
 > **Por que não `final`:** o Spring cria um *proxy CGLIB* para aplicar
 > `@Transactional`, e uma classe `final` não pode ser estendida. É a única
@@ -872,7 +897,7 @@ classe de teste terminados em `Teste`.
 ```text
 src/test/java/…consumerpat/
   dominio/cartao/CartaoTeste.java
-  aplicacao/casosdeuso/cartao/RegistrarCompraCasoTeste.java
+  aplicacao/casosdeuso/cartao/compra/RegistrarCompraCasoTeste.java
   infraestrutura/persistencia/consumidor/CartaoAdaptadorTeste.java
   api/cartao/CartaoControllerContratoTeste.java
 ```
@@ -969,7 +994,7 @@ public class ConfiguracaoDeCasosDeUso {
 ```text
 // CORRETO — cada responsabilidade em sua camada
 // dominio/cartao/TipoCartao.java
-// aplicacao/casosdeuso/cartao/RegistrarCompraCaso.java
+// aplicacao/casosdeuso/cartao/compra/RegistroDeCompra.java
 // api/configuracao/ConfiguracaoDeCasosDeUso.java — apenas composição (instancia casos de uso)
 ```
 

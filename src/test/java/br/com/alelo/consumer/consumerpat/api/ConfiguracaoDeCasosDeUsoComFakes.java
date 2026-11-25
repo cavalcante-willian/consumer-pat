@@ -7,6 +7,8 @@ import br.com.alelo.consumer.consumerpat.aplicacao.fakes.CartaoPortaFake;
 // editorconfig-checker-disable-next-line
 import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.consumidor.atualizar.AtualizarConsumidorCaso;
 import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.consumidor.criar.CriarConsumidorCaso;
+// editorconfig-checker-disable-next-line
+import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.consumidor.listar.ListarConsumidoresCaso;
 import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.consumidor.obter.ObterConsumidorCaso;
 import br.com.alelo.consumer.consumerpat.aplicacao.fakes.ExtratoPortaFake;
 import br.com.alelo.consumer.consumerpat.aplicacao.fakes.consumidor.ConsumidorPortaFake;
@@ -75,5 +77,10 @@ public class ConfiguracaoDeCasosDeUsoComFakes {
     @Bean
     ObterConsumidorCaso obterConsumidorCaso(ConsumidorPortaFake consumidores) {
         return new ObterConsumidorCaso(consumidores);
+    }
+
+    @Bean
+    ListarConsumidoresCaso listarConsumidoresCaso(ConsumidorPortaFake consumidores) {
+        return new ListarConsumidoresCaso(consumidores);
     }
 }

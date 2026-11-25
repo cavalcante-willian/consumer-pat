@@ -599,17 +599,21 @@ GET /api/v1/consumidores?pagina=2&tamanhoPagina=20&ordenacao=nome&direcao=asc
 ```java
 @GetMapping
 public MensagemPagina<MensagemResumoConsumidor> listar(
-        @RequestParam(defaultValue = "1")  @Min(1)           int pagina,
-        @RequestParam(defaultValue = "20") @Min(1) @Max(100) int tamanhoPagina) { /* ... */ }
-// o controller precisa de @Validated na classe para que @Min/@Max em
-// parâmetro sejam aplicados — e, por isso, não pode ser `final` (proxy CGLIB)
+        @RequestParam(defaultValue = "1")    int pagina,
+        @RequestParam(defaultValue = "20")   int tamanhoPagina,
+        @RequestParam(defaultValue = "nome") String ordenacao,
+        @RequestParam(defaultValue = "asc")  String direcao) { /* ... */ }
+// os quatro parâmetros são lidos juntos pelo domínio (PedidoDePaginaDeParametros),
+// que devolve todos os erros de uma vez — sem @Min/@Max, e sem aceitar Pageable
 ```
 
 - O contrato é de **base 1**; o Spring Data é de base 0. A conversão
   (`pagina - 1`) acontece **uma vez**, na borda — nunca vaza para o domínio.
 - `ordenacao` é um **enum fechado** (`ID`, `NOME`) — nunca o nome de coluna
   digitado pelo cliente (SQL/JPQL injection e vazamento de modelo). O
-  mapeamento enum → propriedade é dado no próprio enum (nível 1).
+  mapeamento enum → propriedade da entidade é do **adaptador de persistência**,
+  e não do enum: o domínio não conhece o nome de um atributo da entidade.
+- **O tamanho acima do teto é erro**, e não um corte silencioso em 100.
 - **A ordenação sempre desempata por `id`**: `ORDER BY nome, id`. Sem
   desempate, dois consumidores com o mesmo nome podem trocar de lugar entre
   duas consultas e a paginação pula ou repete itens.

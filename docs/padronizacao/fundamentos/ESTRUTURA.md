@@ -238,7 +238,9 @@ aplicacao/                                 # depende só de dominio (+ @Transact
 │   │   ├── obter/
 │   │   │   ├── ObterConsumidorCaso.java   # leitura por id — alvo do Location do POST
 │   │   │   └── LeituraDeConsumidor.java   # papel: obter(id), @Transactional(readOnly = true)
-│   │   └── ListarConsumidoresCaso.java    # paginado — item 9
+│   │   └── listar/
+│   │       ├── ListarConsumidoresCaso.java    # paginado, só id e nome
+│   │       └── ListagemDeConsumidores.java    # papel: listar(PedidoDePagina), @Transactional(readOnly = true)
 │   ├── cartao/
 │   │   ├── CreditarCartaoCaso.java        # só orquestra: busca travando, credita, grava, monta o comprovante
 │   │   ├── ComprovanteDoCredito.java      # como o crédito vira comprovante (função pura)

@@ -35,7 +35,12 @@ registra; a infraestrutura diz com que tabela, com que restrição e com que tra
 - **`persistencia.extrato`** — a tabela `extratos`: imutável, só `data_criacao`, sem
   versão, e a chave estrangeira para o cartão nunca cascateia exclusão.
 - **`persistencia.cadastro`** — o `ConsumidorAdaptador`: a busca (duas consultas por
-  consumidor, a da linha e a dos cartões), a criação e a atualização. **O conflito é
+  consumidor, a da linha e a dos cartões), a listagem, a criação e a atualização.
+  **A listagem pede a página ao banco** e lê só id e nome (`ResumoDeConsumidorLinha`):
+  são duas consultas por listagem, a da página e a da contagem, que o Spring dispensa
+  quando a primeira página não está cheia, e nunca uma por consumidor. O
+  `OrdenacaoNoBanco` traduz o pedido do domínio: a página de base 1 vira a de base 0, o
+  enum vira a propriedade da entidade, e o desempate por `id` segue a direção pedida. **O conflito é
   conferido antes de gravar**: um `INSERT` que viola a unicidade lança no meio da
   transação e a marca para reverter, e devolver uma falha depois disso faria o caso de
   uso confirmar uma transação que já não pode ser confirmada. A unicidade do banco fica
@@ -160,6 +165,7 @@ teste que falharia sem ela, e a tabela abaixo é o inventário.
 | `ExtratoAdaptador`, `RegistroDeExtratoNoBanco`, `EntidadeDeExtrato`, `ExtratoEntidade` | `ExtratoAdaptadorTeste` (valores e instante, auditoria, cartão ausente, FK, sem cascata) |
 | `CartaoEntidade` (schema) | `SchemaDoCartaoTeste` (`CHECK` de saldo, número único, enum como texto, escala, auditoria, o dono obrigatório, um cartão de cada tipo por consumidor, a FK sem cascata) |
 | `ConsumidorEntidade` (schema) | `SchemaDoConsumidorTeste` (documento único, telefones nulos, tamanhos das colunas, índice por nome e id, versão, a corrida pega pela versão de linha, auditoria) |
+| `ListagemDeConsumidoresNoBanco`, `OrdenacaoNoBanco`, `ResumoDeConsumidorLinha` | `ListagemDeConsumidoresTeste` (H2 real: ordem, desempate, corte sem pular nem repetir, página vazia, contagem de comandos SQL) e `OrdenacaoNoBancoTeste` |
 | `ConsumidorAdaptador`, os papéis do `cadastro`, `ConsumidorDasLinhas` | `ConsumidorAdaptadorTeste` (criar com e sem cartões, documento e número repetidos sem gravar, buscar com os cartões ordenados, atualizar só os dados, versão velha, documento de outro) |
 | `ConsumidorDeEntidade`, `AtualizadorDeEntidadeDeConsumidor` | `ConsumidorDeEntidadeTeste` e `AtualizadorDeEntidadeDeConsumidorTeste` (telefones nulos e preenchidos, o que não muda na atualização, dado inválido que lança) |
 | `VersaoDaLinhaConfirmada` | `VersaoDaLinhaConfirmadaTeste` |

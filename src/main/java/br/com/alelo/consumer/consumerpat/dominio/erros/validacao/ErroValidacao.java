@@ -12,8 +12,9 @@ import br.com.alelo.consumer.consumerpat.dominio.erros.ErroDominio;
  * o compilador, e o teste de códigos, as conhecem.
  */
 public sealed interface ErroValidacao extends ErroDominio permits ErroCepInvalido,
-        ErroConsumidorIdInvalido, ErroDocumentoInvalido, ErroEmailInvalido, ErroEntradaInvalida,
-        ErroNumeroDeCartaoInvalido, ErroTelefoneInvalido, ErroTipoDeCartaoInvalido,
+        ErroConsumidorIdInvalido, ErroDirecaoInvalida, ErroDocumentoInvalido, ErroEmailInvalido,
+        ErroEntradaInvalida, ErroNumeroDeCartaoInvalido, ErroOrdenacaoInvalida, ErroPaginaInvalida,
+        ErroTamanhoDePaginaInvalido, ErroTelefoneInvalido, ErroTipoDeCartaoInvalido,
         ErroTipoEstabelecimentoInvalido, ErroValorMonetarioInvalido, ErroValorNaoPositivo {
 
     @Override

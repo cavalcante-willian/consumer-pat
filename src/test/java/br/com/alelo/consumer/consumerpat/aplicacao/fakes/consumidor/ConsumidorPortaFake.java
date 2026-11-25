@@ -13,7 +13,8 @@ import java.util.Arrays;
  * devolve para um consumidor ausente, um documento repetido e uma versão velha é o que a
  * infraestrutura devolve, de modo que o teste de um caso de uso não passa por um motivo falso.
  */
-public class ConsumidorPortaFake implements ConsumidorPorta, CriacaoDeConsumidorEmMemoria,
+public class ConsumidorPortaFake
+        implements ConsumidorPorta, ListagemDeConsumidoresEmMemoria, CriacaoDeConsumidorEmMemoria,
         AtualizacaoDeConsumidorEmMemoria, ConsultaDoEstadoDoConsumidor {
 
     private final ConsumidoresEmMemoria memoria = new ConsumidoresEmMemoria();

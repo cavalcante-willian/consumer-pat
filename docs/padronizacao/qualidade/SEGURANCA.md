@@ -116,8 +116,8 @@ exige.
 |---|---|---|
 | Processo do servidor | usuário dedicado de sistema, sem administração | recomendação de implantação |
 | Banco de dados | usuário limitado a `SELECT/INSERT/UPDATE` do próprio schema — nunca administrador | o usuário `sa` do H2 **é** administrador (aceitável: H2 em memória, descartável) |
-| **Console do H2** (`/h2-console`) | **desabilitado em produção** | **habilitado por padrão — achado do legado** |
-| Swagger UI | desabilitável em produção | habilitado (o README o documenta) |
+| **Console do H2** (`/h2-console`) | **desabilitado em produção** | habilitado no perfil padrão, porque o README o documenta; **desabilitado em `prod`**, com teste |
+| Swagger UI e `/v3/api-docs` | desabilitáveis em produção | habilitados no perfil padrão (o README os documenta); **desabilitados em `prod`**, com teste |
 
 ### O H2 Console é uma porta dos fundos
 
@@ -142,7 +142,9 @@ parte do ambiente local (`http://localhost:8080/h2-console/`). A decisão
         enabled: false
   springdoc:
     swagger-ui:
-      enabled: false          # opcional: o contrato não precisa estar público em produção
+      enabled: false          # o contrato não precisa estar público em produção
+    api-docs:
+      enabled: false          # a especificação é o mesmo contrato, e sai junto da página
   ```
 
 - `spring.h2.console.settings.web-allow-others` **permanece `false`**
@@ -236,7 +238,7 @@ como superfície de vazamento até o vazamento.
 
 Toda resposta da API envia os cabeçalhos de segurança. Sem Spring Security,
 o Spring Boot **não envia nenhum** — a responsabilidade é de um `Filter`
-próprio, em `api.comum`, registrado em `api.configuracao`:
+próprio, em `api.comum.seguranca`, registrado em `api.configuracao`:
 
 | Cabeçalho | Valor | Ameaça mitigada |
 |---|---|---|
@@ -244,22 +246,28 @@ próprio, em `api.comum`, registrado em `api.configuracao`:
 | `X-Frame-Options` | `DENY` | *clickjacking* |
 | `Content-Security-Policy` | `default-src 'none'; frame-ancestors 'none'` | a resposta é JSON e não precisa carregar nada; nenhum recurso externo é permitido |
 | `Referrer-Policy` | `no-referrer` | vazamento de URL em cabeçalho `Referer` |
-| `Cache-Control` | `no-store` | cache de dado pessoal por intermediário — aplicado pelo interceptor descrito em [`PERFORMANCE.md`](PERFORMANCE.md#5-cache-de-leitura--recusado-de-propósito) |
+| `Cache-Control` | `no-store` | cache de dado pessoal por intermediário, e de um saldo que ficaria velho — escrito pelo mesmo filtro (ver [`PERFORMANCE.md`](PERFORMANCE.md#5-cache-de-leitura--recusado-de-propósito)) |
 
 ```java
-// api/comum/FiltroDeCabecalhosDeSeguranca.java — esboço; validar ao implementar
+// api/comum/seguranca/CabecalhosDeSeguranca.java — os valores, num Map imutável
+public static final Map<String, String> PADRAO = Map.of("X-Content-Type-Options", "nosniff",
+        "X-Frame-Options", "DENY", "Content-Security-Policy",
+        "default-src 'none'; frame-ancestors 'none'", "Referrer-Policy", "no-referrer",
+        "Cache-Control", "no-store");
+
+// api/comum/seguranca/FiltroDeCabecalhosDeSeguranca.java — só aplica, sem decidir nada
 public class FiltroDeCabecalhosDeSeguranca extends OncePerRequestFilter {
     @Override
-    protected void doFilterInternal(HttpServletRequest requisicao, HttpServletResponse resposta, FilterChain cadeia)
-            throws ServletException, IOException {
-        resposta.setHeader("X-Content-Type-Options", "nosniff");
-        resposta.setHeader("X-Frame-Options", "DENY");
-        resposta.setHeader("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'");
-        resposta.setHeader("Referrer-Policy", "no-referrer");
+    public void doFilterInternal(HttpServletRequest requisicao, HttpServletResponse resposta,
+            FilterChain cadeia) throws ServletException, IOException {
+        CabecalhosDeSeguranca.PADRAO.forEach(resposta::setHeader);
         cadeia.doFilter(requisicao, resposta);
     }
 }
 ```
+
+Os valores moram num tipo à parte, e o filtro só os aplica: trocar um
+cabeçalho é mudar um dado, e o filtro, que não decide nada, não muda.
 
 **Regras:**
 
@@ -272,7 +280,14 @@ public class FiltroDeCabecalhosDeSeguranca extends OncePerRequestFilter {
   `default-src 'none'` e o `X-Frame-Options: DENY` **quebram** essas
   páginas (o console do H2 usa *frames*). Elas são ambiente de
   desenvolvimento, desligadas em produção (seção 3).
+- **O `Cache-Control: no-store` vai no filtro, e não num interceptor.** Um
+  `HandlerInterceptor` só roda quando há um handler, e o `404` de uma rota que
+  não existe e o `405` de um método não aceito nunca chegam a um: saíam sem o
+  cabeçalho, e o contrato diz que a resposta de erro o traz. O filtro cobre
+  todas, e a regra de aplicar uma vez, num ponto só, continua valendo.
 - **O filtro não lança exceção** (regra do pipeline): só escreve cabeçalhos.
+- **Não cobre as rotas fora de `/api/*`.** O legado serve as suas, em outros
+  caminhos, e sai com a remoção do legado.
 - **HSTS não é enviado pela aplicação.** Ele só tem efeito sobre HTTPS, e o
   TLS é terminado fora (proxy/balanceador) — é lá que o
   `Strict-Transport-Security` é configurado (seção 9).

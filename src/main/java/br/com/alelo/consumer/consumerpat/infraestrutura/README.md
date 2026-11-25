@@ -50,6 +50,7 @@ registra; a infraestrutura diz com que tabela, com que restrição e com que tra
   `CRITICO`. Destino, formato e rotação não são código: vêm do `application.yml`
   (padrão com data em UTC, `idRequisicao` e a barreira que mascara 11 e 13 a 19 dígitos)
   e do `application-prod.yml` (`INFO`, arquivo em `logs/` e rotação por tamanho e histórico).
+  O mesmo arquivo desliga em produção o console do H2, o Swagger e a especificação.
 - **`persistencia.cadastro`** — o `ConsumidorAdaptador`: a busca (duas consultas por
   consumidor, a da linha e a dos cartões), a listagem, a criação e a atualização.
   **A listagem pede a página ao banco** e lê só id e nome (`ResumoDeConsumidorLinha`):

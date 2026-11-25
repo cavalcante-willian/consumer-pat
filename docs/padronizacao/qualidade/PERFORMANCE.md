@@ -311,22 +311,11 @@ verdade do saldo é a linha travada no banco, e só ela.**
   do Hibernate, nenhum mapa em memória guardando consumidor ou cartão.
 - **Respostas da API saem com `Cache-Control: no-store`** — nenhum cache
   intermediário (proxy, CDN, navegador) guarda dado pessoal. Aplicado **uma
-  vez**, para todo `/api/v1/**`, por um `WebContentInterceptor` registrado
-  em `api.configuracao` (`ConfiguracaoDeWeb`) — nunca por controller:
-
-  ```java
-  @Configuration
-  public class ConfiguracaoDeWeb implements WebMvcConfigurer {
-      @Override
-      public void addInterceptors(InterceptorRegistry registro) {
-          var interceptor = new WebContentInterceptor();
-          interceptor.addCacheMapping(CacheControl.noStore(), "/api/v1/**");
-          registro.addInterceptor(interceptor);
-      }
-  }
-  ```
-
-  *(esboço; validar ao implementar)*
+  vez**, para toda resposta de `/api/*`, pelo `FiltroDeCabecalhosDeSeguranca`
+  ([`SEGURANCA.md`](SEGURANCA.md#6-cabeçalhos-de-segurança)) — nunca por
+  controller. Foi um filtro, e não o `WebContentInterceptor` que esta seção
+  esboçava, porque um interceptor só roda quando há um handler, e o `404` de uma
+  rota inexistente e o `405` saíam sem o cabeçalho.
 
 - **A saída é tratada como não cacheável**: sem `ETag`, sem `Last-Modified`.
   Revalidação (`304`) só faz sentido para conteúdo que **pode** ser
@@ -604,7 +593,7 @@ alocar — e esta seção é reescrita no mesmo PR.
 | Coluna consultada sem índice (`where FOOD_CARD_NUMBER = ?`) | `unique`/`@Index` na mesma entrega (seção 4) |
 | Índice em coluna muito escrita (`saldo`) | Sem índice — custo de escrita sem ganho |
 | `@Cacheable`, cache 2º nível ou mapa em memória de consumidor/cartão | Nenhum cache de dado pessoal ou financeiro (seção 5) |
-| Resposta com dado pessoal sem `Cache-Control: no-store` | `no-store` em `/api/v1/**`, uma vez, no interceptor |
+| Resposta com dado pessoal sem `Cache-Control: no-store` | `no-store` em `/api/*`, uma vez, no filtro dos cabeçalhos de segurança |
 | Chamada externa dentro de transação com cartão travado | Transação só com lock → cálculo → gravação (seção 7) |
 | Espera por lock maior que a espera por conexão | Lock timeout < connection timeout (seções 7 e 9) |
 | Otimizar por sensação, sem medir | Medir antes (inclusive o legado), medir depois, registrar no PR (seção 8) |

@@ -1,7 +1,8 @@
-package br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cartao;
+package br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.extrato;
 
 import br.com.alelo.consumer.consumerpat.dominio.extrato.Extrato;
 import br.com.alelo.consumer.consumerpat.dominio.portas.ExtratoPorta;
+import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cartao.ComRepositorioDeCartoes;
 
 /**
  * O registro do extrato no banco: só insere, nunca atualiza nem apaga.

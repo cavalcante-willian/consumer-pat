@@ -1,4 +1,4 @@
-package br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cartao;
+package br.com.alelo.consumer.consumerpat.infraestrutura.persistencia;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DataJpaTest
 class NomenclaturaDeSchemaTeste {
 
-    private static final String TABELAS = "('CARTOES', 'EXTRATOS')";
+    private static final String TABELAS = "('CONSUMIDORES', 'CARTOES', 'EXTRATOS')";
 
     @Autowired
     private TestEntityManager gerenciador;

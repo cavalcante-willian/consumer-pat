@@ -8,17 +8,20 @@ import org.springframework.data.repository.query.Param;
 
 import javax.persistence.LockModeType;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 /**
- * O acesso do Spring Data aos cartões. É pacote-privado: o que sai do pacote é a porta.
+ * O acesso do Spring Data aos cartões. É público porque o adaptador do consumidor, em outro pacote,
+ * o usa, mas nenhuma camada fora da persistência pode importá-lo, e um teste impõe isso.
  *
  * <p>
  * Só JPQL, nunca SQL de dialeto. A espera por uma trava tem teto, mas ele não está aqui: o H2
  * ignora em silêncio a dica de timeout do JPA, por propriedade e por consulta, e o teto é o
  * parâmetro {@code LOCK_TIMEOUT} da URL do banco, na configuração.
  */
-interface CartaoRepositorioJpa extends JpaRepository<CartaoEntidade, Long> {
+public interface CartaoRepositorioJpa extends JpaRepository<CartaoEntidade, Long> {
 
     /**
      * Busca o cartão do número e do tipo e o trava para escrita até o fim da transação.
@@ -40,4 +43,26 @@ interface CartaoRepositorioJpa extends JpaRepository<CartaoEntidade, Long> {
      */
     @Query("select c from CartaoEntidade c where c.numero = :numero")
     Optional<CartaoEntidade> buscarPorNumero(@Param("numero") String numero);
+
+    /**
+     * Busca os cartões de um consumidor, sem trava, ordenados pelo tipo.
+     *
+     * <p>
+     * É a leitura do consumidor: uma consulta por consumidor, e não uma por cartão.
+     *
+     * @param consumidorId o id do consumidor
+     * @return os cartões dele, possivelmente nenhum
+     */
+    @Query("select c from CartaoEntidade c where c.consumidor.id = :consumidorId "
+            + "order by c.tipo")
+    List<CartaoEntidade> buscarDoConsumidor(@Param("consumidorId") Long consumidorId);
+
+    /**
+     * Diz quais dos números informados já são de algum cartão.
+     *
+     * @param numeros os números, só dígitos
+     * @return os que já existem, na ordem em que o banco os devolver
+     */
+    @Query("select c.numero from CartaoEntidade c where c.numero in :numeros")
+    List<String> numerosJaCadastrados(@Param("numeros") Collection<String> numeros);
 }

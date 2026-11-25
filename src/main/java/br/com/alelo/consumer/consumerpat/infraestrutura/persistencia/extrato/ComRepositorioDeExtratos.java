@@ -1,4 +1,4 @@
-package br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cartao;
+package br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.extrato;
 
 /**
  * Papel de um adaptador que tem o repositório dos extratos: é a operação-base de que as operações

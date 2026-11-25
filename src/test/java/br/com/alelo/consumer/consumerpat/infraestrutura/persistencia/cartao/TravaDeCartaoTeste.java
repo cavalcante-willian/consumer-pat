@@ -4,6 +4,10 @@ import br.com.alelo.consumer.consumerpat.api.configuracao.ConfiguracaoDeAuditori
 import br.com.alelo.consumer.consumerpat.dominio.cartao.NumeroDeCartao;
 import br.com.alelo.consumer.consumerpat.dominio.cartao.TipoCartao;
 import br.com.alelo.consumer.consumerpat.fabricas.FabricaDeCartoes;
+import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.ConfiguracaoDeRelogioDeTeste;
+// editorconfig-checker-disable-next-line
+import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.ConsumidorRepositorioJpa;
+import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.ConsumidoresDeTeste;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,16 +56,21 @@ class TravaDeCartaoTeste {
     private CartaoRepositorioJpa repositorio;
 
     @Autowired
+    private ConsumidorRepositorioJpa consumidores;
+
+    @Autowired
     private PlatformTransactionManager transacoes;
 
     @BeforeEach
     void gravarOCartao() {
-        repositorio.saveAndFlush(CartoesDeTeste.linha(TipoCartao.ALIMENTACAO, "100.00"));
+        var dono = consumidores.saveAndFlush(ConsumidoresDeTeste.linha());
+        repositorio.saveAndFlush(CartoesDeTeste.linha(dono, TipoCartao.ALIMENTACAO, "100.00"));
     }
 
     @AfterEach
     void apagarOCartao() {
         repositorio.deleteAll();
+        consumidores.deleteAll();
     }
 
     @Test

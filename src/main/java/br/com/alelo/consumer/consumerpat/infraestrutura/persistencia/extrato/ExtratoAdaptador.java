@@ -1,12 +1,14 @@
-package br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cartao;
+package br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.extrato;
+
+import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cartao.CartaoRepositorioJpa;
 
 /**
  * O adaptador da porta do extrato: implementa o registro em cima do banco.
  *
  * <p>
  * Só guarda os repositórios e declara o papel. É público, e quem o instancia é a composition root,
- * por importação da classe; o construtor é pacote-privado porque os repositórios também são, e o
- * Spring os injeta mesmo assim.
+ * por importação da classe; o construtor é pacote-privado para ninguém fora da persistência o
+ * chamar, e o Spring injeta os repositórios mesmo assim.
  */
 public class ExtratoAdaptador implements RegistroDeExtratoNoBanco {
 

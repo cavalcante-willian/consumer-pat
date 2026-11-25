@@ -178,7 +178,7 @@ descobrir qual restrição estourou sem nome custa uma investigação.
 | Coluna | Tipo | Nulo? | Observação |
 |---|---|---|---|
 | `id` | `BIGINT` (identidade) | não | |
-| `consumidor_id` | `BIGINT` | não | `fk_cartoes_consumidores`; `idx_cartoes_consumidor_id` |
+| `consumidor_id` | `BIGINT` | não | `fk_cartoes_consumidores`; sem índice próprio: a unicidade abaixo o tem como primeira coluna |
 | `tipo` | `VARCHAR(20)` | não | `@Enumerated(EnumType.STRING)` |
 | `numero` | `VARCHAR(19)` | não | só dígitos; `uk_cartoes_numero` |
 | `saldo` | **`NUMERIC(19,6)`** | não | `ck_cartoes_saldo_nao_negativo` |
@@ -189,14 +189,13 @@ descobrir qual restrição estourou sem nome custa uma investigação.
 tem **no máximo um cartão de cada tipo**, invariante do domínio que o
 legado expressava com três colunas.)*
 
-> **Hoje a tabela nasce sem `consumidor_id` e sem `uk_cartoes_consumidor_tipo`.**
-> O domínio ainda não tem `Consumidor`, e criar a coluna `NOT NULL` obrigaria a
-> criar também a tabela `consumidores` e uma entidade sem mapeador nem uso. Como o
-> schema nasce só das anotações (`create-drop`), as duas entram junto do
-> consumidor, sem migração. Enquanto isso, o `GravadorDeCartao` só **atualiza** um
-> cartão que existe; criá-lo exige o consumidor dono. O `extratos` já tem a FK
-> `fk_extratos_cartoes`, e a persistência do extrato mora no pacote do cartão
-> (ver [`ESTRUTURA.md`](../fundamentos/ESTRUTURA.md)).
+> **Não há `idx_cartoes_consumidor_id`.** A unicidade `uk_cartoes_consumidor_tipo`
+> tem `consumidor_id` como primeira coluna, e um índice só por ela não serviria a
+> nenhuma busca que a unicidade já não sirva: seria escrita a mais, sem leitura a
+> menos. O `GravadorDeCartao` só **atualiza** um cartão que existe; quem cria o
+> cartão é a criação do consumidor, que o grava junto do dono. A persistência se
+> divide em pacotes por conceito (ver
+> [`ESTRUTURA.md`](../fundamentos/ESTRUTURA.md)).
 
 **`extratos`** *(imutável: só se insere — seção 8)*
 
@@ -309,7 +308,7 @@ Entram junto com a autenticação, na mesma mudança.
 dependência nova**:
 
 ```java
-// infraestrutura/persistencia/cartao/CartaoEntidade.java
+// infraestrutura/persistencia/consumidor/CartaoEntidade.java
 @Entity
 @EntityListeners(AuditingEntityListener.class)
 class CartaoEntidade {
@@ -637,8 +636,8 @@ Em grande parte coberta em outros documentos; aqui só o que é do banco:
   ([`SEGURANCA.md`](SEGURANCA.md#3-mínimo-de-privilégios)).
 - **Credencial e segredos**: regra de [`SEGURANCA.md`](SEGURANCA.md#4-segredos--regra-curta)
   — nada de segredo real no repositório; `sa/sa` é demonstrativo.
-- **Nenhum acesso a banco fora do adaptador** — repositório Spring Data é
-  *package-private* e só o `*Adaptador` é público
+- **Nenhum acesso a banco fora do adaptador** — o repositório Spring Data só é
+  importado dentro de `infraestrutura.persistencia`, e um teste impõe isso
   ([`ESTRUTURA.md`](../fundamentos/ESTRUTURA.md)).
 - **Falha de conexão** responde com o corpo padronizado, **sem** URL de
   conexão, host ou SQL ([`ERROS.md`](ERROS.md)); o esgotamento do pool talvez

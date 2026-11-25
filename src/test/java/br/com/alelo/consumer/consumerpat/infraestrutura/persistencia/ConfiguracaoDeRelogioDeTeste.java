@@ -1,4 +1,4 @@
-package br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cartao;
+package br.com.alelo.consumer.consumerpat.infraestrutura.persistencia;
 
 import br.com.alelo.consumer.consumerpat.fabricas.RelogioAjustavel;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -11,10 +11,10 @@ import java.time.Instant;
  * fosse o relógio da aplicação.
  */
 @TestConfiguration
-class ConfiguracaoDeRelogioDeTeste {
+public class ConfiguracaoDeRelogioDeTeste {
 
     /** O instante em que todo teste de persistência começa. */
-    static final Instant INICIO = Instant.parse("2026-11-24T12:00:00Z");
+    public static final Instant INICIO = Instant.parse("2026-11-24T12:00:00Z");
 
     @Bean
     RelogioAjustavel relogio() {

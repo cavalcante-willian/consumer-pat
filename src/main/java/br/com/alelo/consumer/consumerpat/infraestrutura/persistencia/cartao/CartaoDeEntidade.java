@@ -12,7 +12,7 @@ import br.com.alelo.consumer.consumerpat.dominio.dinheiro.Dinheiro;
  * campos de auditoria nem a versão: o domínio não os conhece. Uma linha que o domínio recusaria,
  * como um número fora do formato ou um saldo fora da escala, é bug de quem gravou, e lança.
  */
-final class CartaoDeEntidade {
+public final class CartaoDeEntidade {
 
     private CartaoDeEntidade() {
     }
@@ -23,7 +23,7 @@ final class CartaoDeEntidade {
      * @param entidade a linha lida do banco
      * @return o cartão com o número, o tipo e o saldo da linha
      */
-    static Cartao converter(CartaoEntidade entidade) {
+    public static Cartao converter(CartaoEntidade entidade) {
         return new Cartao(new NumeroDeCartao(entidade.getNumero()), entidade.getTipo(),
                 new Dinheiro(entidade.getSaldo()));
     }

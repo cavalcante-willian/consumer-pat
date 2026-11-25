@@ -153,9 +153,9 @@ decidir, de propósito, onde "testado" começa.
   instanciado à mão no teste (`new CartaoAdaptador(repositorio)`) — o que
   **confirma** a regra de composition root único: sem `@Component` no
   adaptador, o teste constrói exatamente o que a produção constrói.
-- **Entidade e repositório são package-private**
+- **Entidade e repositório são públicos, mas só a persistência os importa**
   ([`ESTRUTURA.md`](../fundamentos/ESTRUTURA.md#a-regra-é-verificável-não-de-boa-vontade)),
-  e o teste mora no mesmo pacote — então **consegue** alcançá-los. A tentação
+  e o teste de persistência mora nela — então **consegue** alcançá-los. A tentação
   é validar a entidade em vez do comportamento; a regra é testar **pela
   porta pública** (a interface de porta), como o resto do sistema faria.
 
@@ -177,7 +177,7 @@ mesmo `ddl-auto` de execução.
 @DataJpaTest
 class CartaoAdaptadorTeste {
 
-    @Autowired CartaoRepositorioJpa repositorio;       // package-private: o teste mora no mesmo pacote
+    @Autowired CartaoRepositorioJpa repositorio;       // só a persistência o importa: o teste mora nela
 
     @Test
     void deve_recusar_numero_duplicado_quando_gravar_dois_cartoes_com_o_mesmo_numero() {
@@ -296,7 +296,7 @@ classe própria.
   interno, extrair método, trocar a estrutura de dados.
 - **O teste exercita método privado, estado interno ou ordem de chamadas
   internas.**
-- **O teste toca `ConsumidorEntidade`/`CartaoEntidade`** (package-private)
+- **O teste toca `ConsumidorEntidade`/`CartaoEntidade`** (restritas à persistência)
   para conferir como o dado ficou, em vez de reler pela **porta** e conferir
   o que o domínio enxerga.
 - **O mock é de um método interno da própria camada.**
@@ -724,7 +724,7 @@ Antes de abrir um PR que escreve ou altera testes:
 - [ ] O tipo de teste é o da pergunta (unitário / integração / contrato / E2E / concorrência) — não o mais cômodo?
 - [ ] Teste de adaptador usa H2 real, nunca mock de repositório?
 - [ ] Nome do teste comunica cenário, condição e resultado (`deve_…_quando_…`)?
-- [ ] Nenhum teste acessa detalhe interno, entidade package-private para conferir resultado, ou mock de detalhe?
+- [ ] Nenhum teste acessa detalhe interno, entidade para conferir resultado, ou mock de detalhe?
 - [ ] Nenhum `Mockito`, `@MockBean`, `@SpyBean` ou `@DirtiesContext`?
 - [ ] Fixture vem de fábrica no teste, com número de cartão único — nada de arquivo, dump ou dado real?
 - [ ] Dinheiro construído de `String` (`BigDecimal`), nunca de `double`?

@@ -9,6 +9,7 @@ import br.com.alelo.consumer.consumerpat.dominio.erros.naoencontrado.ErroCartaoN
 import br.com.alelo.consumer.consumerpat.dominio.resultado.Falha;
 import br.com.alelo.consumer.consumerpat.dominio.resultado.Sucesso;
 import br.com.alelo.consumer.consumerpat.fabricas.FabricaDeCartoes;
+import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.ConfiguracaoDeRelogioDeTeste;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -40,7 +41,8 @@ class CartaoAdaptadorTeste {
     @Test
     void deve_devolver_o_cartao_quando_existe_cartao_com_o_numero_e_o_tipo() {
         // Preparar
-        gerenciador.persistAndFlush(CartoesDeTeste.linha(TipoCartao.ALIMENTACAO, "100.00"));
+        gerenciador.persistAndFlush(
+                CartoesDeTeste.linha(gerenciador, TipoCartao.ALIMENTACAO, "100.00"));
         var adaptador = new CartaoAdaptador(repositorio);
 
         // Agir
@@ -71,7 +73,8 @@ class CartaoAdaptadorTeste {
     @Test
     void deve_ser_cartao_nao_encontrado_quando_o_numero_existe_com_outro_tipo() {
         // Preparar
-        gerenciador.persistAndFlush(CartoesDeTeste.linha(TipoCartao.FARMACIA, "100.00"));
+        gerenciador
+                .persistAndFlush(CartoesDeTeste.linha(gerenciador, TipoCartao.FARMACIA, "100.00"));
         var adaptador = new CartaoAdaptador(repositorio);
 
         // Agir
@@ -86,8 +89,8 @@ class CartaoAdaptadorTeste {
     @Test
     void deve_gravar_o_novo_saldo_quando_salvar_um_cartao_que_existe() {
         // Preparar
-        var linha = gerenciador
-                .persistAndFlush(CartoesDeTeste.linha(TipoCartao.COMBUSTIVEL, "100.00"));
+        var linha = gerenciador.persistAndFlush(
+                CartoesDeTeste.linha(gerenciador, TipoCartao.COMBUSTIVEL, "100.00"));
         var adaptador = new CartaoAdaptador(repositorio);
         var novo = new Cartao(NUMERO, TipoCartao.COMBUSTIVEL, dinheiro("65.00"));
 
@@ -105,8 +108,8 @@ class CartaoAdaptadorTeste {
     @Test
     void deve_guardar_a_fracao_de_centavo_quando_salvar_um_saldo_com_tres_casas() {
         // Preparar
-        var linha = gerenciador
-                .persistAndFlush(CartoesDeTeste.linha(TipoCartao.ALIMENTACAO, "100.00"));
+        var linha = gerenciador.persistAndFlush(
+                CartoesDeTeste.linha(gerenciador, TipoCartao.ALIMENTACAO, "100.00"));
         var adaptador = new CartaoAdaptador(repositorio);
 
         // Agir
@@ -133,8 +136,8 @@ class CartaoAdaptadorTeste {
     @Test
     void deve_incrementar_a_versao_quando_atualizar_o_saldo() {
         // Preparar
-        var linha = gerenciador
-                .persistAndFlush(CartoesDeTeste.linha(TipoCartao.ALIMENTACAO, "100.00"));
+        var linha = gerenciador.persistAndFlush(
+                CartoesDeTeste.linha(gerenciador, TipoCartao.ALIMENTACAO, "100.00"));
         var versaoInicial = linha.getVersao();
         var adaptador = new CartaoAdaptador(repositorio);
 

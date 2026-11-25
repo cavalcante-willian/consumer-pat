@@ -1,6 +1,7 @@
-package br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cartao;
+package br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.extrato;
 
 import br.com.alelo.consumer.consumerpat.dominio.extrato.Extrato;
+import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cartao.CartaoEntidade;
 
 /**
  * Converte o extrato do domínio na linha a gravar.

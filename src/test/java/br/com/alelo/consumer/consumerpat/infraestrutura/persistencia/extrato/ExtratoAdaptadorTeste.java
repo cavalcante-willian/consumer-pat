@@ -1,4 +1,4 @@
-package br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cartao;
+package br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.extrato;
 
 import br.com.alelo.consumer.consumerpat.api.configuracao.ConfiguracaoDeAuditoria;
 import br.com.alelo.consumer.consumerpat.dominio.cartao.NumeroDeCartao;
@@ -7,6 +7,9 @@ import br.com.alelo.consumer.consumerpat.dominio.dinheiro.Dinheiro;
 import br.com.alelo.consumer.consumerpat.dominio.extrato.Extrato;
 import br.com.alelo.consumer.consumerpat.fabricas.FabricaDeCartoes;
 import br.com.alelo.consumer.consumerpat.fabricas.RelogioAjustavel;
+import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.ConfiguracaoDeRelogioDeTeste;
+import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cartao.CartaoRepositorioJpa;
+import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cartao.CartoesDeTeste;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -54,8 +57,8 @@ class ExtratoAdaptadorTeste {
     @Test
     void deve_gravar_os_dois_valores_e_o_instante_quando_registrar_o_extrato() {
         // Preparar
-        var cartao = gerenciador
-                .persistAndFlush(CartoesDeTeste.linha(TipoCartao.ALIMENTACAO, "100.00"));
+        var cartao = gerenciador.persistAndFlush(
+                CartoesDeTeste.linha(gerenciador, TipoCartao.ALIMENTACAO, "100.00"));
         var adaptador = new ExtratoAdaptador(cartoes, extratos);
 
         // Agir
@@ -78,7 +81,8 @@ class ExtratoAdaptadorTeste {
     @Test
     void deve_preencher_a_data_de_criacao_quando_registrar_o_extrato() {
         // Preparar
-        gerenciador.persistAndFlush(CartoesDeTeste.linha(TipoCartao.ALIMENTACAO, "100.00"));
+        gerenciador.persistAndFlush(
+                CartoesDeTeste.linha(gerenciador, TipoCartao.ALIMENTACAO, "100.00"));
         var agora = relogio.instant();
 
         // Agir
@@ -92,7 +96,8 @@ class ExtratoAdaptadorTeste {
     @Test
     void deve_guardar_um_extrato_por_registro_quando_registrar_duas_vezes() {
         // Preparar
-        gerenciador.persistAndFlush(CartoesDeTeste.linha(TipoCartao.ALIMENTACAO, "100.00"));
+        gerenciador.persistAndFlush(
+                CartoesDeTeste.linha(gerenciador, TipoCartao.ALIMENTACAO, "100.00"));
         var adaptador = new ExtratoAdaptador(cartoes, extratos);
 
         // Agir
@@ -124,14 +129,14 @@ class ExtratoAdaptadorTeste {
                         + "valor_informado, valor_cobrado, data_compra, data_criacao) "
                         + "values (999, 'a', 'b', 1, 1, current_timestamp, current_timestamp)")
                 .executeUpdate()).isInstanceOf(PersistenceException.class)
-                        .hasStackTraceContaining("FK_EXTRATOS_CARTOES");
+                .hasStackTraceContaining("FK_EXTRATOS_CARTOES");
     }
 
     @Test
     void deve_recusar_apagar_o_cartao_quando_ele_tem_extrato() {
         // Preparar
-        var cartao = gerenciador
-                .persistAndFlush(CartoesDeTeste.linha(TipoCartao.ALIMENTACAO, "100.00"));
+        var cartao = gerenciador.persistAndFlush(
+                CartoesDeTeste.linha(gerenciador, TipoCartao.ALIMENTACAO, "100.00"));
         new ExtratoAdaptador(cartoes, extratos).registrar(extrato());
         gerenciador.flush();
 

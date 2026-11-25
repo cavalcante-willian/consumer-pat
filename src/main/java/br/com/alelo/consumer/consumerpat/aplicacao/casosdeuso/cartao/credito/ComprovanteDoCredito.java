@@ -1,4 +1,4 @@
-package br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao;
+package br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.credito;
 
 import br.com.alelo.consumer.consumerpat.aplicacao.dtos.DtoComprovanteCredito;
 import br.com.alelo.consumer.consumerpat.aplicacao.dtos.DtoCredito;

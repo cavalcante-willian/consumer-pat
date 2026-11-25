@@ -1,8 +1,8 @@
 package br.com.alelo.consumer.consumerpat.api;
 
-import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.CreditarCartaoCaso;
-import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.GravadorDaCompra;
-import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.RegistrarCompraCaso;
+import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.compra.GravadorDaCompra;
+import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.compra.RegistrarCompraCaso;
+import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.credito.CreditarCartaoCaso;
 import br.com.alelo.consumer.consumerpat.aplicacao.fakes.CartaoPortaFake;
 // editorconfig-checker-disable-next-line
 import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.consumidor.atualizar.AtualizarConsumidorCaso;
@@ -74,7 +74,7 @@ public class ConfiguracaoDeCasosDeUsoComFakes {
 
     @Bean
     CreditarCartaoCaso creditarCartaoCaso(CartaoPortaFake cartoes) {
-        return new CreditarCartaoCaso(cartoes);
+        return new CreditarCartaoCaso(cartoes, cartoes);
     }
 
     @Bean

@@ -1,4 +1,4 @@
-package br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao;
+package br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.compra;
 
 import br.com.alelo.consumer.consumerpat.dominio.cartao.Cartao;
 import br.com.alelo.consumer.consumerpat.dominio.extrato.Extrato;

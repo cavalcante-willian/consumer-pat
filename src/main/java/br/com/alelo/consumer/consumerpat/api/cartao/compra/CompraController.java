@@ -1,7 +1,7 @@
 package br.com.alelo.consumer.consumerpat.api.cartao.compra;
 
 import br.com.alelo.consumer.consumerpat.api.comum.resposta.RespostaDeResultado;
-import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.RegistrarCompraCaso;
+import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.compra.RegistrarCompraCaso;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;

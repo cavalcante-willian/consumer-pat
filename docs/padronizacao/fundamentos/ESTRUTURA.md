@@ -206,7 +206,12 @@ dominio/                                   # zero Spring, zero JPA, zero Lombok 
 │   └── CampoDeLog.java                    # nome + valor; o dado separado do evento
 ├── saude/
 │   ├── SaudePorta.java                    # estado de cada dependência crítica (hoje: banco)
-│   └── EstadoDeSaude.java                 # SAUDAVEL / DEGRADADO + status por dependência
+│   ├── EstadoDeSaude.java                 # o estado de cada dependência, nunca vazio
+│   ├── ComDependenciasDeSaude.java        # operação-base: dependencias()
+│   ├── ApuracaoDaSituacao.java            # papel: situacao() derivada, SAUDAVEL / DEGRADADO
+│   ├── DependenciaCritica.java            # BANCO("banco"): o nome que a resposta mostra
+│   ├── EstadoDeDependencia.java           # DISPONIVEL / INDISPONIVEL
+│   └── SituacaoDeSaude.java               # SAUDAVEL / DEGRADADO
 └── portas/                                # contratos — pasta única enquanto forem poucas
     ├── ConsumidorPorta.java               # só compõe os três papéis abaixo
     ├── BuscadorDeConsumidor.java          # papel: buscar por id, ou ErroConsumidorNaoEncontrado
@@ -252,7 +257,9 @@ aplicacao/                                 # depende só de dominio (+ @Transact
 │   │   ├── ComprovanteDaCompra.java       # como o extrato e o cartão viram comprovante (função pura)
 │   │   └── GravadorDaCompra.java          # o que uma compra grava: o cartão debitado e o extrato
 │   └── saude/
-│       └── ConsultarSaudeCaso.java        # consulta a SaudePorta; o controller nunca toca o DataSource
+│       ├── ConsultarSaudeCaso.java        # só guarda a SaudePorta; o controller nunca toca o DataSource
+│       ├── ConsultaDeSaude.java           # papel: consultar(), sem transação
+│       └── ComConsultorDeSaude.java       # operação-base: saude()
 └── dtos/                                  # transferência interna entre camadas (nunca fronteira REST)
     ├── DtoNovoConsumidor.java             # cadastro + número do cartão de cada tipo, nos tipos do domínio
     ├── DtoAtualizacaoDeConsumidor.java    # id, versão lida e cadastro; sem por onde carregar saldo
@@ -280,7 +287,11 @@ infraestrutura/                            # implementa as portas de dominio; co
 │   ├── TextoDeUmaLinha.java               # troca as quebras de linha (injeção de log)
 │   └── EscritaNoSlf4j.java                # como cada nível é escrito
 ├── saude/
-│   └── SaudeDoBancoAdaptador.java         # Connection.isValid(timeout) no DataSource — sem expor internals
+│   ├── SaudeDoBancoAdaptador.java         # só compõe: verifica, registra e monta o estado — sem expor internals
+│   ├── VerificacaoDaConexao.java          # a fronteira com o JDBC: o único catch (SQLException) → Falha
+│   ├── ValidacaoDaConexao.java            # o veredito de isValid → Sucesso ou Falha
+│   ├── ErroBancoIndisponivelDeSql.java    # SQLException → erro de domínio: só o tipo e o estado SQL
+│   └── RegistroDaIndisponibilidade.java   # banco.indisponivel, crítico
 └── persistencia/                          # organizada por agregado (conceito), não por tipo técnico
     ├── ErroDeTravaNaoDescartaConexao.java # ligada ao pool: estourar a espera por trava não fecha a conexão (qualidade/PERFORMANCE.md §9)
     ├── consumidor/                        # a folha: a tabela do consumidor; não depende de ninguém daqui
@@ -351,8 +362,10 @@ api/                                       # composition root — único lugar q
 │   │   └── ComprovanteDaCompraEmMensagem.java
 │   └── credito/                           # POST /api/v1/creditos, com as mesmas cinco peças
 ├── saude/
-│   ├── SaudeController.java               # GET /api/v1/saude — 200 saudável, 503 degradado
-│   └── MensagemSaude.java
+│   ├── SaudeController.java               # GET /api/v1/saude — 200 saudável, 503 degradado, Cache-Control: no-store
+│   ├── MensagemSaude.java
+│   ├── SaudeEmMensagem.java               # EstadoDeSaude → MensagemSaude
+│   └── StatusDaSaude.java                 # situação → status HTTP (EnumMap)
 ├── comum/                                 # dividido pelo que muda junto
 │   ├── problema/
 │   │   ├── MensagemProblema.java          # corpo de erro RFC 7807 (Spring 5 não tem ProblemDetail) — ver qualidade/API.md §3

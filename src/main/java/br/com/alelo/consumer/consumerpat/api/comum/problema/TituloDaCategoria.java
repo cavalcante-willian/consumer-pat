@@ -18,7 +18,8 @@ public final class TituloDaCategoria {
     private static final Map<CategoriaErro, String> TITULOS = new EnumMap<>(
             Map.of(CategoriaErro.VALIDACAO, "Entrada inválida", CategoriaErro.REGRA_DE_NEGOCIO,
                     "Regra de negócio não atendida", CategoriaErro.NAO_ENCONTRADO,
-                    "Recurso não encontrado", CategoriaErro.CONFLITO, "Conflito"));
+                    "Recurso não encontrado", CategoriaErro.CONFLITO, "Conflito",
+                    CategoriaErro.INDISPONIVEL, "Dependência indisponível"));
 
     private TituloDaCategoria() {
     }

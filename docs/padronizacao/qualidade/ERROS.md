@@ -135,6 +135,7 @@ quando um tipo novo de falha aparecer):
 | `ErroRegraDeNegocio` | `REGRA_DE_NEGOCIO` | 422 | `ErroSaldoInsuficiente` |
 | `ErroConflito` | `CONFLITO` | 409 | `ErroDocumentoJaCadastrado`, `ErroVersaoDivergente`, `ErroNumeroDeCartaoJaCadastrado` |
 | `ErroValidacao` | `VALIDACAO` | 400 | `ErroTipoEstabelecimentoInvalido` |
+| `ErroIndisponivel` | `INDISPONIVEL` | 503 | `ErroBancoIndisponivel` (`CPT-BAN-SIS-001`) |
 
 > **`ErroDominio` não é `sealed`.** Em Java, os tipos permitidos por uma
 > `sealed interface` precisam estar **no mesmo pacote** (num projeto sem

@@ -2,6 +2,7 @@ package br.com.alelo.consumer.consumerpat.api.configuracao;
 
 import br.com.alelo.consumer.consumerpat.infraestrutura.log.SaidaDeLogAdaptador;
 import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cadastro.ConsumidorAdaptador;
+import br.com.alelo.consumer.consumerpat.infraestrutura.saude.SaudeDoBancoAdaptador;
 import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cartao.CartaoAdaptador;
 import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.extrato.ExtratoAdaptador;
 import org.springframework.context.annotation.Configuration;
@@ -17,6 +18,6 @@ import org.springframework.context.annotation.Import;
  */
 @Configuration
 @Import({ CartaoAdaptador.class, ConsumidorAdaptador.class, ExtratoAdaptador.class,
-        SaidaDeLogAdaptador.class })
+        SaidaDeLogAdaptador.class, SaudeDoBancoAdaptador.class })
 public class ConfiguracaoDePortas {
 }

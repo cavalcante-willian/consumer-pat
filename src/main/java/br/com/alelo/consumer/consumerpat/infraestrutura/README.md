@@ -34,6 +34,14 @@ registra; a infraestrutura diz com que tabela, com que restrição e com que tra
   primeira coluna, já serve a busca. O tipo é gravado pelo nome, e nunca pela posição.
 - **`persistencia.extrato`** — a tabela `extratos`: imutável, só `data_criacao`, sem
   versão, e a chave estrangeira para o cartão nunca cascateia exclusão.
+- **`saude`** — o `SaudeDoBancoAdaptador`, que **só compõe** quatro peças de uma razão só
+  de mudar cada: `VerificacaoDaConexao` é a fronteira com o JDBC, a única que captura
+  `SQLException` e a converte na hora em `Falha`; `ValidacaoDaConexao` lê o veredito de
+  `isValid`, e uma conexão que veio mas não passou é o mesmo erro, sem exceção nenhuma;
+  `ErroBancoIndisponivelDeSql` traduz a exceção no erro de domínio, só com o tipo e o
+  estado SQL; `RegistroDaIndisponibilidade` registra `banco.indisponivel`, crítico. A
+  mensagem do driver, que pode citar host, URL ou versão, nunca chega ao erro, ao log nem
+  ao corpo. O prazo da validação é de 2 s; a espera por uma conexão é a do pool (5 s).
 - **`log`** — o `SaidaDeLogAdaptador`, **a única classe do projeto que fala com o
   SLF4J**. Implementa só `registrar`: monta a linha `evento chave=valor`, troca o
   valor de um campo de nome sensível (`numeroCartao`, `documento`, `celular`, `email`,
@@ -104,6 +112,13 @@ infraestrutura
 │   ├── ValorDeCampoDeLog.java            # o valor do campo, mascarado pelo nome
 │   └── package-info.java
 ├── package-info.java
+├── saude
+│   ├── ErroBancoIndisponivelDeSql.java   # SQLException → erro de domínio, sem a mensagem
+│   ├── RegistroDaIndisponibilidade.java  # banco.indisponivel, crítico, com o tipo e o estado SQL
+│   ├── SaudeDoBancoAdaptador.java        # implementa SaudePorta: só compõe as peças
+│   ├── ValidacaoDaConexao.java           # o veredito de isValid → Sucesso ou Falha
+│   ├── VerificacaoDaConexao.java         # a fronteira com o JDBC: o único catch
+│   └── package-info.java
 └── persistencia
     ├── ErroDeTravaNaoDescartaConexao.java    # estourar a espera por trava não fecha a conexão
     ├── cadastro                          # compõe consumidor e cartão
@@ -190,6 +205,7 @@ teste que falharia sem ela, e a tabela abaixo é o inventário.
 | `ErroDeTravaNaoDescartaConexao` | `ErroDeTravaNaoDescartaConexaoTeste` |
 | A configuração do banco | `ConfiguracaoDoBancoTeste` (teto de trava na URL, menor que a espera por conexão; o avaliador ligado ao pool) |
 | `SaidaDeLogAdaptador`, `MensagemDeLog`, `ValorDeCampoDeLog`, `TextoDeUmaLinha` | `SaidaDeLogAdaptadorTeste` (contra o Logback, com `ListAppender`: formato, máscara por nome, nível, marcador crítico, causa, quebra de linha) |
+| `VerificacaoDaConexao`, `ValidacaoDaConexao`, `ErroBancoIndisponivelDeSql`, `RegistroDaIndisponibilidade`, `SaudeDoBancoAdaptador` | Um teste por peça: `VerificacaoDaConexaoTeste` (a conexão é devolvida ao pool até quando a validação lança, e um **pool Hikari real esgotado** é erro e se recupera), `ValidacaoDaConexaoTeste`, `ErroBancoIndisponivelDeSqlTeste` (host, URL e senha do driver não sobrevivem), `RegistroDaIndisponibilidadeTeste` e `SaudeDoBancoAdaptadorTeste` (H2 real, e driver que falha) |
 | O padrão de linha do log | `PadraoDeLinhaDoLogTeste` (a barreira de dígitos no console e no arquivo, UTC, `idRequisicao`), `ConfiguracaoDeLogTeste` (o console do contexto inteiro) e `ConfiguracaoDeLogDeProducaoTeste` (`INFO` e rotação em `prod`) |
 | Regra de dependência da infraestrutura | `RegraDeDependenciaDaInfraestruturaTeste`, na raiz de `src/test/.../infraestrutura` |
 
@@ -207,3 +223,4 @@ Peças sem teste próprio, cobertas junto de quem as torna observáveis:
 | `#14` | Cria a camada: `CartaoAdaptador` e `ExtratoAdaptador`, as entidades `cartoes` e `extratos`, a busca com trava de escrita, e `ErroDeTravaNaoDescartaConexao`. O teto de espera por trava é o `LOCK_TIMEOUT` da URL do H2, e não a dica do JPA, que ele ignora. A tabela de cartões nasce sem `consumidor_id`, que entra com o consumidor. |
 | `#18` | Acrescenta a persistência do consumidor: a tabela `consumidores`, o `consumidor_id` não nulo e `uk_cartoes_consumidor_tipo` no cartão, e o `ConsumidorAdaptador` (busca, criação e atualização, com o conflito conferido antes de gravar). A persistência passa a quatro pacotes por conceito (`consumidor`, `cartao`, `extrato` e `cadastro`), e entidades e repositórios passam de pacote-privados a públicos, com a barreira em `RegraDeDependenciaDaPersistenciaTeste`. Nenhum código do legado depende ainda dela. |
 | `#21` | Acrescenta `infraestrutura.log`: o `SaidaDeLogAdaptador`, a única classe do projeto com SLF4J, que mascara o dado sensível pelo nome do campo e marca o crítico. O padrão de linha e o perfil `prod` vêm do `application.yml` e do `application-prod.yml`. |
+| `#23` | Acrescenta `infraestrutura.saude`: o `SaudeDoBancoAdaptador`, que verifica o banco pelo pool e registra `banco.indisponivel` com o tipo e o estado SQL da falha. |

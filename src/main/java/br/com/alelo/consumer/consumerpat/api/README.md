@@ -54,6 +54,13 @@ remove; as duas convivem sem se tocar.
   falhas, e cada uma sai sob o nome do campo da entrada (os cartões, por exemplo, sob
   `numerosCartoes`). O que sai é mascarado: documento, celular e números de cartão. Os
   cartões entram pelo nome do tipo e nascem com saldo zero, e nenhum corpo aceita saldo.
+- **`saude`** — `GET /api/v1/saude`, o health check, com um status por dependência:
+  `200` com `SAUDAVEL` se todas respondem e `503` com `DEGRADADO` se uma não responde. É o
+  **único endpoint que responde 503**, e é público e sem autenticação, então o corpo é só
+  a situação e o estado de cada dependência (`{"estado":"SAUDAVEL","dependencias":
+  {"banco":"DISPONIVEL"}}`): nenhuma URL, host, versão nem mensagem de exceção. A resposta
+  leva `Cache-Control: no-store`, porque um health velho diz o que não é mais verdade.
+  O status vem de `StatusDaSaude`, um `EnumMap`: o domínio não conhece HTTP.
 - **`configuracao`** — liga o que as camadas de baixo declaram.
   - `ConfiguracaoDeRelogio` escolhe o **único** `Clock` da aplicação: o de parede, em
     UTC. O domínio, os casos de uso e a auditoria do banco recebem este mesmo bean, de
@@ -109,6 +116,12 @@ api
 │   ├── obter                                 # GET /api/v1/consumidores/{id}
 │   │   ├── ObterConsumidorController.java
 │   │   └── package-info.java
+│   └── package-info.java
+├── saude
+│   ├── MensagemSaude.java                    # a situação e o estado de cada dependência
+│   ├── SaudeController.java                  # GET /api/v1/saude: 200 ou 503, sem cache
+│   ├── SaudeEmMensagem.java
+│   ├── StatusDaSaude.java                    # situação → status, por EnumMap
 │   └── package-info.java
 ├── cartao
 │   ├── compra
@@ -206,6 +219,7 @@ Os testes ficam em `src/test/java/.../api/` e espelham os pacotes.
 | `comum.tratamento.FalhaSemMensagemTeste`, `NomeDaRestricaoTeste` | a pilha e a cadeia de causas sem nenhuma mensagem; o nome da restrição contra o **H2 de verdade**, sem o valor que colidiu |
 | `comum.requisicao.IdDeRequisicaoTeste`, `FiltroDeCorrelacaoTeste` | só UUID é aceito (quebra de linha, tamanho e caracteres fora do formato são regerados); o id volta em toda resposta, está no `MDC` durante a requisição e é removido no `finally`, inclusive se ela lançar |
 | `comum.requisicao.NivelDaConclusaoTeste`, `FiltroDeLogDeConclusaoTeste` | 5xx erro, 409 aviso, o resto informação; método, caminho sem query, status e duração medida; o evento sai mesmo se a requisição lançar |
+| `saude.SaudeControllerTeste`, `SaudeEmMensagemTeste`, `StatusDaSaudeTeste`, `SaudeDePontaAPontaTeste` | `200` com o banco disponível e `503` com ele indisponível (`SaudePorta` **fake**), corpo só com a situação e as dependências, nada interno, `Cache-Control: no-store`, e o contexto inteiro contra o H2 real |
 | `comum.requisicao.PipelineDeRequisicaoTeste` | o contexto inteiro: o id em todo cabeçalho e em todo corpo de erro, e **na linha de conclusão do log** (a mutação que inverte a ordem dos filtros a derruba) |
 | `cartao.*.*DaMensagemTeste` | conversão em tipos do domínio e primeira falha |
 | `cartao.*.Comprovante*Teste` | número mascarado, escala completa, sem notação científica |
@@ -228,3 +242,4 @@ do controller que posta sem corpo faz o build quebrar se o Spring mudar o texto.
 | `#15` | Cria `POST /api/v1/compras` e `POST /api/v1/creditos`, o corpo de erro RFC 7807 e o tratador de exceções. O Jackson passa a ser estrito para toda a aplicação, inclusive o legado. |
 | `#19` | Cria `POST`, `PUT` e `GET` de `/api/v1/consumidores`, com `201` e `Location`, a versão no corpo e os erros de conversão reunidos. O tratador ganha dois papéis: a restrição do banco violada (`409`) e o parâmetro de tipo errado (`400`). Os três casos de uso do consumidor viram beans. |
 | `#22` | Acrescenta `comum.requisicao` e `ConfiguracaoDeFiltros`: a correlação (`X-Request-Id` em toda resposta, `idRequisicao` no corpo de erro) e o log de conclusão. Os papéis de falha de infraestrutura do tratador passam a registrar `falha.inesperada`, `conflito.detectado` e `lock.timeout`. `MensagemProblema` ganha o campo `idRequisicao`. |
+| `#23` | Acrescenta `GET /api/v1/saude`, o health check por dependência, com `200` e `503`. `CategoriaErro` ganha `INDISPONIVEL` (503), e o título dela entra em `TituloDaCategoria`. |

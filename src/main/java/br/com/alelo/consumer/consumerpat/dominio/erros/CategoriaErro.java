@@ -20,7 +20,10 @@ public enum CategoriaErro {
     NAO_ENCONTRADO(404),
 
     /** A entrada é válida, mas colide com o que já existe ou com uma escrita anterior. */
-    CONFLITO(409);
+    CONFLITO(409),
+
+    /** A entrada é válida, mas uma dependência crítica não responde: quem pediu nada errou. */
+    INDISPONIVEL(503);
 
     private final int statusHttp;
 

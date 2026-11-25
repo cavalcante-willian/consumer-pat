@@ -24,7 +24,7 @@ class RegraDeDependenciaDaInfraestruturaTeste {
 
     private static final List<String> PERMITIDOS = List.of("java.", "javax.persistence.", "lombok.",
             "org.hibernate.", "org.springframework.data.", "com.zaxxer.hikari.", "org.slf4j.",
-            "br.com.alelo.consumer.consumerpat.dominio.",
+            "javax.sql.", "br.com.alelo.consumer.consumerpat.dominio.",
             "br.com.alelo.consumer.consumerpat.aplicacao.",
             "br.com.alelo.consumer.consumerpat.infraestrutura.");
 

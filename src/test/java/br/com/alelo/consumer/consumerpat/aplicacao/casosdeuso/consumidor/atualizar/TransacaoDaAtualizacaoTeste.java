@@ -2,6 +2,7 @@ package br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.consumidor.atuali
 
 import br.com.alelo.consumer.consumerpat.aplicacao.dtos.DtoAtualizacaoDeConsumidor;
 import br.com.alelo.consumer.consumerpat.aplicacao.fakes.GerenciadorDeTransacaoFake;
+import br.com.alelo.consumer.consumerpat.aplicacao.fakes.SaidaDeLogFake;
 import br.com.alelo.consumer.consumerpat.aplicacao.fakes.consumidor.ConsumidorPortaFake;
 import br.com.alelo.consumer.consumerpat.dominio.consumidor.ConsumidorId;
 import br.com.alelo.consumer.consumerpat.fabricas.FabricaDeConsumidores;
@@ -33,7 +34,7 @@ class TransacaoDaAtualizacaoTeste {
         @Bean
         AtualizarConsumidorCaso caso() {
             var porta = new ConsumidorPortaFake(FabricaDeConsumidores.consumidor(1, 0));
-            return new AtualizarConsumidorCaso(porta, porta);
+            return new AtualizarConsumidorCaso(porta, porta, new SaidaDeLogFake());
         }
     }
 

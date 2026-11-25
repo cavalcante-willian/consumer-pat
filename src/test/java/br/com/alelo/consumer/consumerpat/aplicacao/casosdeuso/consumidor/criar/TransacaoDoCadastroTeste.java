@@ -2,6 +2,7 @@ package br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.consumidor.criar;
 
 import br.com.alelo.consumer.consumerpat.aplicacao.dtos.DtoNovoConsumidor;
 import br.com.alelo.consumer.consumerpat.aplicacao.fakes.GerenciadorDeTransacaoFake;
+import br.com.alelo.consumer.consumerpat.aplicacao.fakes.SaidaDeLogFake;
 import br.com.alelo.consumer.consumerpat.aplicacao.fakes.consumidor.ConsumidorPortaFake;
 import br.com.alelo.consumer.consumerpat.fabricas.FabricaDeConsumidores;
 import org.junit.jupiter.api.Test;
@@ -38,7 +39,7 @@ class TransacaoDoCadastroTeste {
 
         @Bean
         CriarConsumidorCaso caso() {
-            return new CriarConsumidorCaso(new ConsumidorPortaFake());
+            return new CriarConsumidorCaso(new ConsumidorPortaFake(), new SaidaDeLogFake());
         }
     }
 

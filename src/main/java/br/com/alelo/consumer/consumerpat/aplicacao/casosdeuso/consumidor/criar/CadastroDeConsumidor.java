@@ -1,5 +1,7 @@
 package br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.consumidor.criar;
 
+import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.ComSaidaDeLogDoCaso;
+import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.consumidor.ConflitoDetectado;
 import br.com.alelo.consumer.consumerpat.aplicacao.dtos.DtoNovoConsumidor;
 import br.com.alelo.consumer.consumerpat.dominio.consumidor.Consumidor;
 import br.com.alelo.consumer.consumerpat.dominio.erros.ErroDominio;
@@ -15,16 +17,18 @@ import org.springframework.transaction.annotation.Transactional;
  * existe desfaz o cadastro inteiro, e não deixa um consumidor sem os cartões. O documento repetido
  * e o número repetido voltam como erro de domínio, vindos da porta.
  */
-public interface CadastroDeConsumidor extends ComGravadorDeNovoConsumidor {
+public interface CadastroDeConsumidor extends ComGravadorDeNovoConsumidor, ComSaidaDeLogDoCaso {
 
     /**
-     * Cadastra o consumidor.
+     * Cadastra o consumidor, e registra o cadastro ou o conflito.
      *
      * @param pedido o cadastro e os números dos cartões
      * @return o consumidor gravado, com id e versão, ou o erro que a porta devolveu
      */
     @Transactional
     default Resultado<Consumidor, ErroDominio> criar(DtoNovoConsumidor pedido) {
-        return gravador().criar(NovoConsumidorDoPedido.montar(pedido));
+        return gravador().criar(NovoConsumidorDoPedido.montar(pedido))
+                .aoSucesso(criado -> ConsumidorCriado.registrar(saida(), criado))
+                .aoFalhar(erro -> ConflitoDetectado.registrar(saida(), "criar-consumidor", erro));
     }
 }

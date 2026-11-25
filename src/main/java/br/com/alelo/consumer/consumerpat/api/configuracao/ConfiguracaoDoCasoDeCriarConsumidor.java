@@ -1,6 +1,7 @@
 package br.com.alelo.consumer.consumerpat.api.configuracao;
 
 import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.consumidor.criar.CriarConsumidorCaso;
+import br.com.alelo.consumer.consumerpat.dominio.log.SaidaDeLogPorta;
 import br.com.alelo.consumer.consumerpat.dominio.portas.ConsumidorPorta;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,13 +18,15 @@ import org.springframework.context.annotation.Configuration;
 public class ConfiguracaoDoCasoDeCriarConsumidor {
 
     /**
-     * Cria o caso de uso com a porta do consumidor.
+     * Cria o caso de uso com a porta do consumidor e a de log.
      *
      * @param consumidorPorta a porta, que a composição liga ao adaptador
+     * @param saida           a porta de log
      * @return o caso de uso
      */
     @Bean
-    public CriarConsumidorCaso criarConsumidorCaso(ConsumidorPorta consumidorPorta) {
-        return new CriarConsumidorCaso(consumidorPorta);
+    public CriarConsumidorCaso criarConsumidorCaso(ConsumidorPorta consumidorPorta,
+            SaidaDeLogPorta saida) {
+        return new CriarConsumidorCaso(consumidorPorta, saida);
     }
 }

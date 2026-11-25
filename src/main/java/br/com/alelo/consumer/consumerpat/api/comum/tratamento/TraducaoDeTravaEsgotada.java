@@ -11,15 +11,18 @@ import javax.servlet.http.HttpServletRequest;
 
 import java.util.Map;
 
+import static br.com.alelo.consumer.consumerpat.dominio.log.CampoDeLog.campo;
+
 /**
  * Papel do tratador que traduz a espera por trava que estourou: o 409, que diz para tentar de novo.
  *
  * <p>
  * O cartão estava em uso por outra requisição e a espera passou do teto. É um conflito que o
  * cliente não causou, e por isso não é 500; mas a compra não é idempotente, então o detalhe orienta
- * a conferir antes de repetir, e não a repetir às cegas.
+ * a conferir antes de repetir, e não a repetir às cegas. É registrado como {@code lock.timeout},
+ * com a operação.
  */
-public interface TraducaoDeTravaEsgotada {
+public interface TraducaoDeTravaEsgotada extends ComSaidaDeLog {
 
     /**
      * Traduz a trava esgotada.
@@ -31,6 +34,7 @@ public interface TraducaoDeTravaEsgotada {
     @ExceptionHandler(PessimisticLockingFailureException.class)
     default ResponseEntity<Object> traduzirTravaEsgotada(PessimisticLockingFailureException excecao,
             HttpServletRequest requisicao) {
+        saida().aviso("lock.timeout", campo("operacao", OperacaoDaRequisicao.de(requisicao)));
         return RespostaDeProblema
                 .de(ProblemaDeBordaEmMensagem.montar(ProblemaDeBorda.RECURSO_EM_USO,
                         "O cartão está em uso por outra requisição. "

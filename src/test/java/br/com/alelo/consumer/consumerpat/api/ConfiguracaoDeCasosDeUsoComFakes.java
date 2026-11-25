@@ -11,6 +11,7 @@ import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.consumidor.criar.C
 import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.consumidor.listar.ListarConsumidoresCaso;
 import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.consumidor.obter.ObterConsumidorCaso;
 import br.com.alelo.consumer.consumerpat.aplicacao.fakes.ExtratoPortaFake;
+import br.com.alelo.consumer.consumerpat.aplicacao.fakes.SaidaDeLogFake;
 import br.com.alelo.consumer.consumerpat.aplicacao.fakes.consumidor.ConsumidorPortaFake;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -36,6 +37,11 @@ public class ConfiguracaoDeCasosDeUsoComFakes {
     @Bean
     CartaoPortaFake cartaoPortaFake() {
         return new CartaoPortaFake();
+    }
+
+    @Bean
+    SaidaDeLogFake saidaDeLogFake() {
+        return new SaidaDeLogFake();
     }
 
     @Bean

@@ -13,5 +13,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class FiltroDeProblemaDeApi implements TraducaoDeEntradaInvalida, TraducaoDeCorpoIlegivel,
         TraducaoDeRotaInexistente, TraducaoDeMetodoNaoSuportado, TraducaoDeMidiaNaoSuportada,
-        TraducaoDeTravaEsgotada, TraducaoDeConflitoDeVersao, TraducaoDeFalhaInesperada {
+        TraducaoDeTravaEsgotada, TraducaoDeConflitoDeVersao, TraducaoDeIntegridadeViolada,
+        TraducaoDeArgumentoInvalido, TraducaoDeFalhaInesperada {
 }

@@ -33,6 +33,14 @@ remove; as duas convivem sem se tocar.
   - `tratamento`: `FiltroDeProblemaDeApi`, o `@RestControllerAdvice`, que só declara os
     papéis `TraducaoDe*`. Cada papel tem o seu `@ExceptionHandler` num método
     `default`, e o único que captura `Exception` é o da falha inesperada.
+- **`consumidor`** — `POST /api/v1/consumidores` (cadastra com os cartões, `201` com
+  `Location`), `PUT /api/v1/consumidores/{id}` (só o cadastro, com a `versao` que o
+  cliente leu) e `GET /api/v1/consumidores/{id}`, um pacote por operação. **Todos os
+  erros de conversão saem de uma vez**: os campos são independentes, e o cliente
+  corrige o cadastro numa tentativa. `ValidacoesReunidas`, do domínio, reúne as
+  falhas, e cada uma sai sob o nome do campo da entrada (os cartões, por exemplo, sob
+  `numerosCartoes`). O que sai é mascarado: documento, celular e números de cartão. Os
+  cartões entram pelo nome do tipo e nascem com saldo zero, e nenhum corpo aceita saldo.
 - **`configuracao`** — liga o que as camadas de baixo declaram.
   - `ConfiguracaoDeRelogio` escolhe o **único** `Clock` da aplicação: o de parede, em
     UTC. O domínio, os casos de uso e a auditoria do banco recebem este mesmo bean, de
@@ -57,6 +65,33 @@ Saída real de `tree` (regenerar e colar aqui a cada PR que mudar a árvore — 
 
 ```text
 api
+├── consumidor                                # compartilhado entre as três operações
+│   ├── CamposDosCartoes.java                 # lê o tipo e o número de cada cartão do cadastro
+│   ├── CamposDosDados.java                   # lê documento, telefones, e-mail e CEP
+│   ├── CartaoEmMensagem.java                 # cartão → mensagem, número mascarado
+│   ├── CartoesConfirmados.java               # monta o mapa de cartões já conferido
+│   ├── ConsumidorEmMensagem.java             # consumidor → mensagem, dados mascarados
+│   ├── DadosConfirmados.java                 # monta os dados já conferidos
+│   ├── DadosDaMensagem.java                  # dados → domínio, com todos os erros
+│   ├── MensagemCartao.java                   # saída do cartão
+│   ├── MensagemConsumidor.java               # saída: id, versão, dados mascarados, cartões
+│   ├── MensagemDadosConsumidor.java          # entrada dos dados cadastrais
+│   ├── ValorConfirmado.java                  # o valor de uma leitura já conferida
+│   ├── atualizar                             # PUT /api/v1/consumidores/{id}
+│   │   ├── AtualizacaoDaMensagem.java
+│   │   ├── AtualizarConsumidorController.java
+│   │   ├── MensagemAtualizarConsumidor.java  # versão + dados
+│   │   └── package-info.java
+│   ├── criar                                 # POST /api/v1/consumidores
+│   │   ├── CriarConsumidorController.java
+│   │   ├── LocalizacaoDoConsumidor.java      # o Location do 201
+│   │   ├── MensagemCriarConsumidor.java      # dados + número de cada cartão
+│   │   ├── NovoConsumidorDaMensagem.java
+│   │   └── package-info.java
+│   ├── obter                                 # GET /api/v1/consumidores/{id}
+│   │   ├── ObterConsumidorController.java
+│   │   └── package-info.java
+│   └── package-info.java
 ├── cartao
 │   ├── compra
 │   │   ├── CompraController.java                 # POST /api/v1/compras
@@ -134,6 +169,8 @@ Os testes ficam em `src/test/java/.../api/` e espelham os pacotes.
 |---|---|
 | `comum.problema.*Teste` | títulos de categoria distintos; códigos de borda únicos e no formato; corpo montado do enum e do erro de domínio, sem número inteiro |
 | `comum.resposta.*Teste` | status e tipo de mídia, no sucesso e em cada categoria de falha; a conversão da mensagem não roda numa falha |
+| `consumidor.*.*ControllerTeste` | `@WebMvcTest` sobre fakes: `201` com `Location` que aponta o id certo, documento e número nunca inteiros, `400` com todos os campos inválidos de uma vez (documento, CEP, tipo e número do cartão), saldo recusado no cadastro e na atualização, `409` de documento e de versão, `404`, id que não é positivo ou número, e `405` |
+| `consumidor.criar.LocalizacaoDoConsumidorTeste`, `comum.resposta.RespostaDeResultadoCriadoTeste` | o `Location` relativo, sem host; o `201` só no sucesso e a localização não calculada numa falha |
 | `comum.campos.*Teste` | tradução com exceções **reais** do Jackson; subclasse cai no tradutor mais geral; corpo ausente de verdade; nada de classe ou valor no texto |
 | `comum.tratamento.FiltroDeProblemaDeApiTeste` | 409 de trava e de versão; 500 sem a causa |
 | `cartao.*.*DaMensagemTeste` | conversão em tipos do domínio e primeira falha |
@@ -155,3 +192,4 @@ do controller que posta sem corpo faz o build quebrar se o Spring mudar o texto.
 |---|---|
 | `#14` | Cria a camada, só com a composition root: o relógio, a auditoria e as portas do cartão e do extrato. |
 | `#15` | Cria `POST /api/v1/compras` e `POST /api/v1/creditos`, o corpo de erro RFC 7807 e o tratador de exceções. O Jackson passa a ser estrito para toda a aplicação, inclusive o legado. |
+| `#19` | Cria `POST`, `PUT` e `GET` de `/api/v1/consumidores`, com `201` e `Location`, a versão no corpo e os erros de conversão reunidos. O tratador ganha dois papéis: a restrição do banco violada (`409`) e o parâmetro de tipo errado (`400`). Os três casos de uso do consumidor viram beans. |

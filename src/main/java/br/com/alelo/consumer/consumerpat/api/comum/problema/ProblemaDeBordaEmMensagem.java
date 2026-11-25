@@ -1,5 +1,7 @@
 package br.com.alelo.consumer.consumerpat.api.comum.problema;
 
+import br.com.alelo.consumer.consumerpat.api.comum.requisicao.IdDaRequisicaoAtual;
+
 import java.util.List;
 import java.util.Map;
 
@@ -27,6 +29,7 @@ public final class ProblemaDeBordaEmMensagem {
     public static MensagemProblema montar(ProblemaDeBorda problema, String detalhe,
             String instancia, Map<String, List<String>> erros) {
         return new MensagemProblema(ProblemaDeErroDeDominio.PREFIXO_DO_TIPO + problema.codigo(),
-                problema.titulo(), problema.statusHttp(), detalhe, instancia, erros);
+                problema.titulo(), problema.statusHttp(), detalhe, instancia,
+                IdDaRequisicaoAtual.ler(), erros);
     }
 }

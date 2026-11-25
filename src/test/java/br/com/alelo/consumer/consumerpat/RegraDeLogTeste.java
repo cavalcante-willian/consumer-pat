@@ -28,6 +28,11 @@ class RegraDeLogTeste {
 
     private static final String DO_LOG = "infraestrutura/log/";
 
+    /** A única exceção declarada: o MDC, que leva o id da requisição ao padrão do log. */
+    private static final String DA_REQUISICAO = "api/comum/requisicao/";
+
+    private static final String MDC = "import org.slf4j.MDC;";
+
     private static final List<String> PROIBIDOS_NOS_IMPORTS = List.of("org.slf4j.",
             "ch.qos.logback.", "org.apache.logging.", "org.apache.commons.logging.",
             "java.util.logging.", "lombok.extern.");
@@ -58,6 +63,10 @@ class RegraDeLogTeste {
         return fonte.toString().replace('\\', '/').contains(DO_LOG);
     }
 
+    private static boolean ehDaRequisicao(Path fonte) {
+        return fonte.toString().replace('\\', '/').contains(DA_REQUISICAO);
+    }
+
     @Test
     void deve_encontrar_fontes_nos_pacotes_da_arquitetura_nova() throws IOException {
         // Agir
@@ -74,6 +83,7 @@ class RegraDeLogTeste {
         var imports = fontes().stream().filter(fonte -> !ehDoLog(fonte))
                 .flatMap(fonte -> linhasDe(fonte).stream()
                         .filter(linha -> linha.startsWith("import "))
+                        .filter(linha -> !(ehDaRequisicao(fonte) && linha.equals(MDC)))
                         .map(linha -> fonte.getFileName() + ": " + linha))
                 .toList();
 
@@ -96,6 +106,17 @@ class RegraDeLogTeste {
 
         // Verificar: a regra existe porque o adaptador usa mesmo o SLF4J
         assertThat(importam).isNotEmpty();
+    }
+
+    @Test
+    void deve_importar_o_mdc_so_em_api_comum_requisicao_e_so_ele() throws IOException {
+        // Agir
+        var comMdc = fontes().stream()
+                .filter(fonte -> linhasDe(fonte).stream().anyMatch(linha -> linha.equals(MDC)))
+                .toList();
+
+        // Verificar: a exceção existe, e não vaza para fora do pacote da requisição
+        assertThat(comMdc).isNotEmpty().allMatch(RegraDeLogTeste::ehDaRequisicao);
     }
 
     @Test

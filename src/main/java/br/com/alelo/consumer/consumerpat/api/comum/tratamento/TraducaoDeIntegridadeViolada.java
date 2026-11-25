@@ -11,6 +11,8 @@ import javax.servlet.http.HttpServletRequest;
 
 import java.util.Map;
 
+import static br.com.alelo.consumer.consumerpat.dominio.log.CampoDeLog.campo;
+
 /**
  * Traduz uma restrição do banco violada no meio de uma gravação em {@code 409}.
  *
@@ -18,9 +20,10 @@ import java.util.Map;
  * O adaptador confere a unicidade antes de gravar, e devolve o erro certo, de documento ou de
  * número de cartão. O que chega aqui é a corrida: dois cadastros simultâneos que passaram na
  * conferência, e o banco recusou o segundo. O cliente não precisa saber qual restrição foi: a
- * mensagem do banco, que cita tabela, coluna e valor, nunca vai ao corpo.
+ * mensagem do banco, que cita tabela, coluna e valor, nunca vai ao corpo nem ao log: o log leva o
+ * nome da restrição, em {@code conflito.detectado}, e nunca o valor duplicado.
  */
-public interface TraducaoDeIntegridadeViolada {
+public interface TraducaoDeIntegridadeViolada extends ComSaidaDeLog {
 
     /**
      * Traduz a violação.
@@ -32,6 +35,8 @@ public interface TraducaoDeIntegridadeViolada {
     @ExceptionHandler(DataIntegrityViolationException.class)
     default ResponseEntity<Object> traduzirIntegridadeViolada(
             DataIntegrityViolationException excecao, HttpServletRequest requisicao) {
+        saida().aviso("conflito.detectado", campo("operacao", OperacaoDaRequisicao.de(requisicao)),
+                campo("restricao", NomeDaRestricao.de(excecao)));
         return RespostaDeProblema
                 .de(ProblemaDeBordaEmMensagem
                         .montar(ProblemaDeBorda.CONFLITO_DE_CONCORRENCIA,

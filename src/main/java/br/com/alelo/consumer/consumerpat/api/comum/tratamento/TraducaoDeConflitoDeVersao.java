@@ -11,15 +11,18 @@ import javax.servlet.http.HttpServletRequest;
 
 import java.util.Map;
 
+import static br.com.alelo.consumer.consumerpat.dominio.log.CampoDeLog.campo;
+
 /**
  * Papel do tratador que traduz o conflito de versão de linha: o 409.
  *
  * <p>
  * É a rede de segurança da coluna de versão. Se a trava do saldo for removida sem querer, duas
  * gravações simultâneas deixam de se enfileirar e a segunda falha aqui, em vez de apagar a primeira
- * em silêncio.
+ * em silêncio. É registrado como {@code conflito.detectado}, com a operação e a entidade, e nunca o
+ * valor.
  */
-public interface TraducaoDeConflitoDeVersao {
+public interface TraducaoDeConflitoDeVersao extends ComSaidaDeLog {
 
     /**
      * Traduz o conflito de versão.
@@ -31,6 +34,8 @@ public interface TraducaoDeConflitoDeVersao {
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
     default ResponseEntity<Object> traduzirConflitoDeVersao(
             ObjectOptimisticLockingFailureException excecao, HttpServletRequest requisicao) {
+        saida().aviso("conflito.detectado", campo("operacao", OperacaoDaRequisicao.de(requisicao)),
+                campo("entidade", excecao.getPersistentClassName()));
         return RespostaDeProblema.de(ProblemaDeBordaEmMensagem.montar(
                 ProblemaDeBorda.CONFLITO_DE_CONCORRENCIA,
                 "O dado foi alterado por outra requisição. Confira antes de tentar de novo.",

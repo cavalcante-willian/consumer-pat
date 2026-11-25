@@ -11,7 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class RespostaDeProblemaTeste {
 
     private static final MensagemProblema PROBLEMA = new MensagemProblema("urn:x", "Título", 422,
-            "detalhe", "/api/v1/compras", Map.of());
+            "detalhe", "/api/v1/compras", null, Map.of());
 
     @Test
     void deve_ter_o_status_do_proprio_corpo_quando_montar_a_resposta() {

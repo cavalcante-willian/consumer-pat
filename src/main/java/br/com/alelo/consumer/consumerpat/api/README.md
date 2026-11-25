@@ -88,6 +88,11 @@ api
 │   │   ├── MensagemCriarConsumidor.java      # dados + número de cada cartão
 │   │   ├── NovoConsumidorDaMensagem.java
 │   │   └── package-info.java
+│   ├── listar                                # GET /api/v1/consumidores (paginado)
+│   │   ├── ListarConsumidoresController.java
+│   │   ├── MensagemResumoConsumidor.java     # id e nome, e mais nada
+│   │   ├── ResumoEmMensagem.java
+│   │   └── package-info.java
 │   ├── obter                                 # GET /api/v1/consumidores/{id}
 │   │   ├── ObterConsumidorController.java
 │   │   └── package-info.java

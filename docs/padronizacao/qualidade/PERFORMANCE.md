@@ -160,7 +160,9 @@ repositorio.findAll().stream().skip(inicio).limit(tamanho).collect(toList());
   de `?sort=qualquerCampo`, expondo o modelo e permitindo ordenar por
   coluna sem índice. O cliente envia `ordenacao` (enum fechado) e a borda
   monta o `PageRequest`.
-- **`Page` custa um `count(*)` a mais por requisição** — é o preço do
+- **`Page` custa um `count(*)` a mais por requisição** (o Spring Data o
+  dispensa quando a primeira página não está cheia, porque o total já é
+  conhecido, e o teste de contagem de comandos cobre os dois casos) — é o preço do
   `total`/`totalPaginas` do envelope. Decisão consciente: o contrato quer o
   total. Se a contagem virar gargalo medido (seção 8), o caminho é `Slice`
   (sem total), o que é mudança de contrato e vai para `/api/v2/`.
@@ -186,10 +188,11 @@ verificação de alteração (*dirty checking*) e payload que ninguém pediu.
 
 ```java
 // CORRETO — só as colunas do resumo; sem entidade, sem relação, sem N+1 possível
-@Query("select c.id as id, c.nome as nome from ConsumidorEntidade c")
-Page<ConsumidorResumoLinha> listarResumos(Pageable pageable);
+@Query(value = "select new ...ResumoDeConsumidorLinha(c.id, c.nome) from ConsumidorEntidade c",
+       countQuery = "select count(c) from ConsumidorEntidade c")
+Page<ResumoDeConsumidorLinha> listarResumos(Pageable pageable);
 
-interface ConsumidorResumoLinha { Long getId(); String getNome(); }   // projeção do Spring Data
+record ResumoDeConsumidorLinha(Long id, String nome) { }   // projeção por construtor
 
 // ERRADO — o legado: todas as colunas de todos os consumidores para montar uma lista
 @Query(nativeQuery = true, value = "select * from Consumer")

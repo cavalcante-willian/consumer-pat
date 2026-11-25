@@ -56,7 +56,10 @@ grava o cartão e o extrato, tudo numa transação.
     pela versão de linha do banco.
   - `obter` lê por id, numa transação só de leitura, e devolve a versão que a
     atualização exige de volta.
-  - Os três devolvem o próprio `Consumidor` do domínio, e a API o converte na sua
+  - `listar` entrega o pedido de página à porta, numa transação só de leitura, e devolve
+    uma `Pagina` de `ResumoDeConsumidor` (só id e nome). Não devolve `Resultado`: um
+    pedido já chega válido, e uma página além da última é uma página vazia.
+  - Os três primeiros devolvem o próprio `Consumidor` do domínio, e a API o converte na sua
     mensagem: ele já é imutável, e um DTO de saída só repetiria os campos.
 - **`dtos`** — a transferência entre a API e os casos de uso. Os de entrada,
   `DtoCompra` e `DtoCredito`, **já trazem os tipos do domínio** (`TipoCartao`,
@@ -110,6 +113,11 @@ aplicacao
 │       │   ├── ComGravadorDeNovoConsumidor.java  # operação-base: quem grava o consumidor novo
 │       │   ├── CriarConsumidorCaso.java  # só guarda a porta e declara o papel
 │       │   ├── NovoConsumidorDoPedido.java   # pedido → consumidor a gravar
+│       │   └── package-info.java
+│       ├── listar
+│       │   ├── ComListadorDeConsumidores.java  # operação-base: quem lista
+│       │   ├── ListagemDeConsumidores.java  # papel: a operação, @Transactional(readOnly = true)
+│       │   ├── ListarConsumidoresCaso.java  # só guarda a porta e declara o papel
 │       │   └── package-info.java
 │       ├── obter
 │       │   ├── LeituraDeConsumidor.java  # papel: a operação, @Transactional(readOnly = true)
@@ -187,6 +195,7 @@ inventário. Atualize-a a cada PR que mudar a árvore.
 | `AtualizarConsumidorCaso`, `AtualizacaoDeCadastro` | `AtualizarConsumidorCasoTeste` (troca só os dados, mantém cartões e saldo, versão velha e consumidor ausente sem gravar) e `TransacaoDaAtualizacaoTeste` |
 | `VersaoConfirmada` | `VersaoConfirmadaTeste` (a versão atual passa, qualquer outra é recusada, inclusive a zero) |
 | `ObterConsumidorCaso`, `LeituraDeConsumidor` | `ObterConsumidorCasoTeste` (devolve com cartões e versão, ausente, não grava, só de leitura) e `TransacaoDaLeituraTeste` |
+| `ListarConsumidoresCaso`, `ListagemDeConsumidores` | `ListarConsumidoresCasoTeste` (ordena e desempata por id, inverte, corta sem pular nem repetir, página além da última, só de leitura) e `TransacaoDaListagemTeste` |
 | Regra de dependência da aplicação | `RegraDeDependenciaDaAplicacaoTeste`, na raiz de `src/test/.../aplicacao` |
 
 Peças sem teste próprio, cobertas junto de quem as torna observáveis:

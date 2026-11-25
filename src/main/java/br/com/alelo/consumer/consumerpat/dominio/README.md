@@ -257,10 +257,23 @@ dominio
 │   ├── Extrato.java                  # a compra efetivada, com o valor informado e o cobrado
 │   └── package-info.java
 ├── package-info.java
+├── pagina                            # a paginação das listagens (base 1, sem Spring)
+│   ├── ComTotalDePaginas.java        # papel: o total de páginas, arredondado para cima
+│   ├── DirecaoDeOrdenacao.java       # ASC, DESC
+│   ├── DirecaoDeOrdenacaoDeTexto.java
+│   ├── OrdenacaoDeConsumidor.java    # ID, NOME: conjunto fechado, nunca o nome de uma coluna
+│   ├── OrdenacaoDeConsumidorDeTexto.java
+│   ├── Pagina.java                   # os itens, a página, o tamanho e o total
+│   ├── PaginaDeNumero.java
+│   ├── PedidoDePagina.java           # página, tamanho (teto 100), ordenação e direção
+│   ├── PedidoDePaginaDeParametros.java  # lê os quatro parâmetros, todos os erros juntos
+│   ├── TamanhoDePaginaDeNumero.java
+│   └── package-info.java
 ├── portas
 │   ├── AtualizadorDeConsumidor.java  # papel: gravar os dados de um consumidor que existe
 │   ├── BuscadorDeCartaoParaAtualizacao.java  # papel: buscar o cartão travando para escrever
 │   ├── BuscadorDeConsumidor.java     # papel: buscar o consumidor por id
+│   ├── ListadorDeConsumidores.java   # papel: listar os resumos, uma página por vez
 │   ├── CartaoPorta.java              # só compõe os dois papéis do cartão
 │   ├── ConsumidorPorta.java          # só compõe os três papéis do consumidor
 │   ├── ExtratoPorta.java             # só registrar
@@ -362,7 +375,9 @@ inventário. Atualize-a a cada PR que mudar a árvore.
 | `Consumidor` | `ConsumidorTeste` (`comDados` troca só o cadastro e mantém cartões, saldo e versão; versão negativa lança; o `toString` não vaza documento nem cartão) |
 | `ErroConsumidorNaoEncontrado` | `ErroConsumidorNaoEncontradoTeste` |
 | `ErroDocumentoJaCadastrado`, `ErroNumeroDeCartaoJaCadastrado`, `ErroVersaoDivergente` | os três `*Teste` de mesmo nome (categoria 409, e a mensagem que só mostra o documento e o número mascarados) |
-| `ConsumidorPorta`, `BuscadorDeConsumidor`, `GravadorDeNovoConsumidor`, `AtualizadorDeConsumidor` | `ConsumidorPortaTeste` (compõe os três papéis, não declara operação própria, uma operação por papel) |
+| `ConsumidorPorta`, `BuscadorDeConsumidor`, `ListadorDeConsumidores`, `GravadorDeNovoConsumidor`, `AtualizadorDeConsumidor` | `ConsumidorPortaTeste` (compõe os quatro papéis, não declara operação própria, uma operação por papel) |
+| `Pagina`, `PedidoDePagina`, `PedidoDePaginaDeParametros`, as leituras de página, tamanho, ordenação e direção | `PaginaTeste`, `PedidoDePaginaTeste`, `PedidoDePaginaDeParametrosTeste` (bordas, maiúsculas, texto recusado sem eco, quatro erros de uma vez) |
+| `ErroPaginaInvalida`, `ErroTamanhoDePaginaInvalido`, `ErroOrdenacaoInvalida`, `ErroDirecaoInvalida` | `ErrosDePaginacaoTeste` e o teste de códigos por reflexão |
 | Códigos de erro (formato e unicidade) | `CodigosDeErroTeste`, que percorre a hierarquia |
 | Regra de dependência do domínio | `RegraDeDependenciaTeste`, na raiz de `src/test` |
 

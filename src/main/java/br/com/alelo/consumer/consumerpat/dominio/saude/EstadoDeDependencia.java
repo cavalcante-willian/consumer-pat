@@ -5,8 +5,8 @@ package br.com.alelo.consumer.consumerpat.dominio.saude;
  *
  * <p>
  * Não diz por que está indisponível. A causa, que pode citar host, URL de conexão ou versão do
- * banco, nunca chega ao corpo do health, que é público e sem autenticação. O resultado de uma
- * verificação vira estado em {@link EstadoDeDependenciaDeVerificacao}.
+ * banco, nunca chega ao corpo do health, que é público e sem autenticação. Quem verifica a
+ * dependência, e converte a falha dela em erro de domínio, é o adaptador de cada uma.
  */
 public enum EstadoDeDependencia {
 

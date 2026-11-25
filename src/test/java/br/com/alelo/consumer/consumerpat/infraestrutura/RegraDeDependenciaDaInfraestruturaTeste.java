@@ -23,7 +23,7 @@ class RegraDeDependenciaDaInfraestruturaTeste {
             .of("src/main/java/br/com/alelo/consumer/consumerpat/infraestrutura");
 
     private static final List<String> PERMITIDOS = List.of("java.", "javax.persistence.", "lombok.",
-            "org.hibernate.", "org.springframework.data.", "com.zaxxer.hikari.",
+            "org.hibernate.", "org.springframework.data.", "com.zaxxer.hikari.", "org.slf4j.",
             "br.com.alelo.consumer.consumerpat.dominio.",
             "br.com.alelo.consumer.consumerpat.aplicacao.",
             "br.com.alelo.consumer.consumerpat.infraestrutura.");

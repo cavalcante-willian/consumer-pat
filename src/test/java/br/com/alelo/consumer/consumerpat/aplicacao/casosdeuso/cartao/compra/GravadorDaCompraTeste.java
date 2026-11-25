@@ -1,4 +1,4 @@
-package br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao;
+package br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.compra;
 
 import br.com.alelo.consumer.consumerpat.aplicacao.fakes.CartaoPortaFake;
 import br.com.alelo.consumer.consumerpat.aplicacao.fakes.ExtratoPortaFake;

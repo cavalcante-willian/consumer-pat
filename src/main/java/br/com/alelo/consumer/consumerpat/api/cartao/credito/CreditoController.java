@@ -1,7 +1,7 @@
 package br.com.alelo.consumer.consumerpat.api.cartao.credito;
 
 import br.com.alelo.consumer.consumerpat.api.comum.resposta.RespostaDeResultado;
-import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.CreditarCartaoCaso;
+import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.credito.CreditarCartaoCaso;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;

@@ -1,4 +1,4 @@
-package br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao;
+package br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.credito;
 
 import br.com.alelo.consumer.consumerpat.aplicacao.dtos.DtoComprovanteCredito;
 import br.com.alelo.consumer.consumerpat.aplicacao.dtos.DtoCredito;
@@ -49,7 +49,7 @@ class CreditarCartaoCasoTeste {
         // Preparar
         var cartoes = new CartaoPortaFake(
                 FabricaDeCartoes.doTipo(tipo).comSaldo("50.00").construir());
-        var caso = new CreditarCartaoCaso(cartoes);
+        var caso = new CreditarCartaoCaso(cartoes, cartoes);
 
         // Agir
         var resultado = caso.creditar(credito(tipo, "100.00"));
@@ -67,7 +67,7 @@ class CreditarCartaoCasoTeste {
         // Preparar
         var cartoes = new CartaoPortaFake(
                 FabricaDeCartoes.doTipo(TipoCartao.ALIMENTACAO).comSaldo("0.00").construir());
-        var caso = new CreditarCartaoCaso(cartoes);
+        var caso = new CreditarCartaoCaso(cartoes, cartoes);
 
         // Agir
         var resultado = caso.creditar(credito(TipoCartao.ALIMENTACAO, "29.997"));
@@ -81,7 +81,7 @@ class CreditarCartaoCasoTeste {
     void deve_gravar_o_cartao_uma_vez_quando_o_credito_tem_sucesso() {
         // Preparar
         var cartoes = new CartaoPortaFake(FabricaDeCartoes.doTipo(TipoCartao.FARMACIA).construir());
-        var caso = new CreditarCartaoCaso(cartoes);
+        var caso = new CreditarCartaoCaso(cartoes, cartoes);
 
         // Agir
         caso.creditar(credito(TipoCartao.FARMACIA, "10.00"));
@@ -97,7 +97,7 @@ class CreditarCartaoCasoTeste {
         // Preparar
         var cartoes = new CartaoPortaFake(
                 FabricaDeCartoes.doTipo(TipoCartao.ALIMENTACAO).construir());
-        var caso = new CreditarCartaoCaso(cartoes);
+        var caso = new CreditarCartaoCaso(cartoes, cartoes);
 
         // Agir
         var resultado = caso.creditar(credito(TipoCartao.ALIMENTACAO, valor));
@@ -113,7 +113,8 @@ class CreditarCartaoCasoTeste {
     @Test
     void deve_ser_cartao_nao_encontrado_quando_o_cartao_nao_existe() {
         // Preparar
-        var caso = new CreditarCartaoCaso(new CartaoPortaFake());
+        var cartoes = new CartaoPortaFake();
+        var caso = new CreditarCartaoCaso(cartoes, cartoes);
 
         // Agir
         var resultado = caso.creditar(credito(TipoCartao.ALIMENTACAO, "10.00"));
@@ -128,7 +129,7 @@ class CreditarCartaoCasoTeste {
     void deve_ser_cartao_nao_encontrado_e_nao_creditar_quando_o_numero_existe_com_outro_tipo() {
         // Preparar
         var cartoes = new CartaoPortaFake(FabricaDeCartoes.doTipo(TipoCartao.FARMACIA).construir());
-        var caso = new CreditarCartaoCaso(cartoes);
+        var caso = new CreditarCartaoCaso(cartoes, cartoes);
 
         // Agir
         var resultado = caso.creditar(credito(TipoCartao.ALIMENTACAO, "10.00"));
@@ -143,8 +144,8 @@ class CreditarCartaoCasoTeste {
     @Test
     void deve_nao_revelar_o_numero_quando_converter_o_comprovante_em_texto() {
         // Preparar
-        var caso = new CreditarCartaoCaso(
-                new CartaoPortaFake(FabricaDeCartoes.doTipo(TipoCartao.FARMACIA).construir()));
+        var cartoes = new CartaoPortaFake(FabricaDeCartoes.doTipo(TipoCartao.FARMACIA).construir());
+        var caso = new CreditarCartaoCaso(cartoes, cartoes);
 
         // Agir
         var resultado = caso.creditar(credito(TipoCartao.FARMACIA, "10.00"));

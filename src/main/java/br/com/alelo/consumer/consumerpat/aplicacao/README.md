@@ -18,14 +18,20 @@ credita, e que um tipo cobra o seu ajuste; é a aplicação que decide que uma c
 primeiro aplica o ajuste, depois busca o cartão travado, depois debita, e só então
 grava o cartão e o extrato, tudo numa transação.
 
-- **`casosdeuso.cartao`** — os dois casos de uso do cartão, e as peças de que cada
-  um é feito.
-  - `RegistrarCompraCaso` aplica o ajuste do tipo ao valor informado, monta o
+- **`casosdeuso.cartao`** — os dois casos de uso do cartão, **um subpacote por
+  operação**: `compra` e `credito`. Como nos do consumidor, a operação **não mora na
+  classe do caso de uso**: a classe (`RegistrarCompraCaso`, `CreditarCartaoCaso`) só
+  guarda as dependências e declara o papel, e a operação, com o `@Transactional`, é um
+  método `default` de uma interface em arquivo próprio (`RegistroDeCompra`,
+  `CreditoDeCartao`), em cima de operações-base que expõem cada dependência
+  (`buscador()`, `gravador()` e `relogio()`). A que os dois compartilham,
+  `ComBuscadorDeCartaoParaAtualizacao`, mora na raiz.
+  - `registrar` (`RegistroDeCompra`) aplica o ajuste do tipo ao valor informado, monta o
     extrato, busca o cartão para atualização, debita o valor **cobrado** (e não o
     informado: é ele que precisa caber no saldo, de modo que um desconto pode tornar
     possível uma compra maior que o saldo, e um acréscimo pode tornar impossível uma
     menor), grava e devolve o comprovante.
-  - `CreditarCartaoCaso` busca o cartão para atualização, credita o valor
+  - `creditar` (`CreditoDeCartao`) busca o cartão para atualização, credita o valor
     informado, sem ajuste (desconto e acréscimo valem para compras, e não para saldo),
     grava e devolve o comprovante.
   - Os dois **só orquestram**. Cada passo que não é orquestração é uma peça pública
@@ -34,6 +40,8 @@ grava o cartão e o extrato, tudo numa transação.
     resposta) e `GravadorDaCompra` (o que uma compra grava: o cartão debitado e o
     extrato). As três primeiras são funções puras, e o instante da compra entra como
     argumento, lido do `Clock` pelo caso de uso.
+  - Uma `Falha` devolvida não desfaz a transação, e não precisa: nada foi gravado antes
+    dela. Só uma exceção de infraestrutura a desfaz.
 - **`casosdeuso.consumidor`** — os três casos de uso do consumidor, **um subpacote
   por operação**: `criar`, `atualizar` e `obter`. Aqui a operação **não mora na classe
   do caso de uso**: a classe (`CriarConsumidorCaso`, `AtualizarConsumidorCaso`,
@@ -95,12 +103,22 @@ Saída real de `tree` (regenerar e colar aqui a cada PR que mudar a árvore — 
 aplicacao
 ├── casosdeuso
 │   ├── cartao
-│   │   ├── ComprovanteDaCompra.java      # extrato + cartão debitado → comprovante da compra
-│   │   ├── ComprovanteDoCredito.java     # pedido + cartão creditado → comprovante do crédito
-│   │   ├── CreditarCartaoCaso.java       # só orquestra o crédito
-│   │   ├── ExtratoDaCompra.java          # pedido + valor cobrado + instante → extrato
-│   │   ├── GravadorDaCompra.java         # grava o cartão debitado e o extrato
-│   │   ├── RegistrarCompraCaso.java      # só orquestra a compra
+│   │   ├── ComBuscadorDeCartaoParaAtualizacao.java  # operação-base compartilhada: buscador()
+│   │   ├── compra
+│   │   │   ├── ComGravadorDaCompra.java  # operação-base: quem grava o que a compra deixa
+│   │   │   ├── ComRelogioDaCompra.java   # operação-base: de onde vem o instante
+│   │   │   ├── ComprovanteDaCompra.java  # extrato + cartão debitado → comprovante da compra
+│   │   │   ├── ExtratoDaCompra.java      # pedido + valor cobrado + instante → extrato
+│   │   │   ├── GravadorDaCompra.java     # grava o cartão debitado e o extrato
+│   │   │   ├── RegistrarCompraCaso.java  # só guarda as dependências e declara o papel
+│   │   │   ├── RegistroDeCompra.java     # papel: a operação, com @Transactional
+│   │   │   └── package-info.java
+│   │   ├── credito
+│   │   │   ├── ComGravadorDeCartao.java  # operação-base: quem grava o cartão
+│   │   │   ├── ComprovanteDoCredito.java # pedido + cartão creditado → comprovante do crédito
+│   │   │   ├── CreditarCartaoCaso.java   # só guarda as portas e declara o papel
+│   │   │   ├── CreditoDeCartao.java      # papel: a operação, com @Transactional
+│   │   │   └── package-info.java
 │   │   └── package-info.java
 │   └── consumidor
 │       ├── ComBuscadorDeConsumidor.java  # operação-base: quem busca por id (atualizar e obter)
@@ -194,6 +212,7 @@ inventário. Atualize-a a cada PR que mudar a árvore.
 |---|---|
 | `RegistrarCompraCaso` | `RegistrarCompraCasoTeste` (ajuste dos três tipos, a fração de centavo, o valor cobrado que cabe ou não no saldo, o saldo exato, o que não é gravado numa recusa, valor não positivo, cartão ausente ou de outro tipo, a anotação de transação) |
 | `CreditarCartaoCaso` | `CreditarCartaoCasoTeste` (crédito sem ajuste em qualquer tipo, valor não positivo, cartão ausente ou de outro tipo, a anotação de transação) |
+| `RegistroDeCompra`, `CreditoDeCartao` | `TransacaoDaCompraTeste` e `TransacaoDoCreditoTeste`: num contexto Spring de verdade, o proxy enxerga o método `default` do papel, abre uma transação de **escrita** e a confirma, também quando o resultado é uma `Falha` |
 | `ExtratoDaCompra` | `ExtratoDaCompraTeste` (os dois valores distintos, o instante recebido, texto nulo) |
 | `ComprovanteDaCompra` | `ComprovanteDaCompraTeste` (valores e instante do extrato, saldo do cartão, número mascarado) |
 | `ComprovanteDoCredito` | `ComprovanteDoCreditoTeste` |
@@ -237,3 +256,4 @@ classe, que agora implementa interfaces, não seria injetável pelo próprio tip
 |---|---|
 | `#13` | Cria a camada: `RegistrarCompraCaso` e `CreditarCartaoCaso`, as peças `ExtratoDaCompra`, `ComprovanteDaCompra`, `ComprovanteDoCredito` e `GravadorDaCompra`, e os DTOs `DtoCompra`, `DtoCredito`, `DtoComprovanteCompra` e `DtoComprovanteCredito`. O crédito passa a identificar o cartão por número **e tipo**, e a compra passa a devolver comprovante (o legado devolvia vazio). Nenhum código do legado depende ainda dela. |
 | `#17` | Acrescenta `casosdeuso.consumidor`, em um subpacote por operação (`criar`, `atualizar` e `obter`): os casos `CriarConsumidorCaso`, `AtualizarConsumidorCaso` e `ObterConsumidorCaso`, cuja operação mora em um papel de método `default` (`CadastroDeConsumidor`, `AtualizacaoDeCadastro` e `LeituraDeConsumidor`) sobre uma operação-base, as peças `CartoesIniciais`, `NovoConsumidorDoPedido` e `VersaoConfirmada`, e os DTOs `DtoNovoConsumidor` e `DtoAtualizacaoDeConsumidor`. Os casos de uso do cartão continuam com a operação na classe. Nenhum código do legado depende ainda dos novos. |
+| `#24` | Converge os casos de uso do cartão ao desenho dos do consumidor, sem mudar comportamento: a operação sai da classe para um papel de método `default` (`RegistroDeCompra` e `CreditoDeCartao`), `casosdeuso.cartao` passa a ter um subpacote por operação (`compra` e `credito`), e o construtor de `CreditarCartaoCaso` passa a receber o buscador e o gravador separados. |

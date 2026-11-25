@@ -1,7 +1,7 @@
 package br.com.alelo.consumer.consumerpat.api.configuracao;
 
-import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.GravadorDaCompra;
-import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.RegistrarCompraCaso;
+import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.compra.GravadorDaCompra;
+import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.compra.RegistrarCompraCaso;
 import br.com.alelo.consumer.consumerpat.dominio.portas.CartaoPorta;
 import br.com.alelo.consumer.consumerpat.dominio.portas.ExtratoPorta;
 import org.springframework.context.annotation.Bean;

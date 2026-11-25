@@ -1,6 +1,6 @@
 package br.com.alelo.consumer.consumerpat.api.configuracao;
 
-import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.CreditarCartaoCaso;
+import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.credito.CreditarCartaoCaso;
 import br.com.alelo.consumer.consumerpat.dominio.portas.CartaoPorta;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,6 +23,6 @@ public class ConfiguracaoDoCasoDeCreditarCartao {
      */
     @Bean
     public CreditarCartaoCaso creditarCartaoCaso(CartaoPorta cartaoPorta) {
-        return new CreditarCartaoCaso(cartaoPorta);
+        return new CreditarCartaoCaso(cartaoPorta, cartaoPorta);
     }
 }

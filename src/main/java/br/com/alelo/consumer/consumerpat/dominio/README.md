@@ -22,11 +22,15 @@ para dinheiro, e nenhuma regra de negócio devolve `null` para dizer "não achei
   `Resultado<T, E>` é uma interface selada com duas variantes: `Sucesso`, que
   carrega o valor, e `Falha`, que carrega o erro. As variantes implementam uma
   única operação, `resolver` (`Resolvivel`), que converte o resultado num valor
-  escolhendo o caminho do sucesso ou o da falha. As outras duas operações são
+  escolhendo o caminho do sucesso ou o da falha. As outras quatro operações são
   escritas em cima dela, cada uma em seu arquivo: `Transformavel` (`mapear`,
-  que transforma o valor sem poder falhar) e `Encadeavel` (`encadear`, que roda
+  que transforma o valor sem poder falhar), `Encadeavel` (`encadear`, que roda
   uma segunda operação que também pode falhar, e deixa a primeira falha chegar a
-  quem chamou sem que as etapas seguintes executem). `AusenciaComoErro` converte
+  quem chamou sem que as etapas seguintes executem), `ObservavelNoSucesso`
+  (`aoSucesso`) e `ObservavelNaFalha` (`aoFalhar`), que executam um efeito, como
+  registrar um evento, com o valor ou com o erro e devolvem um resultado igual ao
+  original: observar uma falha não a trata nem a esconde, e a exceção de quem
+  observa não é engolida. `AusenciaComoErro` converte
   um `Optional` em resultado, dando nome de erro à ausência. Para criar um
   resultado usa-se o construtor da variante: `new Sucesso<>(valor)` ou
   `new Falha<>(erro)`.
@@ -322,6 +326,8 @@ dominio
 │   ├── AusenciaComoErro.java         # converter Optional em resultado
 │   ├── Encadeavel.java               # encadear uma operação que também pode falhar
 │   ├── Falha.java                    # variante de falha: só `resolver`
+│   ├── ObservavelNaFalha.java        # olhar o erro de uma falha sem alterar o resultado
+│   ├── ObservavelNoSucesso.java      # olhar o valor de um sucesso sem alterar o resultado
 │   ├── Resolvivel.java               # consumir: a operação-base
 │   ├── Resultado.java                # compõe os papéis e fecha as variantes
 │   ├── Sucesso.java                  # variante de sucesso: só `resolver`
@@ -383,7 +389,8 @@ inventário. Atualize-a a cada PR que mudar a árvore.
 | `Sucesso`, `Falha` e a operação-base `resolver` | `SucessoTeste`, `FalhaTeste` |
 | `Transformavel.mapear` | `SucessoTeste`, `FalhaTeste` (a função não executa numa falha) |
 | `Encadeavel.encadear` | `SucessoTeste`, `FalhaTeste` (a operação seguinte não executa numa falha) |
-| `Resultado` (variantes fechadas, papéis compostos) | `ResultadoTeste` |
+| `ObservavelNoSucesso.aoSucesso`, `ObservavelNaFalha.aoFalhar` | `SucessoTeste`, `FalhaTeste` (a ação roda só no lado observado, o resultado devolvido é igual ao original, a observação encadeia, e a exceção da ação não é engolida) |
+| `Resultado` (variantes fechadas, papéis compostos) | `ResultadoTeste` (os cinco papéis, e o `resolver` como única operação abstrata) |
 | `AusenciaComoErro` | `AusenciaComoErroTeste` |
 | `Dinheiro` (escala, igualdade) | `DinheiroTeste` |
 | `DinheiroDeTexto` | `DinheiroDeTextoTeste` (formatos aceitos e recusados, e o texto recusado não volta) |

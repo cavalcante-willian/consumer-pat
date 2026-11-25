@@ -230,15 +230,19 @@ aplicacao/                                 # depende só de dominio (+ @Transact
 ├── README.md
 ├── package-info.java
 ├── casosdeuso/
+│   ├── ComSaidaDeLogDoCaso.java           # operação-base: a porta de log dos casos que emitem evento
 │   ├── consumidor/                        # um subpacote por operação; a operação mora num papel (default), não na classe
 │   │   ├── ComBuscadorDeConsumidor.java   # operação-base: quem busca por id (atualizar e obter)
+│   │   ├── ConflitoDetectado.java         # conflito.detectado, em aviso: só o erro de conflito, com o código
 │   │   ├── criar/
+│   │   │   ├── ConsumidorCriado.java      # consumidor.criado: só o id
 │   │   │   ├── CriarConsumidorCaso.java   # só guarda a porta e declara o papel
 │   │   │   ├── CadastroDeConsumidor.java  # papel: criar(DtoNovoConsumidor), @Transactional
 │   │   │   ├── ComGravadorDeNovoConsumidor.java   # operação-base: quem grava o consumidor novo
 │   │   │   ├── NovoConsumidorDoPedido.java    # pedido → consumidor a gravar (função pura)
 │   │   │   └── CartoesIniciais.java       # um cartão por tipo, com saldo zero
 │   │   ├── atualizar/
+│   │   │   ├── ConsumidorAtualizado.java  # consumidor.atualizado: o id e a versão como ficou
 │   │   │   ├── AtualizarConsumidorCaso.java   # nunca altera saldo: só dados cadastrais
 │   │   │   ├── AtualizacaoDeCadastro.java # papel: atualizar(DtoAtualizacaoDeConsumidor), @Transactional
 │   │   │   ├── ComAtualizadorDeConsumidor.java    # operação-base: quem grava os dados
@@ -254,6 +258,8 @@ aplicacao/                                 # depende só de dominio (+ @Transact
 │   │   ├── compra/
 │   │   │   ├── RegistrarCompraCaso.java   # só guarda o buscador, o gravador e o relógio
 │   │   │   ├── RegistroDeCompra.java      # papel: registrar(DtoCompra), @Transactional — aplica o fator do tipo, debita, grava
+│   │   │   ├── CompraRegistrada.java      # compra.registrada: o cartão mascarado, o tipo e o valor cobrado
+│   │   │   ├── CompraRecusada.java        # compra.recusada: o cartão mascarado, o tipo e o código do erro
 │   │   │   ├── ComGravadorDaCompra.java   # operação-base: gravador()
 │   │   │   ├── ComRelogioDaCompra.java    # operação-base: relogio()
 │   │   │   ├── ExtratoDaCompra.java       # como o pedido vira extrato (função pura; o instante entra como argumento)
@@ -262,6 +268,7 @@ aplicacao/                                 # depende só de dominio (+ @Transact
 │   │   └── credito/
 │   │       ├── CreditarCartaoCaso.java    # só guarda o buscador e o gravador
 │   │       ├── CreditoDeCartao.java       # papel: creditar(DtoCredito), @Transactional — busca travando, credita, grava
+│   │       ├── CartaoCreditado.java       # cartao.creditado: o cartão mascarado, o tipo e o valor
 │   │       ├── ComGravadorDeCartao.java   # operação-base: gravador()
 │   │       └── ComprovanteDoCredito.java  # como o crédito vira comprovante (função pura)
 │   └── saude/
@@ -851,11 +858,15 @@ retornando `Resultado<T, E>`.
 
 ```java
 // aplicacao/casosdeuso/cartao/compra/RegistroDeCompra.java — a operação mora no papel
-public interface RegistroDeCompra
-        extends ComBuscadorDeCartaoParaAtualizacao, ComGravadorDaCompra, ComRelogioDaCompra {
+public interface RegistroDeCompra extends ComBuscadorDeCartaoParaAtualizacao,
+        ComGravadorDaCompra, ComRelogioDaCompra, ComSaidaDeLogDoCaso {
 
     @Transactional
-    default Resultado<DtoComprovanteCompra, ErroDominio> registrar(DtoCompra compra) { /* ... */ }
+    default Resultado<DtoComprovanteCompra, ErroDominio> registrar(DtoCompra compra) {
+        /* ... a cadeia de passos, e depois, sem alterar o resultado: */
+        // .aoSucesso(comprovante -> CompraRegistrada.registrar(saida(), comprovante))
+        // .aoFalhar(erro -> CompraRecusada.registrar(saida(), compra, erro));
+    }
 }
 
 // aplicacao/casosdeuso/cartao/compra/RegistrarCompraCaso.java — a classe só guarda e declara o papel
@@ -865,7 +876,7 @@ public class RegistrarCompraCaso implements RegistroDeCompra {   // não é fina
     private final Clock relogio;
 
     public RegistrarCompraCaso(BuscadorDeCartaoParaAtualizacao buscador, GravadorDaCompra gravador,
-            Clock relogio) { /* ... */ }
+            Clock relogio, SaidaDeLogPorta saida) { /* ... */ }
 }
 ```
 

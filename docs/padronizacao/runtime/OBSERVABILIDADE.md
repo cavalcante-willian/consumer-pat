@@ -81,10 +81,10 @@ public record CampoDeLog(String nome, Object valor) {
 ```java
 // CORRETO — evento em português, dados em campos nomeados
 saida.informacao("compra.registrada",
-    campo("consumidorId", consumidor.id()),
+    campo("cartao", comprovante.numeroCartao()),        // NumeroDeCartao: o toString já é ****2222
     campo("tipoCartao", tipo),
     campo("valorCobrado", cobrado.paraTexto()));
-// → 2026-...Z  INFO [0f1c9c1e-…] b.c.a.c.c.eventos - compra.registrada consumidorId=42 tipoCartao=ALIMENTACAO valorCobrado=29.997000
+// → 2026-...Z  INFO [0f1c9c1e-…] b.c.a.c.c.eventos - compra.registrada cartao=****2222 tipoCartao=ALIMENTACAO valorCobrado=29.997000
 //   (o logger é um só, `…consumerpat.eventos`: a porta é injetada, e não conhece quem a chamou)
 
 // ERRADO — saída solta, e valor convertido antes de qualquer mascaramento
@@ -367,10 +367,10 @@ ninguém lê ocupa rotação e tempo de leitura de quem investiga.
 | `requisicao.concluida` | `informacao`; `aviso` se o status é 409; `erro` se é 5xx (um 4xx de negócio, como 404 ou 422, é resultado esperado) | `metodo`, `caminho` (sem a query), `status`, `duracaoMs` |
 | `consumidor.criado` | `informacao` | `consumidorId` |
 | `consumidor.atualizado` | `informacao` | `consumidorId`, `versao` |
-| `cartao.creditado` | `informacao` | `consumidorId`, `tipoCartao`, `valor` |
-| `compra.registrada` | `informacao` | `consumidorId`, `tipoCartao`, `valorCobrado` |
-| `compra.recusada` | `informacao` (`aviso` se a taxa fugir do normal) | `consumidorId`, `tipoCartao`, `motivo` (código do erro) |
-| `conflito.detectado` | `aviso` | `operacao` e `restricao` (violação de integridade: só o nome, **nunca** o valor duplicado) **ou** `entidade` (versão de linha divergente) |
+| `cartao.creditado` | `informacao` | `cartao` (mascarado), `tipoCartao`, `valor` — o `Cartao` não conhece o consumidor, e por isso não há `consumidorId` |
+| `compra.registrada` | `informacao` | `cartao` (mascarado), `tipoCartao`, `valorCobrado` (o que saiu do saldo, e não o informado) |
+| `compra.recusada` | `informacao` (`aviso` se a taxa fugir do normal) | `cartao` (mascarado), `tipoCartao`, `motivo` (código do erro). A recusa de crédito não tem evento |
+| `conflito.detectado` | `aviso` | `operacao` e `codigo` (o erro de domínio: documento, número de cartão ou versão repetidos) **ou** `operacao` e `restricao` (violação de integridade: só o nome, **nunca** o valor duplicado) **ou** `operacao` e `entidade` (versão de linha divergente) |
 | `lock.timeout` | `aviso` | `operacao` (o tratador não sabe o tipo do cartão; ele fica no corpo da requisição, que o log não leva) |
 | `falha.inesperada` | `erro` | `operacao` e a pilha completa, **sem a mensagem** da exceção (`FalhaSemMensagem`), que pode trazer SQL ou um valor vinculado |
 | `banco.indisponivel` | `critico` | `operacao`, `tipoDaFalha` e `estadoSql` (nunca a mensagem do driver); registrado no adaptador, onde a causa existe |
@@ -379,6 +379,17 @@ ninguém lê ocupa rotação e tempo de leitura de quem investiga.
 
 - **Evento novo entra na tabela no mesmo PR** que passa a emiti-lo — tabela
   que não cresce com o sistema vira lista antiga.
+- **O evento de negócio nasce no caso de uso**, com a porta de log injetada,
+  e é registrado olhando o `Resultado` sem alterá-lo: `aoSucesso` para o que
+  deu certo e `aoFalhar` para a recusa. Cada evento é uma peça com uma razão
+  só de mudar (`ConsumidorCriado`, `CompraRecusada`…), e o papel do caso só
+  encadeia. A leitura e a listagem não emitem evento e não recebem a porta.
+- **O log sai antes do commit.** O caso de uso registra quando o `Resultado`
+  existe, e a transação só confirma depois, no proxy: se o commit falhar (a
+  versão de linha divergiu na corrida, por exemplo), `compra.registrada` já
+  foi escrita. Não é a trilha de auditoria, que é o extrato, mas o operador
+  deve saber: o tratador registra o `conflito.detectado` de persistência, e
+  as duas linhas aparecem com o mesmo `idRequisicao`.
 - **A inicialização é registrada pelo próprio Spring Boot** (`Started
   ConsumerTestApplication in … seconds`, com o perfil ativo) e o **banner**
   traz a versão ([`BUILD.md`](../qualidade/BUILD.md#3-versão-de-build-rastreável)).

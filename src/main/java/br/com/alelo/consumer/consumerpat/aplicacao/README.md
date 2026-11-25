@@ -42,6 +42,17 @@ grava o cartão e o extrato, tudo numa transação.
     argumento, lido do `Clock` pelo caso de uso.
   - Uma `Falha` devolvida não desfaz a transação, e não precisa: nada foi gravado antes
     dela. Só uma exceção de infraestrutura a desfaz.
+- **Os eventos de negócio** nascem nos quatro casos que escrevem: `criar`, `atualizar`,
+  `registrar` e `creditar`. Cada caso recebe a porta de log (`ComSaidaDeLogDoCaso`) e
+  registra olhando o `Resultado` sem alterá-lo, com `aoSucesso` e `aoFalhar`, e cada
+  evento é uma peça com uma razão só de mudar: `ConsumidorCriado`,
+  `ConsumidorAtualizado`, `CompraRegistrada`, `CompraRecusada`, `CartaoCreditado` e
+  `ConflitoDetectado`, que só registra o erro de categoria conflito e leva o código, e
+  nunca o valor que colidiu. O cartão sai mascarado, porque o `Cartao` não conhece o
+  consumidor e o número é o que há para rastrear. A recusa de crédito não tem evento, e
+  a leitura e a listagem não emitem nenhum. **O log sai antes do commit**: se o commit
+  falhar, o tratador registra o conflito de persistência, e as duas linhas têm o mesmo
+  `idRequisicao`.
 - **`casosdeuso.consumidor`** — os três casos de uso do consumidor, **um subpacote
   por operação**: `criar`, `atualizar` e `obter`. Aqui a operação **não mora na classe
   do caso de uso**: a classe (`CriarConsumidorCaso`, `AtualizarConsumidorCaso`,
@@ -102,11 +113,14 @@ Saída real de `tree` (regenerar e colar aqui a cada PR que mudar a árvore — 
 ```text
 aplicacao
 ├── casosdeuso
+│   ├── ComSaidaDeLogDoCaso.java          # operação-base: a porta de log dos casos que emitem evento
 │   ├── cartao
 │   │   ├── ComBuscadorDeCartaoParaAtualizacao.java  # operação-base compartilhada: buscador()
 │   │   ├── compra
 │   │   │   ├── ComGravadorDaCompra.java  # operação-base: quem grava o que a compra deixa
 │   │   │   ├── ComRelogioDaCompra.java   # operação-base: de onde vem o instante
+│   │   │   ├── CompraRecusada.java       # compra.recusada: o cartão mascarado e o código do erro
+│   │   │   ├── CompraRegistrada.java     # compra.registrada: o cartão mascarado e o valor cobrado
 │   │   │   ├── ComprovanteDaCompra.java  # extrato + cartão debitado → comprovante da compra
 │   │   │   ├── ExtratoDaCompra.java      # pedido + valor cobrado + instante → extrato
 │   │   │   ├── GravadorDaCompra.java     # grava o cartão debitado e o extrato
@@ -114,41 +128,45 @@ aplicacao
 │   │   │   ├── RegistroDeCompra.java     # papel: a operação, com @Transactional
 │   │   │   └── package-info.java
 │   │   ├── credito
+│   │   │   ├── CartaoCreditado.java      # cartao.creditado: o cartão mascarado e o valor
 │   │   │   ├── ComGravadorDeCartao.java  # operação-base: quem grava o cartão
 │   │   │   ├── ComprovanteDoCredito.java # pedido + cartão creditado → comprovante do crédito
 │   │   │   ├── CreditarCartaoCaso.java   # só guarda as portas e declara o papel
 │   │   │   ├── CreditoDeCartao.java      # papel: a operação, com @Transactional
 │   │   │   └── package-info.java
 │   │   └── package-info.java
-│   └── consumidor
-│       ├── ComBuscadorDeConsumidor.java  # operação-base: quem busca por id (atualizar e obter)
-│       ├── atualizar
-│       │   ├── AtualizacaoDeCadastro.java    # papel: a operação, com @Transactional
-│       │   ├── AtualizarConsumidorCaso.java  # só guarda as portas e declara o papel
-│       │   ├── ComAtualizadorDeConsumidor.java   # operação-base: quem grava os dados
-│       │   ├── VersaoConfirmada.java     # a versão do cliente é a atual, ou ErroVersaoDivergente
-│       │   └── package-info.java
-│       ├── criar
-│       │   ├── CadastroDeConsumidor.java # papel: a operação, com @Transactional
-│       │   ├── CartoesIniciais.java      # um cartão por tipo, com saldo zero
-│       │   ├── ComGravadorDeNovoConsumidor.java  # operação-base: quem grava o consumidor novo
-│       │   ├── CriarConsumidorCaso.java  # só guarda a porta e declara o papel
-│       │   ├── NovoConsumidorDoPedido.java   # pedido → consumidor a gravar
-│       │   └── package-info.java
-│       ├── saude
-│       │   ├── ComConsultorDeSaude.java  # operação-base: quem diz a saúde
-│       │   ├── ConsultaDeSaude.java  # papel: consultar(), sem transação
-│       │   ├── ConsultarSaudeCaso.java  # só guarda a porta e declara o papel
-│       │   └── package-info.java
-│       ├── listar
-│       │   ├── ComListadorDeConsumidores.java  # operação-base: quem lista
-│       │   ├── ListagemDeConsumidores.java  # papel: a operação, @Transactional(readOnly = true)
-│       │   ├── ListarConsumidoresCaso.java  # só guarda a porta e declara o papel
-│       │   └── package-info.java
-│       ├── obter
-│       │   ├── LeituraDeConsumidor.java  # papel: a operação, @Transactional(readOnly = true)
-│       │   ├── ObterConsumidorCaso.java  # só guarda a porta e declara o papel
-│       │   └── package-info.java
+│   ├── consumidor
+│   │   ├── ComBuscadorDeConsumidor.java  # operação-base: quem busca por id (atualizar e obter)
+│   │   ├── ConflitoDetectado.java    # conflito.detectado, em aviso, só se o erro é de conflito
+│   │   ├── atualizar
+│   │   │   ├── AtualizacaoDeCadastro.java    # papel: a operação, com @Transactional
+│   │   │   ├── AtualizarConsumidorCaso.java  # só guarda as portas e declara o papel
+│   │   │   ├── ComAtualizadorDeConsumidor.java   # operação-base: quem grava os dados
+│   │   │   ├── ConsumidorAtualizado.java # consumidor.atualizado: o id e a versão como ficou
+│   │   │   ├── VersaoConfirmada.java     # a versão do cliente é a atual, ou ErroVersaoDivergente
+│   │   │   └── package-info.java
+│   │   ├── criar
+│   │   │   ├── CadastroDeConsumidor.java # papel: a operação, com @Transactional
+│   │   │   ├── CartoesIniciais.java      # um cartão por tipo, com saldo zero
+│   │   │   ├── ComGravadorDeNovoConsumidor.java  # operação-base: quem grava o consumidor novo
+│   │   │   ├── ConsumidorCriado.java     # consumidor.criado: só o id
+│   │   │   ├── CriarConsumidorCaso.java  # só guarda as portas e declara o papel
+│   │   │   ├── NovoConsumidorDoPedido.java   # pedido → consumidor a gravar
+│   │   │   └── package-info.java
+│   │   ├── listar
+│   │   │   ├── ComListadorDeConsumidores.java  # operação-base: quem lista
+│   │   │   ├── ListagemDeConsumidores.java  # papel: a operação, @Transactional(readOnly = true)
+│   │   │   ├── ListarConsumidoresCaso.java  # só guarda a porta e declara o papel
+│   │   │   └── package-info.java
+│   │   ├── obter
+│   │   │   ├── LeituraDeConsumidor.java  # papel: a operação, @Transactional(readOnly = true)
+│   │   │   ├── ObterConsumidorCaso.java  # só guarda a porta e declara o papel
+│   │   │   └── package-info.java
+│   │   └── package-info.java
+│   └── saude
+│       ├── ComConsultorDeSaude.java      # operação-base: quem diz a saúde
+│       ├── ConsultaDeSaude.java          # papel: consultar(), sem transação
+│       ├── ConsultarSaudeCaso.java       # só guarda a porta e declara o papel
 │       └── package-info.java
 ├── dtos
 │   ├── DtoAtualizacaoDeConsumidor.java   # o pedido de atualizar: id, versão lida e cadastro
@@ -213,6 +231,9 @@ inventário. Atualize-a a cada PR que mudar a árvore.
 | `RegistrarCompraCaso` | `RegistrarCompraCasoTeste` (ajuste dos três tipos, a fração de centavo, o valor cobrado que cabe ou não no saldo, o saldo exato, o que não é gravado numa recusa, valor não positivo, cartão ausente ou de outro tipo, a anotação de transação) |
 | `CreditarCartaoCaso` | `CreditarCartaoCasoTeste` (crédito sem ajuste em qualquer tipo, valor não positivo, cartão ausente ou de outro tipo, a anotação de transação) |
 | `RegistroDeCompra`, `CreditoDeCartao` | `TransacaoDaCompraTeste` e `TransacaoDoCreditoTeste`: num contexto Spring de verdade, o proxy enxerga o método `default` do papel, abre uma transação de **escrita** e a confirma, também quando o resultado é uma `Falha` |
+| `ConsumidorCriado`, `ConsumidorAtualizado`, `CompraRegistrada`, `CompraRecusada`, `CartaoCreditado` | Um teste por peça, com o `SaidaDeLogFake`: o nível, o nome do evento, os campos, o cartão só mascarado, e o que **não** vai ao log (documento, nome, contato, saldo, mensagem do erro e texto do cliente) |
+| `ConflitoDetectado` | `ConflitoDetectadoTeste`: registra em aviso o conflito de versão, de documento e de número, sem o valor, e **não** registra a ausência, a regra de negócio, a validação nem a indisponibilidade |
+| Os eventos dos quatro casos | os testes dos casos (o evento certo, uma vez, e nenhum de sucesso numa recusa), mais `EventosDeNegocioDePontaAPontaTeste`: o contexto inteiro, com o Logback de verdade e o `idRequisicao` na mesma linha. A barreira de dígitos do padrão do log também mascararia um número de cartão que vazasse, e por isso quem protege cada peça são os testes unitários |
 | `ExtratoDaCompra` | `ExtratoDaCompraTeste` (os dois valores distintos, o instante recebido, texto nulo) |
 | `ComprovanteDaCompra` | `ComprovanteDaCompraTeste` (valores e instante do extrato, saldo do cartão, número mascarado) |
 | `ComprovanteDoCredito` | `ComprovanteDoCreditoTeste` |
@@ -257,3 +278,4 @@ classe, que agora implementa interfaces, não seria injetável pelo próprio tip
 | `#13` | Cria a camada: `RegistrarCompraCaso` e `CreditarCartaoCaso`, as peças `ExtratoDaCompra`, `ComprovanteDaCompra`, `ComprovanteDoCredito` e `GravadorDaCompra`, e os DTOs `DtoCompra`, `DtoCredito`, `DtoComprovanteCompra` e `DtoComprovanteCredito`. O crédito passa a identificar o cartão por número **e tipo**, e a compra passa a devolver comprovante (o legado devolvia vazio). Nenhum código do legado depende ainda dela. |
 | `#17` | Acrescenta `casosdeuso.consumidor`, em um subpacote por operação (`criar`, `atualizar` e `obter`): os casos `CriarConsumidorCaso`, `AtualizarConsumidorCaso` e `ObterConsumidorCaso`, cuja operação mora em um papel de método `default` (`CadastroDeConsumidor`, `AtualizacaoDeCadastro` e `LeituraDeConsumidor`) sobre uma operação-base, as peças `CartoesIniciais`, `NovoConsumidorDoPedido` e `VersaoConfirmada`, e os DTOs `DtoNovoConsumidor` e `DtoAtualizacaoDeConsumidor`. Os casos de uso do cartão continuam com a operação na classe. Nenhum código do legado depende ainda dos novos. |
 | `#24` | Converge os casos de uso do cartão ao desenho dos do consumidor, sem mudar comportamento: a operação sai da classe para um papel de método `default` (`RegistroDeCompra` e `CreditoDeCartao`), `casosdeuso.cartao` passa a ter um subpacote por operação (`compra` e `credito`), e o construtor de `CreditarCartaoCaso` passa a receber o buscador e o gravador separados. |
+| `#25` | Os casos de uso que escrevem passam a registrar o que fizeram, pela porta de log: `consumidor.criado`, `consumidor.atualizado`, `compra.registrada`, `compra.recusada`, `cartao.creditado` e `conflito.detectado`, uma peça por evento. Os quatro construtores ganham `SaidaDeLogPorta`, a leitura e a listagem não mudam, e o `Resultado` ganha `aoSucesso` e `aoFalhar`. |

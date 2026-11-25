@@ -14,7 +14,7 @@ import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.
  * porque a composição importa a classe, e a API não deve nem conhecer o tipo dos repositórios.
  */
 public class ConsumidorAdaptador implements ConsumidorPorta, BuscaDeConsumidorNoBanco,
-        CriacaoDeConsumidorNoBanco, AtualizacaoDeConsumidorNoBanco {
+        ListagemDeConsumidoresNoBanco, CriacaoDeConsumidorNoBanco, AtualizacaoDeConsumidorNoBanco {
 
     private final ConsumidorRepositorioJpa consumidores;
 

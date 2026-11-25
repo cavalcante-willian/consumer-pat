@@ -13,6 +13,7 @@ class ConsumidorPortaTeste {
     void deve_ser_a_busca_a_criacao_e_a_atualizacao_quando_consultar_os_papeis() {
         // Verificar
         assertThat(BuscadorDeConsumidor.class).isAssignableFrom(ConsumidorPorta.class);
+        assertThat(ListadorDeConsumidores.class).isAssignableFrom(ConsumidorPorta.class);
         assertThat(GravadorDeNovoConsumidor.class).isAssignableFrom(ConsumidorPorta.class);
         assertThat(AtualizadorDeConsumidor.class).isAssignableFrom(ConsumidorPorta.class);
     }
@@ -24,7 +25,8 @@ class ConsumidorPortaTeste {
                 .toList();
 
         // Verificar
-        assertThat(operacoes).containsExactlyInAnyOrder("buscarPorId", "criar", "atualizar");
+        assertThat(operacoes).containsExactlyInAnyOrder("buscarPorId", "listar", "criar",
+                "atualizar");
     }
 
     @Test

@@ -84,6 +84,27 @@ class ConsumidorDePontaAPontaTeste {
     }
 
     @Test
+    void deve_listar_so_id_e_nome_paginado_e_ordenado_quando_ha_consumidores_no_banco()
+            throws Exception {
+        // Preparar
+        mvc.perform(post(ROTA).contentType(MediaType.APPLICATION_JSON)
+                .content(cadastro("71428793860", "{}"))).andExpect(status().isCreated());
+
+        // Agir e Verificar: o contexto inteiro, com a transação só de leitura e o banco real
+        mvc.perform(get(ROTA + "?pagina=1&tamanhoPagina=1&ordenacao=id&direcao=desc"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.itens.length()").value(1))
+                .andExpect(jsonPath("$.itens[0].documento").doesNotExist())
+                .andExpect(jsonPath("$.total").isNumber())
+                .andExpect(jsonPath("$.totalPaginas").isNumber());
+    }
+
+    @Test
+    void deve_recusar_a_listagem_com_400_quando_os_parametros_sao_invalidos() throws Exception {
+        // Agir e Verificar
+        mvc.perform(get(ROTA + "?tamanhoPagina=101")).andExpect(status().isBadRequest());
+    }
+
+    @Test
     void deve_recusar_o_numero_de_cartao_repetido_com_409_e_nao_cadastrar_o_consumidor()
             throws Exception {
         // Preparar

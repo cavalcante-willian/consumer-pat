@@ -3,9 +3,11 @@ package br.com.alelo.consumer.consumerpat.api.comum.tratamento;
 import br.com.alelo.consumer.consumerpat.api.comum.problema.MensagemProblema;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.CannotAcquireLockException;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -47,6 +49,37 @@ class FiltroDeProblemaDeApiTeste {
         // Verificar
         assertThat(resposta.getStatusCodeValue()).isEqualTo(409);
         assertThat(corpoDe(resposta).type()).isEqualTo("urn:consumer-pat:erro:CPT-CNF-SIS-001");
+    }
+
+    @Test
+    void deve_responder_409_sem_vazar_a_restricao_quando_o_banco_recusa_na_gravacao() {
+        // Agir
+        var resposta = filtro.traduzirIntegridadeViolada(
+                new DataIntegrityViolationException(
+                        "Unique index violation: UK_CONSUMIDORES_DOCUMENTO value 12345678901"),
+                requisicao);
+
+        // Verificar
+        assertThat(resposta.getStatusCodeValue()).isEqualTo(409);
+        assertThat(corpoDe(resposta).type()).isEqualTo("urn:consumer-pat:erro:CPT-CNF-SIS-001");
+        assertThat(corpoDe(resposta).toString()).doesNotContain("UK_CONSUMIDORES")
+                .doesNotContain("12345678901");
+    }
+
+    @Test
+    void deve_responder_400_apontando_o_parametro_quando_o_argumento_e_de_tipo_errado() {
+        // Preparar
+        var excecao = new MethodArgumentTypeMismatchException("abc", Long.class, "id", null,
+                new NumberFormatException("segredo"));
+
+        // Agir
+        var resposta = filtro.traduzirArgumentoInvalido(excecao, requisicao);
+
+        // Verificar
+        assertThat(resposta.getStatusCodeValue()).isEqualTo(400);
+        assertThat(corpoDe(resposta).errors()).containsOnlyKeys("id");
+        assertThat(corpoDe(resposta).toString()).doesNotContain("abc").doesNotContain("segredo")
+                .doesNotContain("Long");
     }
 
     @Test

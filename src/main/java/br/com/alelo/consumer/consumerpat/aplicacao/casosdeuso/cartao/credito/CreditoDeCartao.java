@@ -1,5 +1,6 @@
 package br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.credito;
 
+import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.ComSaidaDeLogDoCaso;
 // editorconfig-checker-disable-next-line
 import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.ComBuscadorDeCartaoParaAtualizacao;
 import br.com.alelo.consumer.consumerpat.aplicacao.dtos.DtoComprovanteCredito;
@@ -16,10 +17,11 @@ import org.springframework.transaction.annotation.Transactional;
  * depois do crédito é gravado. O crédito é sempre sobre o valor informado, sem o ajuste do tipo: o
  * desconto e o acréscimo valem para compras, e não para saldo.
  */
-public interface CreditoDeCartao extends ComBuscadorDeCartaoParaAtualizacao, ComGravadorDeCartao {
+public interface CreditoDeCartao
+        extends ComBuscadorDeCartaoParaAtualizacao, ComGravadorDeCartao, ComSaidaDeLogDoCaso {
 
     /**
-     * Credita o valor.
+     * Credita o valor, e registra no log o crédito efetivado.
      *
      * @param credito o pedido, com os tipos do domínio
      * @return sucesso com o comprovante, ou falha com o erro que recusou: valor não positivo ou
@@ -30,6 +32,7 @@ public interface CreditoDeCartao extends ComBuscadorDeCartaoParaAtualizacao, Com
         return buscador()
                 .buscarPorNumeroETipoParaAtualizacao(credito.numeroCartao(), credito.tipo())
                 .encadear(cartao -> cartao.creditar(credito.valor())).mapear(gravador()::salvar)
-                .mapear(creditado -> ComprovanteDoCredito.montar(credito, creditado));
+                .mapear(creditado -> ComprovanteDoCredito.montar(credito, creditado))
+                .aoSucesso(comprovante -> CartaoCreditado.registrar(saida(), comprovante));
     }
 }

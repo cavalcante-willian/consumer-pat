@@ -2,6 +2,7 @@ package br.com.alelo.consumer.consumerpat.api.configuracao;
 
 import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.compra.GravadorDaCompra;
 import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.compra.RegistrarCompraCaso;
+import br.com.alelo.consumer.consumerpat.dominio.log.SaidaDeLogPorta;
 import br.com.alelo.consumer.consumerpat.dominio.portas.CartaoPorta;
 import br.com.alelo.consumer.consumerpat.dominio.portas.ExtratoPorta;
 import org.springframework.context.annotation.Bean;
@@ -26,12 +27,13 @@ public class ConfiguracaoDoCasoDeRegistrarCompra {
      * @param cartaoPorta  a porta do cartão
      * @param extratoPorta a porta do extrato
      * @param relogio      o relógio da aplicação
+     * @param saida        a porta de log
      * @return o caso de uso
      */
     @Bean
     public RegistrarCompraCaso registrarCompraCaso(CartaoPorta cartaoPorta,
-            ExtratoPorta extratoPorta, Clock relogio) {
+            ExtratoPorta extratoPorta, Clock relogio, SaidaDeLogPorta saida) {
         return new RegistrarCompraCaso(cartaoPorta, new GravadorDaCompra(cartaoPorta, extratoPorta),
-                relogio);
+                relogio, saida);
     }
 }

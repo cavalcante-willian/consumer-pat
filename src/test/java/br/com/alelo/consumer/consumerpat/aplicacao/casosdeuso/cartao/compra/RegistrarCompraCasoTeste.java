@@ -4,6 +4,7 @@ import br.com.alelo.consumer.consumerpat.aplicacao.dtos.DtoCompra;
 import br.com.alelo.consumer.consumerpat.aplicacao.dtos.DtoComprovanteCompra;
 import br.com.alelo.consumer.consumerpat.aplicacao.fakes.CartaoPortaFake;
 import br.com.alelo.consumer.consumerpat.aplicacao.fakes.ExtratoPortaFake;
+import br.com.alelo.consumer.consumerpat.aplicacao.fakes.SaidaDeLogFake;
 import br.com.alelo.consumer.consumerpat.dominio.cartao.NumeroDeCartao;
 import br.com.alelo.consumer.consumerpat.dominio.cartao.TipoCartao;
 import br.com.alelo.consumer.consumerpat.dominio.dinheiro.Dinheiro;
@@ -11,6 +12,7 @@ import br.com.alelo.consumer.consumerpat.dominio.erros.ErroDominio;
 import br.com.alelo.consumer.consumerpat.dominio.erros.naoencontrado.ErroCartaoNaoEncontrado;
 import br.com.alelo.consumer.consumerpat.dominio.erros.regradenegocio.ErroSaldoInsuficiente;
 import br.com.alelo.consumer.consumerpat.dominio.erros.validacao.ErroValorNaoPositivo;
+import br.com.alelo.consumer.consumerpat.dominio.log.NivelDeLog;
 import br.com.alelo.consumer.consumerpat.dominio.resultado.Falha;
 import br.com.alelo.consumer.consumerpat.dominio.resultado.Resultado;
 import br.com.alelo.consumer.consumerpat.dominio.resultado.Sucesso;
@@ -54,8 +56,11 @@ class RegistrarCompraCasoTeste {
 
     private final ExtratoPortaFake extratos = new ExtratoPortaFake();
 
+    private final SaidaDeLogFake saida = new SaidaDeLogFake();
+
     private RegistrarCompraCaso caso(CartaoPortaFake cartoes) {
-        return new RegistrarCompraCaso(cartoes, new GravadorDaCompra(cartoes, extratos), RELOGIO);
+        return new RegistrarCompraCaso(cartoes, new GravadorDaCompra(cartoes, extratos), RELOGIO,
+                saida);
     }
 
     @ParameterizedTest
@@ -234,6 +239,83 @@ class RegistrarCompraCasoTeste {
         var sucesso = sucessoDe(resultado);
         assertThat(sucesso.valor().toString()).contains("****2222")
                 .doesNotContain("5555000011112222");
+    }
+
+    @Test
+    void deve_registrar_compra_registrada_com_o_valor_cobrado_quando_a_compra_e_efetivada() {
+        // Preparar
+        var cartoes = new CartaoPortaFake(
+                FabricaDeCartoes.doTipo(TipoCartao.ALIMENTACAO).comSaldo("200.00").construir());
+
+        // Agir
+        caso(cartoes).registrar(compra(TipoCartao.ALIMENTACAO, "100.00"));
+
+        // Verificar: o que saiu do saldo, e não o que o cliente informou
+        assertThat(saida.eventos()).singleElement().satisfies(evento -> {
+            assertThat(evento.nivel()).isEqualTo(NivelDeLog.INFORMACAO);
+            assertThat(evento.evento()).isEqualTo("compra.registrada");
+            assertThat(evento.valorDe("tipoCartao")).contains(TipoCartao.ALIMENTACAO);
+            assertThat(evento.valorDe("valorCobrado")).contains("90.000000");
+        });
+    }
+
+    @Test
+    void deve_nao_levar_o_numero_completo_nem_o_texto_do_cliente_ao_log_quando_registrar() {
+        // Preparar
+        var cartoes = new CartaoPortaFake(
+                FabricaDeCartoes.doTipo(TipoCartao.ALIMENTACAO).comSaldo("200.00").construir());
+
+        // Agir
+        caso(cartoes).registrar(compra(TipoCartao.ALIMENTACAO, "100.00"));
+
+        // Verificar: o cartão só aparece mascarado, e o estabelecimento e o produto ficam fora
+        var texto = saida.eventos().get(0).texto();
+        assertThat(texto).contains("****2222").doesNotContain("5555000011112222")
+                .doesNotContain("Mercado").doesNotContain("Arroz");
+    }
+
+    @Test
+    void deve_registrar_compra_recusada_com_o_codigo_quando_o_saldo_e_insuficiente() {
+        // Preparar
+        var cartoes = new CartaoPortaFake(
+                FabricaDeCartoes.doTipo(TipoCartao.FARMACIA).comSaldo("10.00").construir());
+
+        // Agir
+        caso(cartoes).registrar(compra(TipoCartao.FARMACIA, "100.00"));
+
+        // Verificar: recusa de negócio é resultado esperado, e por isso informação, e não erro
+        assertThat(saida.eventos()).singleElement().satisfies(evento -> {
+            assertThat(evento.nivel()).isEqualTo(NivelDeLog.INFORMACAO);
+            assertThat(evento.evento()).isEqualTo("compra.recusada");
+            assertThat(evento.valorDe("motivo")).contains(ErroSaldoInsuficiente.CODIGO);
+            assertThat(evento.valorDe("tipoCartao")).contains(TipoCartao.FARMACIA);
+        });
+    }
+
+    @Test
+    void deve_registrar_compra_recusada_com_o_codigo_quando_o_cartao_nao_existe() {
+        // Agir
+        caso(new CartaoPortaFake()).registrar(compra(TipoCartao.ALIMENTACAO, "10.00"));
+
+        // Verificar
+        assertThat(saida.eventos()).singleElement().satisfies(evento -> {
+            assertThat(evento.evento()).isEqualTo("compra.recusada");
+            assertThat(evento.valorDe("motivo")).contains(ErroCartaoNaoEncontrado.CODIGO);
+        });
+    }
+
+    @Test
+    void deve_nao_registrar_compra_registrada_quando_a_compra_e_recusada() {
+        // Preparar
+        var cartoes = new CartaoPortaFake(
+                FabricaDeCartoes.doTipo(TipoCartao.FARMACIA).comSaldo("10.00").construir());
+
+        // Agir
+        caso(cartoes).registrar(compra(TipoCartao.FARMACIA, "100.00"));
+
+        // Verificar: um evento de sucesso numa recusa seria um log que mente
+        assertThat(saida.eventos()).extracting(SaidaDeLogFake.Evento::evento)
+                .doesNotContain("compra.registrada");
     }
 
     @Test

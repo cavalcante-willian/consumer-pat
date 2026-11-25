@@ -68,13 +68,14 @@ public class ConfiguracaoDeCasosDeUsoComFakes {
 
     @Bean
     RegistrarCompraCaso registrarCompraCaso(CartaoPortaFake cartoes, ExtratoPortaFake extratos,
-            Clock relogio) {
-        return new RegistrarCompraCaso(cartoes, new GravadorDaCompra(cartoes, extratos), relogio);
+            Clock relogio, SaidaDeLogFake saida) {
+        return new RegistrarCompraCaso(cartoes, new GravadorDaCompra(cartoes, extratos), relogio,
+                saida);
     }
 
     @Bean
-    CreditarCartaoCaso creditarCartaoCaso(CartaoPortaFake cartoes) {
-        return new CreditarCartaoCaso(cartoes, cartoes);
+    CreditarCartaoCaso creditarCartaoCaso(CartaoPortaFake cartoes, SaidaDeLogFake saida) {
+        return new CreditarCartaoCaso(cartoes, cartoes, saida);
     }
 
     @Bean
@@ -83,13 +84,15 @@ public class ConfiguracaoDeCasosDeUsoComFakes {
     }
 
     @Bean
-    CriarConsumidorCaso criarConsumidorCaso(ConsumidorPortaFake consumidores) {
-        return new CriarConsumidorCaso(consumidores);
+    CriarConsumidorCaso criarConsumidorCaso(ConsumidorPortaFake consumidores,
+            SaidaDeLogFake saida) {
+        return new CriarConsumidorCaso(consumidores, saida);
     }
 
     @Bean
-    AtualizarConsumidorCaso atualizarConsumidorCaso(ConsumidorPortaFake consumidores) {
-        return new AtualizarConsumidorCaso(consumidores, consumidores);
+    AtualizarConsumidorCaso atualizarConsumidorCaso(ConsumidorPortaFake consumidores,
+            SaidaDeLogFake saida) {
+        return new AtualizarConsumidorCaso(consumidores, consumidores, saida);
     }
 
     @Bean

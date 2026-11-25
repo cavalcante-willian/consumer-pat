@@ -1,5 +1,6 @@
 package br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.compra;
 
+import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.ComSaidaDeLogDoCaso;
 // editorconfig-checker-disable-next-line
 import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.cartao.ComBuscadorDeCartaoParaAtualizacao;
 import br.com.alelo.consumer.consumerpat.aplicacao.dtos.DtoCompra;
@@ -24,11 +25,11 @@ import org.springframework.transaction.annotation.Transactional;
  * precisa caber no saldo: um desconto pode tornar possível uma compra maior que o saldo, e um
  * acréscimo pode tornar impossível uma menor.
  */
-public interface RegistroDeCompra
-        extends ComBuscadorDeCartaoParaAtualizacao, ComGravadorDaCompra, ComRelogioDaCompra {
+public interface RegistroDeCompra extends ComBuscadorDeCartaoParaAtualizacao, ComGravadorDaCompra,
+        ComRelogioDaCompra, ComSaidaDeLogDoCaso {
 
     /**
-     * Registra a compra.
+     * Registra a compra, e registra no log que ela foi efetivada ou recusada.
      *
      * @param compra o pedido, com os tipos do domínio
      * @return sucesso com o comprovante, ou falha com o erro que recusou: valor não positivo,
@@ -38,10 +39,11 @@ public interface RegistroDeCompra
     default Resultado<DtoComprovanteCompra, ErroDominio> registrar(DtoCompra compra) {
         var cobrado = compra.tipo().valorCobrado(compra.valor());
         var extrato = ExtratoDaCompra.montar(compra, cobrado, relogio().instant());
-        return buscador()
-                .buscarPorNumeroETipoParaAtualizacao(compra.numeroCartao(), compra.tipo())
+        return buscador().buscarPorNumeroETipoParaAtualizacao(compra.numeroCartao(), compra.tipo())
                 .encadear(cartao -> cartao.debitar(cobrado))
                 .mapear(debitado -> gravador().gravar(debitado, extrato))
-                .mapear(gravado -> ComprovanteDaCompra.montar(extrato, gravado));
+                .mapear(gravado -> ComprovanteDaCompra.montar(extrato, gravado))
+                .aoSucesso(comprovante -> CompraRegistrada.registrar(saida(), comprovante))
+                .aoFalhar(erro -> CompraRecusada.registrar(saida(), compra, erro));
     }
 }

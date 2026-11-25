@@ -1,6 +1,8 @@
 package br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.consumidor.atualizar;
 
+import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.ComSaidaDeLogDoCaso;
 import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.consumidor.ComBuscadorDeConsumidor;
+import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.consumidor.ConflitoDetectado;
 import br.com.alelo.consumer.consumerpat.aplicacao.dtos.DtoAtualizacaoDeConsumidor;
 import br.com.alelo.consumer.consumerpat.dominio.consumidor.Consumidor;
 import br.com.alelo.consumer.consumerpat.dominio.erros.ErroDominio;
@@ -20,10 +22,11 @@ import org.springframework.transaction.annotation.Transactional;
  * Uma versão velha é recusada aqui, antes de gravar. Dois clientes que leem a mesma versão ao mesmo
  * tempo passam desta conferência, e o segundo a perde na gravação, pela versão de linha do banco.
  */
-public interface AtualizacaoDeCadastro extends ComBuscadorDeConsumidor, ComAtualizadorDeConsumidor {
+public interface AtualizacaoDeCadastro
+        extends ComBuscadorDeConsumidor, ComAtualizadorDeConsumidor, ComSaidaDeLogDoCaso {
 
     /**
-     * Atualiza o cadastro.
+     * Atualiza o cadastro, e registra a atualização ou o conflito.
      *
      * @param pedido o consumidor, a versão que o cliente leu e os dados novos
      * @return o consumidor como ficou, ou o erro de consumidor ausente, de versão divergente ou de
@@ -33,6 +36,9 @@ public interface AtualizacaoDeCadastro extends ComBuscadorDeConsumidor, ComAtual
     default Resultado<Consumidor, ErroDominio> atualizar(DtoAtualizacaoDeConsumidor pedido) {
         return buscador().buscarPorId(pedido.id())
                 .encadear(atual -> VersaoConfirmada.exigir(atual, pedido.versao()))
-                .mapear(atual -> atual.comDados(pedido.dados())).encadear(atualizador()::atualizar);
+                .mapear(atual -> atual.comDados(pedido.dados())).encadear(atualizador()::atualizar)
+                .aoSucesso(atualizado -> ConsumidorAtualizado.registrar(saida(), atualizado))
+                .aoFalhar(
+                        erro -> ConflitoDetectado.registrar(saida(), "atualizar-consumidor", erro));
     }
 }

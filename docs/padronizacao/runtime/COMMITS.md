@@ -288,6 +288,12 @@ O commit que **introduz** cada mudança de contrato leva `!` no título e o
 rodapé — o mapa completo legado → novo está em
 [`API.md`](../qualidade/API.md#mapa-do-legado-para-o-novo-contrato).
 
+**Neste repositório, o contrato quebrou na remoção, e não na criação das rotas
+novas.** Elas entraram ao lado das do legado, sem tirar nenhuma, e por isso não
+quebraram ninguém: esses commits não levam `!`. Quem quebra é o commit que
+**remove** o legado, e é ele que leva o `!` e o `BREAKING CHANGE:` com o mapa
+das cinco rotas.
+
 ---
 
 ## 6. Commits Atômicos
@@ -591,13 +597,14 @@ de "refatorar tudo". A ordem abaixo cumpre a [seção 6](#6-commits-atômicos):
    — com fakes; **a regra do enunciado vira teste** (desconto 10%, acréscimo 35%)
 7. `feat(banco): mapear entidades e adaptadores com lock pessimista`
    — schema em português, `NUMERIC(19,6)`, `CHECK`, auditoria
-8. `feat(api)!: expor o contrato versionado e o corpo de erro padronizado`
-   — leva `!` no título **e** `BREAKING CHANGE:` no corpo (rotas, verbos, dinheiro em string)
+8. `feat(api): expor o contrato versionado e o corpo de erro padronizado`
+   — aditivo: as rotas novas convivem com as do legado, então **não** leva `!`
 9. `perf(consumidores): paginar a listagem e projetar só id e nome`
 10. `feat(observabilidade): adicionar porta de log e health check próprio`
 11. `feat(seguranca): enviar cabeçalhos de segurança em /api/*`
-12. `refactor(api): remover o controller e as entidades do legado`
-    — só aqui o legado sai
+12. `refactor(api)!: remover o controller e as entidades do legado`
+    — só aqui o legado sai, e por isso é aqui que entram o `!` **e** o
+    `BREAKING CHANGE:` no corpo (rotas, verbos, dinheiro em string)
 13. `test(cartoes): adicionar teste de concorrência da compra`
     — verificado: **falha** sem o lock
 14. `build(build): tratar warnings como erros e validar o javadoc`

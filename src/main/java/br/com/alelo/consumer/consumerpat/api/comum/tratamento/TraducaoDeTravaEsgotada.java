@@ -34,7 +34,8 @@ public interface TraducaoDeTravaEsgotada extends ComSaidaDeLog {
     @ExceptionHandler(PessimisticLockingFailureException.class)
     default ResponseEntity<Object> traduzirTravaEsgotada(PessimisticLockingFailureException excecao,
             HttpServletRequest requisicao) {
-        saida().aviso("lock.timeout", campo("operacao", OperacaoDaRequisicao.de(requisicao)));
+        saida().aviso("lock.timeout", campo("metodo", requisicao.getMethod()),
+                campo("caminho", requisicao.getRequestURI()));
         return RespostaDeProblema
                 .de(ProblemaDeBordaEmMensagem.montar(ProblemaDeBorda.RECURSO_EM_USO,
                         "O cartão está em uso por outra requisição. "

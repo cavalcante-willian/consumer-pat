@@ -520,7 +520,10 @@ src/test/java/…consumerpat/                # espelha produção, pacote a paco
 │   ├── Verificacao.java                   # uma tentativa de ataque ou abuso, igual contra qualquer sistema
 │   ├── VerificacaoDe*.java                # uma por arquivo: valor, saldo, entrada hostil, vazamento, cabeçalhos...
 │   ├── BateriaDeSeguranca.java            # a lista das 16 verificações, e a forma de rodá-las
-│   ├── Achado.java                        # o que a verificação concluiu: protegido ou exposto, e a evidência
+│   ├── Achado.java                        # o que a verificação concluiu, e a evidência
+│   ├── Veredito.java                      # protegido, exposto, ou não verificado quando o ambiente não deixou
+│   ├── EnderecoDeRede.java                # um endereço IPv4 da máquina que não é o loopback
+│   ├── PedidoPelaRede.java                # um GET pelo endereço de rede, para o sistema ver uma origem de fora
 │   └── RelatorioDeSeguranca.java          # junta o legado e o novo, verificação por verificação
 └── arquitetura/
     ├── RegraDeDependenciaTeste.java       # varre imports: viola a tabela de camadas → falha

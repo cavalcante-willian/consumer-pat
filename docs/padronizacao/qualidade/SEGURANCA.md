@@ -149,7 +149,9 @@ parte do ambiente local (`http://localhost:8080/h2-console/`). A decisão
   ```
 
 - `spring.h2.console.settings.web-allow-others` **permanece `false`**
-  (padrão): o console só aceita conexão da própria máquina.
+  (padrão): o console só aceita conexão da própria máquina. **Verificado**, nos
+  dois sistemas (seção 11): de fora o H2 devolve a página de recusa, e uma
+  mutação que liga a opção derruba a bateria.
 - O PR registra que o perfil padrão **não é seguro para exposição** — ele
   é o ambiente de avaliação do desafio.
 
@@ -449,7 +451,7 @@ carga é a verificação de taxa, com 200 requisições de leitura em série.
 
 ### O que a bateria concluiu
 
-O original se protegeu em **3 de 16** verificações, e o novo em **13 de 16**:
+O original se protegeu em **4 de 16** verificações, e o novo em **14 de 16**:
 
 | Verificação | O que se tenta | Legado | Novo |
 |---|---|---|---|
@@ -466,14 +468,40 @@ O original se protegeu em **3 de 16** verificações, e o novo em **13 de 16**:
 | `entrada-hostil-nao-vira-sql` | aspas, `UNION`, `SHUTDOWN` e `CREATE ALIAS` | protegido | protegido |
 | `erro-sem-detalhe-interno` | corpo dos erros | protegido: nenhuma pilha | protegido |
 | `cors-fechado` | pré-voo de origem estranha | protegido: `403` | protegido: `403` |
-| `console-do-h2` | abrir o console | exposto (`302`) | exposto (`302`): **risco aceito** |
+| `console-do-h2` | abrir o console por quem vem de fora | protegido: o H2 devolve a página de recusa (status `200`) | protegido, igual |
 | `documentacao-publica` | Swagger e especificação | exposto (`200`) | exposto (`200`): **risco aceito** |
 | `limite-de-taxa` | 200 requisições seguidas | exposto: nenhum `429` | exposto: **risco aceito** (seção 9, item 2) |
 
-Os três que o novo não fecha são riscos **aceitos do perfil padrão**: o console do
-H2 e a documentação ficam abertos porque o README do desafio os documenta, e o
-perfil `prod` os desliga (seção 3), e nenhum limitador de taxa existe porque ele
-exige dependência nova ou um proxy à frente (seção 9).
+Os dois que o novo não fecha são riscos **aceitos do perfil padrão**: a
+documentação fica aberta porque o README do desafio a documenta, e o perfil
+`prod` a desliga (seção 3), e nenhum limitador de taxa existe porque ele exige
+dependência nova ou um proxy à frente (seção 9).
+
+### O console do H2: o resultado depende de onde se pergunta
+
+A bateria roda contra processos na própria máquina, e uma verificação em que o
+**servidor decide pela origem do pedido** responde como se o cliente fosse local.
+É o caso do console do H2, que só abre para o loopback. Medido nos dois sistemas,
+no mesmo H2 (2.1.214), com o app dentro de um contêiner, onde o `localhost` do
+host é uma origem realmente remota:
+
+| Origem do pedido | O que o H2 faz |
+|---|---|
+| De fora (pela porta publicada, ou pelo endereço de uma interface de rede) | **recusa**, com a página "Sorry, remote connections…", e com status `200`, e não um erro HTTP |
+| A própria máquina | abre o console, como o README promete |
+| A própria máquina, com `X-Forwarded-For` | abre: o H2 olha o endereço do socket e ignora o cabeçalho |
+
+Por isso a verificação pede o console **pelo endereço de uma interface de rede da
+máquina**, onde o sistema vê uma origem que não é loopback, e conclui pelo
+status **e** pelo corpo: recusado é um erro de cliente ou a página de recusa. Sem
+nenhuma interface fora do loopback, ela diz **não verificado**, em vez de dar o
+resultado do pedido local como se fosse o de fora.
+
+O que **continua aberto**, e não é um defeito de um dos sistemas: um proxy no
+mesmo espaço de rede do app faz o pedido chegar como loopback e abre o console a
+quem estiver atrás dele, e qualquer processo ou usuário da própria máquina o abre
+com a senha pública `sa/sa`. O primeiro se evita não pondo proxy local na frente
+do perfil padrão, e o segundo é o preço de o README documentar o console.
 
 **Dois resultados que desmentiram hipóteses**, e por isso valem a leitura: o legado
 **não** vaza pilha de chamadas no corpo dos erros (o Spring Boot já devolve um JSON
@@ -497,7 +525,9 @@ listagem segue respondendo.
 
 `SegurancaDoSistemaNovoTeste` roda a bateria inteira contra o sistema novo, num
 servidor real, **na suíte normal**, e exige que ele se proteja em tudo, menos nos
-três riscos aceitos. O dia em que uma mudança deixar passar um valor negativo,
+dois riscos aceitos. Uma verificação que o ambiente não deixou fazer, como a do
+console numa máquina sem interface de rede, não é exposição e não derruba o
+teste. O dia em que uma mudança deixar passar um valor negativo,
 devolver uma pilha ou concatenar uma ordenação, ele falha, com a evidência na
 mensagem. Um endpoint ou campo novo entra na bateria junto com o PR que o cria. O
 `SegurancaDoLegadoDaArvoreTeste` só prova que a bateria roda contra o legado
@@ -509,6 +539,10 @@ enquanto ele está na árvore, e sai com ele.
   verificar.
 - **O que não se vê por HTTP:** lógica de negócio, o conteúdo do log, a
   infraestrutura. O log sem dado sensível tem os seus próprios testes (seção 5).
+- **A origem real do cliente:** a bateria roda na própria máquina. O que depende
+  da origem do pedido, o console do H2, é perguntado pelo endereço de uma interface
+  de rede, que dá ao sistema uma origem não loopback, mas não é uma máquina
+  diferente, e um proxy no mesmo servidor não se simula por cabeçalho.
 - **Cobertura de scanner:** um scanner externo, como o OWASP ZAP em modo baseline,
   veria mais. Ele fica **fora do repositório**, como passo manual, para não trazer
   dependência.

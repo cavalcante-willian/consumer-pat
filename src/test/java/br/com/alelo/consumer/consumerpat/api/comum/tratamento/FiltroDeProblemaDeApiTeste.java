@@ -55,7 +55,9 @@ class FiltroDeProblemaDeApiTeste {
         assertThat(saida.eventos()).singleElement().satisfies(evento -> {
             assertThat(evento.nivel()).isEqualTo(NivelDeLog.AVISO);
             assertThat(evento.evento()).isEqualTo("lock.timeout");
-            assertThat(evento.valorDe("operacao")).contains("POST " + ROTA);
+            assertThat(evento.valorDe("metodo")).contains("POST");
+            assertThat(evento.valorDe("caminho")).contains(ROTA);
+            assertThat(evento.valorDe("operacao")).isEmpty();
         });
     }
 
@@ -70,6 +72,9 @@ class FiltroDeProblemaDeApiTeste {
             assertThat(evento.nivel()).isEqualTo(NivelDeLog.AVISO);
             assertThat(evento.evento()).isEqualTo("conflito.detectado");
             assertThat(evento.valorDe("entidade")).contains("Cartao");
+            assertThat(evento.valorDe("metodo")).contains("POST");
+            assertThat(evento.valorDe("caminho")).contains(ROTA);
+            assertThat(evento.valorDe("operacao")).isEmpty();
         });
     }
 
@@ -88,6 +93,9 @@ class FiltroDeProblemaDeApiTeste {
         assertThat(saida.eventos()).singleElement().satisfies(evento -> {
             assertThat(evento.evento()).isEqualTo("conflito.detectado");
             assertThat(evento.valorDe("restricao")).contains("UK_CONSUMIDORES_DOCUMENTO_INDEX_5");
+            assertThat(evento.valorDe("metodo")).contains("POST");
+            assertThat(evento.valorDe("caminho")).contains(ROTA);
+            assertThat(evento.valorDe("operacao")).isEmpty();
             assertThat(evento.texto()).doesNotContain("12345678901").doesNotContain("VALUES");
         });
     }
@@ -102,7 +110,9 @@ class FiltroDeProblemaDeApiTeste {
         assertThat(saida.eventos()).singleElement().satisfies(evento -> {
             assertThat(evento.nivel()).isEqualTo(NivelDeLog.ERRO);
             assertThat(evento.evento()).isEqualTo("falha.inesperada");
-            assertThat(evento.valorDe("operacao")).contains("POST " + ROTA);
+            assertThat(evento.valorDe("metodo")).contains("POST");
+            assertThat(evento.valorDe("caminho")).contains(ROTA);
+            assertThat(evento.valorDe("operacao")).isEmpty();
             assertThat(evento.causa()).hasValueSatisfying(causa -> {
                 assertThat(causa.getMessage()).isEqualTo("java.lang.IllegalStateException");
                 assertThat(causa.getStackTrace()).isNotEmpty();

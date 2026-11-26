@@ -56,7 +56,10 @@ remove; as duas convivem sem se tocar.
     é a razão de o `no-store` estar no filtro, e não num interceptor. **Não valem para o
     Swagger, a especificação e o console do H2**, que a política de conteúdo e o `DENY`
     quebrariam, nem para as rotas do legado, fora de `/api/*`. O HSTS não é enviado: o TLS é
-    terminado fora da aplicação.
+    terminado fora da aplicação. `FiltroDeRejeicaoDeTrace` recusa o `TRACE` com `405` e sem
+    corpo, em qualquer rota e também no despacho de erro: o Spring MVC responde um `TRACE`
+    ecoando a requisição inteira, com os cabeçalhos que o cliente mandou, e nenhuma
+    propriedade o evita. Vem depois do log de conclusão, para o `TRACE` recusado sair no log.
 - **`consumidor`** — `POST /api/v1/consumidores` (cadastra com os cartões, `201` com
   `Location`), `PUT /api/v1/consumidores/{id}` (só o cadastro, com a `versao` que o
   cliente leu) e `GET /api/v1/consumidores/{id}`, um pacote por operação. **Todos os
@@ -181,6 +184,7 @@ api
 │   ├── seguranca
 │   │   ├── CabecalhosDeSeguranca.java            # os cinco cabeçalhos, num Map imutável
 │   │   ├── FiltroDeCabecalhosDeSeguranca.java    # filtro mais externo, só /api/*: aplica o Map
+│   │   ├── FiltroDeRejeicaoDeTrace.java          # recusa o TRACE com 405 e sem corpo, inclusive no despacho de erro
 │   │   └── package-info.java
 │   └── tratamento
 │       ├── ComSaidaDeLog.java                    # operação-base: a porta de log do tratador
@@ -237,6 +241,7 @@ Os testes ficam em `src/test/java/.../api/` e espelham os pacotes.
 | `comum.requisicao.NivelDaConclusaoTeste`, `FiltroDeLogDeConclusaoTeste` | 5xx erro, 409 aviso, o resto informação; método, caminho sem query, status e duração medida; o evento sai mesmo se a requisição lançar |
 | `saude.SaudeControllerTeste`, `SaudeEmMensagemTeste`, `StatusDaSaudeTeste`, `SaudeDePontaAPontaTeste` | `200` com o banco disponível e `503` com ele indisponível (`SaudePorta` **fake**), corpo só com a situação e as dependências, nada interno, `Cache-Control: no-store`, e o contexto inteiro contra o H2 real |
 | `comum.seguranca.CabecalhosDeSegurancaTeste`, `FiltroDeCabecalhosDeSegurancaTeste` | os cinco valores e o que não está neles (HSTS); o filtro os escreve antes de a requisição seguir, mantém quando ela lança, substitui um `Cache-Control` que já existia, e não escreve nenhum cabeçalho fora do contrato |
+| `comum.seguranca.FiltroDeRejeicaoDeTraceTeste` | o filtro age só no `TRACE`, sem distinguir maiúsculas, vale também para o despacho de erro, responde `405` sem corpo e **não deixa a requisição seguir**, nem com cookie no pedido. O contrato inteiro, com o servidor de verdade, é provado pela bateria de segurança (`SegurancaDoSistemaNovoTeste`) |
 | `comum.seguranca.CabecalhosDeSegurancaDePontaAPontaTeste` | o contrato com o contexto inteiro: os cabeçalhos em `200`, `201`, `400`, `404`, `405`, `409`, `415` e `422`, com o `X-Request-Id`; a especificação, o Swagger e o console do H2 sem eles; nenhum cabeçalho de CORS, nem no pré-voo |
 | `comum.seguranca.SegurancaDoPerfilDeProducaoTeste`, `configuracao.ConfiguracaoDeFiltrosTeste` | o perfil `prod` sem o console do H2, o Swagger e a especificação, e com os cabeçalhos; o filtro de segurança como o mais externo e só em `/api/*` (a mutação que tira o `/api/*` derruba quatro testes) |
 | `comum.requisicao.PipelineDeRequisicaoTeste` | o contexto inteiro: o id em todo cabeçalho e em todo corpo de erro, e **na linha de conclusão do log** (a mutação que inverte a ordem dos filtros a derruba) |
@@ -264,3 +269,4 @@ do controller que posta sem corpo faz o build quebrar se o Spring mudar o texto.
 | `#22` | Acrescenta `comum.requisicao` e `ConfiguracaoDeFiltros`: a correlação (`X-Request-Id` em toda resposta, `idRequisicao` no corpo de erro) e o log de conclusão. Os papéis de falha de infraestrutura do tratador passam a registrar `falha.inesperada`, `conflito.detectado` e `lock.timeout`. `MensagemProblema` ganha o campo `idRequisicao`. |
 | `#23` | Acrescenta `GET /api/v1/saude`, o health check por dependência, com `200` e `503`. `CategoriaErro` ganha `INDISPONIVEL` (503), e o título dela entra em `TituloDaCategoria`. |
 | `#26` | Acrescenta `comum.seguranca`: o `FiltroDeCabecalhosDeSeguranca`, o filtro mais externo, só em `/api/*`, que escreve os cinco cabeçalhos de segurança em toda resposta, inclusive as de erro. O `Cache-Control: no-store` passa a vir dele, e o `SaudeController` deixa de escrevê-lo. O perfil `prod` desliga o console do H2, o Swagger e a especificação. |
+| `#29` | Acrescenta o `FiltroDeRejeicaoDeTrace` a `comum.seguranca`: o `TRACE` passa a responder `405` sem corpo, em vez de ecoar a requisição inteira. O defeito estava no sistema novo, e foi a bateria de segurança que o achou. |

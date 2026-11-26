@@ -47,6 +47,7 @@ mitigação parcial desse fato — não substituem a autenticação que falta
 | CORS (seção 8) | **Vale** | o padrão do Spring MVC já é fechado |
 | Rate limiting (seção 9) | **Fora de escopo** | exigiria biblioteca; um limitador em memória conflita com API *stateless* |
 | Arquivos de upload (seção 10) | **Não se aplica** | não há upload |
+| Bateria de segurança (seção 11) | **Vale** | mostra o que cada sistema deixa passar, e guarda o novo contra regressão |
 
 ---
 
@@ -148,7 +149,9 @@ parte do ambiente local (`http://localhost:8080/h2-console/`). A decisão
   ```
 
 - `spring.h2.console.settings.web-allow-others` **permanece `false`**
-  (padrão): o console só aceita conexão da própria máquina.
+  (padrão): o console só aceita conexão da própria máquina. **Verificado**, nos
+  dois sistemas (seção 11): de fora o H2 devolve a página de recusa, e uma
+  mutação que liga a opção derruba a bateria.
 - O PR registra que o perfil padrão **não é seguro para exposição** — ele
   é o ambiente de avaliação do desafio.
 
@@ -286,6 +289,18 @@ cabeçalho é mudar um dado, e o filtro, que não decide nada, não muda.
   cabeçalho, e o contrato diz que a resposta de erro o traz. O filtro cobre
   todas, e a regra de aplicar uma vez, num ponto só, continua valendo.
 - **O filtro não lança exceção** (regra do pipeline): só escreve cabeçalhos.
+- **O `TRACE` é recusado por um segundo filtro**, o `FiltroDeRejeicaoDeTrace`
+  (etapa 4 do pipeline, `/*`, e também no despacho de erro). O Spring MVC
+  responde um `TRACE` **ecoando a requisição inteira**, com todos os
+  cabeçalhos que o cliente mandou, inclusive cookie e autorização. O `TRACE` já
+  termina em `405`, mas o eco sai na página de erro, numa segunda passagem pela
+  aplicação: o corpo mostra `TRACE /error`, e não a rota que o cliente pediu.
+  A propriedade `spring.mvc.dispatch-trace-request`
+  **não resolve**: ligada, o eco continua e passa a vir **depois** do JSON de
+  erro, porque o `FrameworkServlet` cai no eco do `HttpServlet` sempre que o
+  conteúdo não é `message/http`. O filtro vale também para o despacho de erro,
+  que um filtro comum ignora, e responde `405` sem corpo. Foi a bateria da
+  seção 11 que o achou, no sistema novo.
 - **Não cobre as rotas fora de `/api/*`.** O legado serve as suas, em outros
   caminhos, e sai com a remoção do legado.
 - **HSTS não é enviado pela aplicação.** Ele só tem efeito sobre HTTPS, e o
@@ -414,6 +429,126 @@ dimensionado**, não escondido.
 
 ---
 
+## 11. A Bateria de Segurança
+
+Uma bateria de **16 verificações por HTTP**, feitas da mesma forma contra o
+**original** (o legado, o commit anterior à padronização) e contra o sistema
+**novo**. Cada verificação é uma tentativa, e o resultado é o que o sistema
+fez: **protegido** ou **exposto**, com a evidência observada (o status, o efeito
+no saldo, o que a resposta continha). Passar numa verificação **não prova
+ausência de falha**.
+
+Para rodar, com os dois sistemas sobre processos separados (o roteiro extrai o
+original, sobe os dois e para tudo):
+
+```bash
+JAVA_HOME=/usr/lib/jvm/java-17-openjdk scripts/medir-contra-o-original.sh seguranca
+```
+
+O relatório sai em `build/medicao/seguranca.txt`, com o ambiente de quem rodou no
+cabeçalho. **Só localhost, só os nossos processos, nada destrutivo**: a única
+carga é a verificação de taxa, com 200 requisições de leitura em série.
+
+### O que a bateria concluiu
+
+O original se protegeu em **4 de 16** verificações, e o novo em **14 de 16**:
+
+| Verificação | O que se tenta | Legado | Novo |
+|---|---|---|---|
+| `valor-negativo` | compra de −50,00 num cartão de 100,00 | **exposto**: aceita, e o saldo sobe para 150,00 | protegido: `400`, saldo intacto |
+| `valor-enorme` | compra de `1e308` | **exposto**: aceita e altera o saldo | protegido: `400` |
+| `saldo-por-atualizacao` | atualizar o cadastro mandando saldo de 999.999,00 | **exposto**: o saldo vira 999.999,00 | protegido: `400`, saldo recusado |
+| `estado-alterado-por-get` | comprar por `GET` | **exposto**: debita por `GET`, com cartão e valor na URL | protegido: `405` |
+| `campo-desconhecido` | cadastro com campo que o contrato não tem | **exposto**: grava e ignora | protegido: `400` |
+| `corpo-gigante` | nome de 6 milhões de caracteres | **exposto**: `500` | protegido: `400` |
+| `erro-de-cliente-nao-vira-500` | crédito num cartão que não existe | **exposto**: `500` | protegido: `404` |
+| `dado-sensivel-na-resposta` | ler um consumidor | **exposto**: documento e cartão por inteiro | protegido: mascarados |
+| `cabecalhos-de-seguranca` | os cinco cabeçalhos | **exposto**: nenhum | protegido: os cinco |
+| `trace-sem-eco` | `TRACE` numa rota | **exposto**: eco dos cabeçalhos | protegido (era exposto; ver seção 6) |
+| `entrada-hostil-nao-vira-sql` | aspas, `UNION`, `SHUTDOWN` e `CREATE ALIAS` | protegido | protegido |
+| `erro-sem-detalhe-interno` | corpo dos erros | protegido: nenhuma pilha | protegido |
+| `cors-fechado` | pré-voo de origem estranha | protegido: `403` | protegido: `403` |
+| `console-do-h2` | abrir o console por quem vem de fora | protegido: o H2 devolve a página de recusa (status `200`) | protegido, igual |
+| `documentacao-publica` | Swagger e especificação | exposto (`200`) | exposto (`200`): **risco aceito** |
+| `limite-de-taxa` | 200 requisições seguidas | exposto: nenhum `429` | exposto: **risco aceito** (seção 9, item 2) |
+
+Os dois que o novo não fecha são riscos **aceitos do perfil padrão**: a
+documentação fica aberta porque o README do desafio a documenta, e o perfil
+`prod` a desliga (seção 3), e nenhum limitador de taxa existe porque ele exige
+dependência nova ou um proxy à frente (seção 9).
+
+### O console do H2: o resultado depende de onde se pergunta
+
+A bateria roda contra processos na própria máquina, e uma verificação em que o
+**servidor decide pela origem do pedido** responde como se o cliente fosse local.
+É o caso do console do H2, que só abre para o loopback. Medido nos dois sistemas,
+no mesmo H2 (2.1.214), com o app dentro de um contêiner, onde o `localhost` do
+host é uma origem realmente remota:
+
+| Origem do pedido | O que o H2 faz |
+|---|---|
+| De fora (pela porta publicada, ou pelo endereço de uma interface de rede) | **recusa**, com a página "Sorry, remote connections…", e com status `200`, e não um erro HTTP |
+| A própria máquina | abre o console, como o README promete |
+| A própria máquina, com `X-Forwarded-For` | abre: o H2 olha o endereço do socket e ignora o cabeçalho |
+
+Por isso a verificação pede o console **pelo endereço de uma interface de rede da
+máquina**, onde o sistema vê uma origem que não é loopback, e conclui pelo
+status **e** pelo corpo: recusado é um erro de cliente ou a página de recusa. Sem
+nenhuma interface fora do loopback, ela diz **não verificado**, em vez de dar o
+resultado do pedido local como se fosse o de fora.
+
+O que **continua aberto**, e não é um defeito de um dos sistemas: um proxy no
+mesmo espaço de rede do app faz o pedido chegar como loopback e abre o console a
+quem estiver atrás dele, e qualquer processo ou usuário da própria máquina o abre
+com a senha pública `sa/sa`. O primeiro se evita não pondo proxy local na frente
+do perfil padrão, e o segundo é o preço de o README documentar o console.
+
+**Dois resultados que desmentiram hipóteses**, e por isso valem a leitura: o legado
+**não** vaza pilha de chamadas no corpo dos erros (o Spring Boot já devolve um JSON
+genérico), e ele **não** é vulnerável à injeção de SQL nos pontos testados: a
+consulta nativa usa parâmetro ligado e o número do cartão é `int`. Os dois
+aparecem como empate.
+
+### Sobre a injeção de SQL, sem login
+
+Não há login a burlar, e por isso a pergunta é outra: o que o cliente manda chega
+a uma consulta como **dado**, ou como pedaço dela? Como toda rota já é aberta, uma
+injeção daria acesso a tabelas que a API nunca expõe, como o extrato, e a escrita
+nelas. No H2 chega a executar código, por `CREATE ALIAS`. O ponto de risco de
+verdade é a **ordenação** da listagem, porque `ORDER BY` não aceita parâmetro
+ligado, e é onde uma concatenação futura nasceria. Por isso a verificação manda as
+cargas ao nome do consumidor, ao número do cartão e à `ordenacao` e à `direcao`, e
+confere que nada derruba o sistema, que nenhum texto de banco vaza e que a
+listagem segue respondendo.
+
+### A parte do sistema novo é teste de regressão
+
+`SegurancaDoSistemaNovoTeste` roda a bateria inteira contra o sistema novo, num
+servidor real, **na suíte normal**, e exige que ele se proteja em tudo, menos nos
+dois riscos aceitos. Uma verificação que o ambiente não deixou fazer, como a do
+console numa máquina sem interface de rede, não é exposição e não derruba o
+teste. O dia em que uma mudança deixar passar um valor negativo,
+devolver uma pilha ou concatenar uma ordenação, ele falha, com a evidência na
+mensagem. Um endpoint ou campo novo entra na bateria junto com o PR que o cria. O
+`SegurancaDoLegadoDaArvoreTeste` só prova que a bateria roda contra o legado
+enquanto ele está na árvore, e sai com ele.
+
+### O que a bateria não cobre
+
+- **Autenticação e autorização:** não existem (seção 9, item 1), então não há o que
+  verificar.
+- **O que não se vê por HTTP:** lógica de negócio, o conteúdo do log, a
+  infraestrutura. O log sem dado sensível tem os seus próprios testes (seção 5).
+- **A origem real do cliente:** a bateria roda na própria máquina. O que depende
+  da origem do pedido, o console do H2, é perguntado pelo endereço de uma interface
+  de rede, que dá ao sistema uma origem não loopback, mas não é uma máquina
+  diferente, e um proxy no mesmo servidor não se simula por cabeçalho.
+- **Cobertura de scanner:** um scanner externo, como o OWASP ZAP em modo baseline,
+  veria mais. Ele fica **fora do repositório**, como passo manual, para não trazer
+  dependência.
+
+---
+
 ## Anti-Padrões
 
 | Anti-padrão | Correto |
@@ -451,6 +586,7 @@ Antes de abrir um PR que mexe em configuração, entrada, log ou erro:
 - [ ] Toda consulta usa parâmetro vinculado, e nenhuma `Sort`/`Pageable` vem do cliente?
 - [ ] O `FiltroDeCabecalhosDeSeguranca` continua registrado em `/api/*`, e o teste de contrato confere os cabeçalhos em sucesso **e** erro?
 - [ ] CORS continua fechado, ou com origens explícitas vindas de configuração?
+- [ ] O `SegurancaDoSistemaNovoTeste` passa, e um endpoint ou campo novo tem a sua verificação na bateria (seção 11)?
 - [ ] A tabela de riscos (seção 9) está no PR, com o que ficou de fora e por quê?
 
 ---

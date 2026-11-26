@@ -24,12 +24,47 @@ public final class CorposDaApi {
      * @return o JSON do cadastro
      */
     public static String cadastro(String documento, TipoCartao tipo, String numero) {
+        return cadastroComNome("Consumidor de teste", documento, tipo, numero);
+    }
+
+    /**
+     * O corpo do cadastro de um consumidor com um só cartão e o nome escolhido.
+     *
+     * <p>
+     * O nome pode ser hostil: aspas, barras e caracteres de controle vão escapados, e o JSON segue
+     * válido, para o teste exercitar o campo, e não o analisador.
+     *
+     * @param nome      o nome, qualquer texto
+     * @param documento o documento, só dígitos
+     * @param tipo      o tipo do cartão
+     * @param numero    o número do cartão, só dígitos
+     * @return o JSON do cadastro
+     */
+    public static String cadastroComNome(String nome, String documento, TipoCartao tipo,
+            String numero) {
         return """
-                {"dados":{"nome":"Consumidor de teste","documento":"%s",\
+                {"dados":{"nome":"%s","documento":"%s",\
                 "dataNascimento":"1990-05-17","celular":"11999998888",\
                 "email":"consumidor@exemplo.com.br","rua":"Rua A","numero":"1",\
                 "cidade":"Recife","pais":"Brasil","cep":"50000000"},\
-                "numerosCartoes":{"%s":"%s"}}""".formatted(documento, tipo.name(), numero);
+                "numerosCartoes":{"%s":"%s"}}""".formatted(JsonDeTeste.escapar(nome), documento,
+                tipo.name(), numero);
+    }
+
+    /**
+     * O corpo da atualização do cadastro de um consumidor recém-criado, com um saldo que o contrato
+     * não admite.
+     *
+     * @param documento o documento novo, só dígitos
+     * @param saldo     o saldo que o atacante quer impor
+     * @return o JSON da atualização, na versão zero
+     */
+    public static String atualizacaoComSaldo(String documento, String saldo) {
+        return """
+                {"versao":0,"saldo":%s,"dados":{"nome":"Consumidor de teste","documento":"%s",\
+                "dataNascimento":"1990-05-17","celular":"11999998888",\
+                "email":"consumidor@exemplo.com.br","rua":"Rua A","numero":"1",\
+                "cidade":"Recife","pais":"Brasil","cep":"50000000"}}""".formatted(saldo, documento);
     }
 
     /**
@@ -63,8 +98,8 @@ public final class CorposDaApi {
      */
     public static String credito(String numero, TipoCartao tipo, String valor) {
         return """
-                {"numeroCartao":"%s","tipoEstabelecimento":%d,"valor":%s}""".formatted(numero,
-                tipo.codigoDeEstabelecimento(), valor);
+                {"numeroCartao":"%s","tipoEstabelecimento":%d,"valor":%s}"""
+                .formatted(JsonDeTeste.escapar(numero), tipo.codigoDeEstabelecimento(), valor);
     }
 
     /**
@@ -79,6 +114,6 @@ public final class CorposDaApi {
         return """
                 {"tipoEstabelecimento":%d,"nomeEstabelecimento":"Estabelecimento",\
                 "numeroCartao":"%s","descricaoProduto":"Produto","valor":%s}"""
-                .formatted(tipo.codigoDeEstabelecimento(), numero, valor);
+                .formatted(tipo.codigoDeEstabelecimento(), JsonDeTeste.escapar(numero), valor);
     }
 }

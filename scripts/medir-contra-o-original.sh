@@ -1,17 +1,23 @@
 #!/usr/bin/env bash
 #
-# Mede o legado e o sistema novo lado a lado, em HTTP de verdade, em dois processos.
+# Compara o legado e o sistema novo lado a lado, em HTTP de verdade, em dois processos.
 #
 # O legado é o original: o último commit antes da padronização, extraído do histórico para uma
 # pasta à parte, compilado e iniciado com a configuração dele. O sistema novo é o desta árvore.
-# Os dois sobem com a mesma memória, e o driver (ComparativoComOLegadoTeste) mede um por vez.
-# Ao final os dois são parados, e o relatório fica em build/medicao/comparativo.txt.
+# Os dois sobem com a mesma memória, e o driver roda um sistema por vez. Ao final os dois são
+# parados.
 #
-# Uso:   scripts/medir-contra-o-original.sh
+# Dois modos, o primeiro argumento:
+#   desempenho  (padrão) mede os tempos, com ComparativoComOLegadoTeste, e o relatório fica em
+#               build/medicao/comparativo.txt
+#   seguranca   roda a bateria de segurança, com BateriaDeSegurancaComOLegadoTeste, e o relatório
+#               fica em build/medicao/seguranca.txt. Só localhost, nada destrutivo.
+#
+# Uso:   scripts/medir-contra-o-original.sh [desempenho|seguranca]
 # Exige: JAVA_HOME apontando para o JDK 17, git, curl e tar.
 #
 # Variáveis opcionais:
-#   QUANTIDADE      quantos consumidores cadastrar em cada sistema (padrão 50000)
+#   QUANTIDADE      quantos consumidores cadastrar em cada sistema (padrão 50000; só no desempenho)
 #   COMMIT_ORIGINAL o commit do original (padrão 3b2388a, o último antes dos nossos PRs)
 #   PORTA_LEGADO    porta do legado (padrão 18080)
 #   PORTA_NOVO      porta do novo (padrão 18081)
@@ -20,6 +26,15 @@
 set -euo pipefail
 
 : "${JAVA_HOME:?Defina JAVA_HOME com o JDK 17}"
+
+modo="${1:-desempenho}"
+case "$modo" in
+    desempenho | seguranca) ;;
+    *)
+        echo "Uso: $0 [desempenho|seguranca]" >&2
+        exit 2
+        ;;
+esac
 
 raiz="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 commit="${COMMIT_ORIGINAL:-3b2388a}"
@@ -73,20 +88,35 @@ pid_novo=$!
 esperar legado "http://localhost:$porta_legado/consumer/consumerList"
 esperar novo "http://localhost:$porta_novo/api/v1/saude"
 
-echo "== Medindo com $quantidade consumidores em cada sistema"
-(
-    cd "$raiz"
-    MEDICAO=1 QUANTIDADE="$quantidade" MEMORIA_DOS_SISTEMAS="-Xmx$memoria" \
-    URL_LEGADO="http://localhost:$porta_legado" URL_NOVO="http://localhost:$porta_novo" \
-    _JAVA_OPTIONS="-Xmx$memoria" \
-    ./gradlew cleanTest test --tests '*ComparativoComOLegadoTeste' -i --console=plain
-)
+case "$modo" in
+    desempenho)
+        echo "== Medindo com $quantidade consumidores em cada sistema"
+        (
+            cd "$raiz"
+            MEDICAO=1 QUANTIDADE="$quantidade" MEMORIA_DOS_SISTEMAS="-Xmx$memoria" \
+            URL_LEGADO="http://localhost:$porta_legado" URL_NOVO="http://localhost:$porta_novo" \
+            _JAVA_OPTIONS="-Xmx$memoria" \
+            ./gradlew cleanTest test --tests '*ComparativoComOLegadoTeste' -i --console=plain
+        )
 
-echo "== Memória residual dos dois processos, ao fim da medição"
-{
-    echo "Memória residual ao fim (com ${quantidade} consumidores e -Xmx${memoria}):"
-    echo "  legado: $(memoria_residual "$pid_legado")"
-    echo "  novo  : $(memoria_residual "$pid_novo")"
-} | tee -a "$destino/comparativo.txt"
+        echo "== Memória residual dos dois processos, ao fim da medição"
+        {
+            echo "Memória residual ao fim (com ${quantidade} consumidores e -Xmx${memoria}):"
+            echo "  legado: $(memoria_residual "$pid_legado")"
+            echo "  novo  : $(memoria_residual "$pid_novo")"
+        } | tee -a "$destino/comparativo.txt"
 
-echo "== Relatório em $destino/comparativo.txt"
+        echo "== Relatório em $destino/comparativo.txt"
+        ;;
+    seguranca)
+        echo "== Rodando a bateria de segurança nos dois sistemas"
+        (
+            cd "$raiz"
+            SEGURANCA=1 MEMORIA_DOS_SISTEMAS="-Xmx$memoria" \
+            URL_LEGADO="http://localhost:$porta_legado" URL_NOVO="http://localhost:$porta_novo" \
+            ./gradlew cleanTest test --tests '*BateriaDeSegurancaComOLegadoTeste' -i --console=plain
+        )
+
+        echo "== Relatório em $destino/seguranca.txt"
+        ;;
+esac

@@ -403,7 +403,8 @@ api/                                       # composition root — único lugar q
 │   ├── MensagemPagina.java
 │   ├── seguranca/                         # os cabeçalhos de segurança de toda resposta de /api/* — qualidade/SEGURANCA.md §6
 │   │   ├── CabecalhosDeSeguranca.java     # os cinco cabeçalhos, num Map imutável: nosniff, DENY, CSP, no-referrer e no-store
-│   │   └── FiltroDeCabecalhosDeSeguranca.java # Servlet Filter mais externo, só /api/*: aplica o Map, sem decidir nada
+│   │   ├── FiltroDeCabecalhosDeSeguranca.java # Servlet Filter mais externo, só /api/*: aplica o Map, sem decidir nada
+│   │   └── FiltroDeRejeicaoDeTrace.java   # recusa o TRACE com 405 e sem corpo, inclusive no despacho de erro
 │   ├── requisicao/                        # o id, a correlação e a conclusão (única exceção: org.slf4j.MDC fora de infraestrutura.log)
 │   │   ├── FiltroDeCorrelacao.java        # Servlet Filter: gera/aceita idRequisicao (só UUID), popula o MDC, X-Request-Id em toda resposta
 │   │   ├── FiltroDeLogDeConclusao.java    # Servlet Filter: requisicao.concluida, com status, duração e o id da correlação
@@ -509,6 +510,21 @@ src/test/java/…consumerpat/                # espelha produção, pacote a paco
 │   ├── AmbienteDeMedicao.java             # a máquina em que o relatório foi gerado
 │   ├── RelatorioComparativo.java          # junta o legado e o novo, com a razão entre as medianas
 │   └── ClienteHttp.java, ServidorFalso.java   # o cliente do JDK, e o servidor falso dos testes
+├── seguranca/                             # a bateria de segurança — qualidade/SEGURANCA.md §11
+│   ├── BateriaDeSegurancaComOLegadoTeste.java # o legado e o novo lado a lado; só roda com SEGURANCA=1
+│   ├── SegurancaDoSistemaNovoTeste.java   # o novo na suíte normal: se protege em tudo, menos nos riscos aceitos
+│   ├── SegurancaDoLegadoDaArvoreTeste.java # só prova que a bateria roda contra o legado; sai com ele
+│   ├── SondaDeSeguranca.java              # papel: o que se tenta num sistema, sem saber como ele o chama
+│   ├── SondaDoLegado.java                 # /consumer/* por HTTP
+│   ├── SondaDoNovo.java                   # /api/v1/* por HTTP
+│   ├── Verificacao.java                   # uma tentativa de ataque ou abuso, igual contra qualquer sistema
+│   ├── VerificacaoDe*.java                # uma por arquivo: valor, saldo, entrada hostil, vazamento, cabeçalhos...
+│   ├── BateriaDeSeguranca.java            # a lista das 16 verificações, e a forma de rodá-las
+│   ├── Achado.java                        # o que a verificação concluiu, e a evidência
+│   ├── Veredito.java                      # protegido, exposto, ou não verificado quando o ambiente não deixou
+│   ├── EnderecoDeRede.java                # um endereço IPv4 da máquina que não é o loopback
+│   ├── PedidoPelaRede.java                # um GET pelo endereço de rede, para o sistema ver uma origem de fora
+│   └── RelatorioDeSeguranca.java          # junta o legado e o novo, verificação por verificação
 └── arquitetura/
     ├── RegraDeDependenciaTeste.java       # varre imports: viola a tabela de camadas → falha
     ├── EntradaValidadaTeste.java          # @RequestBody sem @Valid, controller sem @Validated, String de entrada sem @Size → falha (qualidade/VALIDACAO.md §4)
@@ -517,8 +533,11 @@ src/test/java/…consumerpat/                # espelha produção, pacote a paco
 
 Fora de `src/test`, a pasta **`scripts/`** guarda os roteiros versionados do
 projeto. Hoje há um, `medir-contra-o-original.sh`, que extrai o original do
-histórico, sobe os dois sistemas e roda o pacote `medicao`
-([`PERFORMANCE.md`](../qualidade/PERFORMANCE.md#comparativo-com-o-original--http-real)).
+histórico, sobe os dois sistemas e roda um de dois modos: `desempenho`, o pacote
+`medicao`
+([`PERFORMANCE.md`](../qualidade/PERFORMANCE.md#comparativo-com-o-original--http-real)),
+ou `seguranca`, o pacote `seguranca`
+([`SEGURANCA.md`](../qualidade/SEGURANCA.md#11-a-bateria-de-segurança)).
 A pasta `tools/`, ao contrário, guarda ferramentas locais e **não é
 versionada**: um roteiro que precise chegar ao repositório não mora lá.
 

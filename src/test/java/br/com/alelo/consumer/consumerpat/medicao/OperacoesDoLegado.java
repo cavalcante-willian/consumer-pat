@@ -28,7 +28,12 @@ public final class OperacoesDoLegado implements OperacoesDoAlvo {
 
     private final ClienteHttp http;
 
-    private final AtomicInteger sequenciaDaDisputa = new AtomicInteger();
+    /**
+     * A sequência é da JVM, e não da instância: o banco em memória é um só, e o legado não tem
+     * restrição de unicidade, então duas instâncias que numerassem a partir do mesmo ponto criariam
+     * dois consumidores com o mesmo cartão, e a busca por ele passaria a falhar.
+     */
+    private static final AtomicInteger SEQUENCIA_DA_DISPUTA = new AtomicInteger();
 
     /**
      * Cria as operações sobre o legado.
@@ -74,7 +79,7 @@ public final class OperacoesDoLegado implements OperacoesDoAlvo {
 
     @Override
     public CartaoDeDisputa prepararFarmaciaComSaldo(String saldo) throws Exception {
-        var sequencia = sequenciaDaDisputa.incrementAndGet();
+        var sequencia = SEQUENCIA_DA_DISPUTA.incrementAndGet();
         var numero = BASE_DA_DISPUTA + sequencia;
         http.post("/consumer/createConsumer",
                 CorposDoLegado.cadastroDeFarmacia(BASE_DA_DISPUTA + sequencia, numero, saldo));

@@ -7,7 +7,8 @@ import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -96,26 +97,33 @@ class OperacoesDoLegadoTeste {
     @Test
     void deve_preparar_comprar_e_ler_o_saldo_da_farmacia_pela_listagem_quando_disputar()
             throws Exception {
-        var listagem = Resposta.de(200,
-                "[{\"drugstoreNumber\":900000001,\"drugstoreCardBalance\":990.0},"
-                        + "{\"drugstoreNumber\":900000002,\"drugstoreCardBalance\":5.0}]");
-        try (var servidor = new ServidorFalso(
-                r -> Map.of("/consumer/consumerList", listagem).getOrDefault(r.caminho(), VAZIA))) {
+        // Preparar: a sequência é da JVM, então o número do cartão só se conhece depois de
+        // prepará-lo,
+        // e a listagem falsa o repete, ao lado de um cartão de outro consumidor
+        var numero = new AtomicReference<>("0");
+        try (var servidor = new ServidorFalso(r -> Optional.of(r)
+                .filter(requisicao -> requisicao.caminho().equals("/consumer/consumerList"))
+                .map(requisicao -> Resposta.de(200,
+                        "[{\"drugstoreNumber\":" + numero.get()
+                                + ",\"drugstoreCardBalance\":990.0},"
+                                + "{\"drugstoreNumber\":1,\"drugstoreCardBalance\":5.0}]"))
+                .orElse(VAZIA))) {
             var operacoes = new OperacoesDoLegado(new ClienteHttp(servidor.url()));
 
             // Agir
             var cartao = operacoes.prepararFarmaciaComSaldo("1000.00");
+            numero.set(cartao.numero());
             var status = operacoes.comprarNaFarmacia(cartao, "10.00");
             var saldo = operacoes.saldoDe(cartao);
 
             // Verificar
-            assertThat(cartao.numero()).isEqualTo("900000001");
+            assertThat(cartao.numero()).matches("9\\d{8}");
             assertThat(status).isEqualTo(200);
             assertThat(saldo).isEqualByComparingTo(new BigDecimal("990.0"));
             assertThat(JsonPath.<Double>read(servidor.recebidas().get(0).corpo(),
                     "$.drugstoreCardBalance")).isEqualTo(1000.0);
             assertThat(servidor.recebidas().get(1).caminho()).contains("establishmentType=2")
-                    .contains("cardNumber=900000001");
+                    .contains("cardNumber=" + cartao.numero());
         }
     }
 

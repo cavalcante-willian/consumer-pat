@@ -16,8 +16,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * saída padrão. A porta é o único caminho, e é por ela que o dado sensível é mascarado.
  *
  * <p>
- * Vale para os pacotes da arquitetura nova. O código do legado, que a remoção do legado apaga, usa
- * {@code @Slf4j} do Lombok e fica fora desta varredura.
+ * Vale para os pacotes da arquitetura nova. O {@code OpenApiConfig}, herdado do desafio, usa
+ * {@code @Log4j2} do Lombok e fica fora desta varredura até receber as melhorias previstas.
  */
 class RegraDeLogTeste {
 

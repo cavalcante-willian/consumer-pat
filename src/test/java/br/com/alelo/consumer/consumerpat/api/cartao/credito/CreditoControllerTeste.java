@@ -8,6 +8,8 @@ import br.com.alelo.consumer.consumerpat.dominio.cartao.TipoCartao;
 import br.com.alelo.consumer.consumerpat.fabricas.FabricaDeCartoes;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -115,6 +117,18 @@ class CreditoControllerTeste {
         mvc.perform(post(ROTA).contentType(MediaType.APPLICATION_JSON)
                 .content(corpo(NUMERO, 99, "10.00"))).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.tipoEstabelecimento").isArray());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "0", "-1", "-0.01" })
+    void deve_responder_400_e_nao_gravar_nada_quando_o_valor_nao_e_positivo(String valor)
+            throws Exception {
+        // Agir e Verificar: o legado aceitava o crédito negativo e o tirava do saldo
+        mvc.perform(
+                post(ROTA).contentType(MediaType.APPLICATION_JSON).content(corpo(NUMERO, 1, valor)))
+                .andExpect(status().isBadRequest()).andExpect(content().contentType(PROBLEMA))
+                .andExpect(jsonPath("$.errors.valor").isArray());
+        assertThat(cartoes.gravados()).isEmpty();
     }
 
     @Test

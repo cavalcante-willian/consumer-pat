@@ -4,9 +4,9 @@ Camada de API: a fronteira com o mundo e a **composition root**. É o único lug
 conhece todas as camadas e que decide qual implementação entra em cada porta. A
 infraestrutura só é nomeada em `api.configuracao`.
 
-A camada serve, por enquanto, duas operações novas: `POST /api/v1/compras` e
-`POST /api/v1/creditos`. O legado segue servindo as demais rotas até o item que o
-remove; as duas convivem sem se tocar.
+A camada serve, em `/api/v1`: `POST /compras` e `POST /creditos`, o cadastro, a
+atualização, a leitura e a listagem de consumidores em `/consumidores`, e `GET /saude`.
+As rotas `/consumer/*` do legado saíram com a remoção do legado.
 
 ## Propósito
 
@@ -55,7 +55,7 @@ remove; as duas convivem sem se tocar.
     a de uma rota inexistente e a de um método não aceito, que nunca chegam a um controller:
     é a razão de o `no-store` estar no filtro, e não num interceptor. **Não valem para o
     Swagger, a especificação e o console do H2**, que a política de conteúdo e o `DENY`
-    quebrariam, nem para as rotas do legado, fora de `/api/*`. O HSTS não é enviado: o TLS é
+    quebrariam, e que ficam fora de `/api/*`. O HSTS não é enviado: o TLS é
     terminado fora da aplicação. `FiltroDeRejeicaoDeTrace` recusa o `TRACE` com `405` e sem
     corpo, em qualquer rota e também no despacho de erro: o Spring MVC responde um `TRACE`
     ecoando a requisição inteira, com os cabeçalhos que o cliente mandou, e nenhuma
@@ -246,7 +246,7 @@ Os testes ficam em `src/test/java/.../api/` e espelham os pacotes.
 | `comum.requisicao.PipelineDeRequisicaoTeste` | o contexto inteiro: o id em todo cabeçalho e em todo corpo de erro, e **na linha de conclusão do log** (a mutação que inverte a ordem dos filtros a derruba) |
 | `cartao.*.*DaMensagemTeste` | conversão em tipos do domínio e primeira falha |
 | `cartao.*.Comprovante*Teste` | número mascarado, escala completa, sem notação científica |
-| `cartao.*.*ControllerTeste` | `@WebMvcTest` sobre fakes e relógio fixo: 201, 400 (todos os campos, sem valor rejeitado), 404, 405 com `Allow`, 415, 422 |
+| `cartao.*.*ControllerTeste` | `@WebMvcTest` sobre fakes e relógio fixo: 201, 400 (todos os campos, sem valor rejeitado), 404, 405 com `Allow`, 415, 422. O `400` também cobre o tipo de estabelecimento desconhecido e o valor zero ou negativo (`0`, `-1` e `-0.01`) na compra e no crédito, e em todos nada é gravado. O valor tem duas defesas, o `@Positive` da mensagem e o `DinheiroPositivo` do domínio, e o teste vale para o comportamento, qualquer que seja a camada que o recuse |
 | `cartao.compra.CompraDePontaAPontaTeste` | o contexto inteiro e o H2 real, com um consumidor de três cartões e 200,00 em cada: a compra de 100,00 deixa o alimentação em 110 (extrato 90), o combustível em 65 (extrato 135) e a farmácia em 100 (extrato 100), **e os outros dois cartões em 200**. É o que o legado provava, passando pelo banco, e que no novo estava provado só em pedaços. Provado por mutação: trocar o acréscimo do combustível derruba só o caso dele, e gravar o valor informado no extrato derruba o alimentação e o combustível |
 | `cartao.concorrencia.*Teste` | o contexto inteiro e o H2 real, com vinte requisições na mesma largada: compras (10 `201`, 10 `422`, saldo zero), créditos (nenhum se perde), compra e crédito juntos (saldo intacto) e cadastros do mesmo documento (um `201`, dezenove `409`). A mutação que tira o `@Lock` derruba os três de saldo, com `409` do `@Version`; a que tira a restrição `unique` derruba o de cadastro |
 
@@ -271,3 +271,4 @@ do controller que posta sem corpo faz o build quebrar se o Spring mudar o texto.
 | `#26` | Acrescenta `comum.seguranca`: o `FiltroDeCabecalhosDeSeguranca`, o filtro mais externo, só em `/api/*`, que escreve os cinco cabeçalhos de segurança em toda resposta, inclusive as de erro. O `Cache-Control: no-store` passa a vir dele, e o `SaudeController` deixa de escrevê-lo. O perfil `prod` desliga o console do H2, o Swagger e a especificação. |
 | `#29` | Acrescenta o `FiltroDeRejeicaoDeTrace` a `comum.seguranca`: o `TRACE` passa a responder `405` sem corpo, em vez de ecoar a requisição inteira. O defeito estava no sistema novo, e foi a bateria de segurança que o achou. |
 | `#30` | Os eventos que o tratador de erros registra (`conflito.detectado`, `lock.timeout` e `falha.inesperada`) passam a gravar `metodo` e `caminho`, os mesmos campos do `requisicao.concluida`, no lugar de `operacao`, que ficava com o texto `POST /api/v1/consumidores` enquanto os casos de uso gravavam o nome lógico (`criar-consumidor`). `operacao` passa a ser só o nome da operação de negócio. `OperacaoDaRequisicao` sai, porque só o tratador a usava. |
+| `#31` | Remove o legado: o `ConsumerController`, as entidades `Consumer` e `Extract` e os dois repositórios saem, e as cinco rotas `/consumer/*` passam a responder `404`. O mapa das rotas antigas para as novas está no `API.md`. É a quebra de contrato do projeto, porque as rotas novas haviam entrado sem tirar nenhuma. A compra e o crédito ganham testes de HTTP para o tipo de estabelecimento desconhecido e para o valor zero ou negativo, os dois defeitos que o legado documentava. |

@@ -11,8 +11,8 @@
 >
 > **Nota sobre exemplos**: os trechos de código e nomes de classe abaixo
 > são ilustrativos e **não foram executados** — a regra normativa é o texto
-> conceitual. O código atual ainda é o **legado do desafio**, cuja única
-> prova é um `contextLoads()`; este documento descreve a suíte pretendida
+> conceitual. O **legado do desafio**, que saiu da árvore, tinha como única
+> prova um `contextLoads()`; este documento descreve a suíte que o substituiu
 > (ver [`ESTRUTURA.md`](../fundamentos/ESTRUTURA.md#este-documento-é-vivo)).
 
 Define como a suíte de testes é tratada como contrato de comportamento:
@@ -341,8 +341,8 @@ var cartao = carregarJson("cartao-valido.json");   // de onde veio? o que conté
   `isEqualByComparingTo`; `Dinheiro` já normaliza a escala e aceita `isEqualTo`.
   O valor **esperado** de um cálculo guarda a fração (`33.33 × 0.90 =
   29.997000`), nunca o valor já arredondado para centavos.
-- **Volume grande é gerado no teste.** O `GeradorDeConsumidores` (50 mil
-  registros) vive **só** em `src/test`
+- **Volume grande é gerado no teste.** O gerador dos 50 mil registros vive
+  **só** em `src/test`, e no comparativo é a própria API que os cria
   ([`PERFORMANCE.md`](PERFORMANCE.md#8-medir-antes-de-otimizar)).
 - **Aleatoriedade é semeada** (`new Random(42)`); dado aleatório sem semente
   é falha não reproduzível.
@@ -430,16 +430,16 @@ roda. Autocontenção é a condição de o gate local ser útil.
 Comparar o comportamento novo com uma implementação de referência seria o
 ideal, mas aqui o código legado **não é oráculo confiável** — ele é o objeto
 da revisão e está cheio de defeitos. O oráculo são as **regras escritas no enunciado**
-(os comentários do `ConsumerController` legado):
+(os comentários do `ConsumerController` do original, que saiu da árvore):
 
 | Regra do enunciado | Teste (caracterização) |
 |---|---|
-| Compra no cartão de **alimentação** recebe **10% de desconto** | `deve_cobrar_noventa_por_cento_quando_compra_no_cartao_de_alimentacao` |
-| Compra no cartão de **combustível** tem **acréscimo de 35%** | `deve_cobrar_cento_e_trinta_e_cinco_por_cento_quando_compra_no_cartao_de_combustivel` |
-| Compra no cartão de **farmácia** não tem ajuste | `deve_cobrar_o_valor_integral_quando_compra_no_cartao_de_farmacia` |
-| O valor só pode ser debitado do cartão **do tipo do estabelecimento** | `deve_recusar_a_compra_quando_o_tipo_do_cartao_difere_do_estabelecimento` |
-| Crédito **soma** ao saldo | `deve_somar_ao_saldo_quando_creditar` |
-| Atualizar consumidor **não altera o saldo** | `deve_preservar_o_saldo_quando_atualizar_dados_cadastrais` |
+| Compra no cartão de **alimentação** recebe **10% de desconto** | `CompraDePontaAPontaTeste`, caso `ALIMENTACAO`: de 200 sobram 110, e o extrato guarda 90 |
+| Compra no cartão de **combustível** tem **acréscimo de 35%** | `CompraDePontaAPontaTeste`, caso `COMBUSTIVEL`: sobram 65, e o extrato guarda 135 |
+| Compra no cartão de **farmácia** não tem ajuste | `CompraDePontaAPontaTeste`, caso `FARMACIA`: sobram 100, e o extrato guarda 100 |
+| O valor só pode ser debitado do cartão **do tipo do estabelecimento** | o mesmo `CompraDePontaAPontaTeste`, que confere os outros dois cartões intactos, e `deve_ser_cartao_nao_encontrado_quando_o_numero_existe_com_outro_tipo` |
+| Crédito **soma** ao saldo | `CartaoTeste.deve_aumentar_o_saldo_quando_creditar_valor_positivo` e `CreditoControllerTeste.deve_gravar_o_cartao_com_o_saldo_novo_quando_o_credito_e_valido` |
+| Atualizar consumidor **não altera o saldo** | `deve_manter_os_cartoes_e_o_saldo_quando_atualizar_o_cadastro`, no domínio, no caso de uso, no controller e no adaptador |
 
 **Regras:**
 

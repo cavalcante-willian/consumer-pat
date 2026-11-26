@@ -11,9 +11,9 @@
 >
 > **Nota sobre exemplos**: os trechos de código e payloads abaixo são
 > ilustrativos — a regra normativa é o texto conceitual, não os nomes
-> exatos de rota ou tipo. O código atual ainda é o **legado do desafio**
+> exatos de rota ou tipo. O **legado do desafio** saiu da árvore
 > (ver [`ESTRUTURA.md`](../fundamentos/ESTRUTURA.md#este-documento-é-vivo));
-> este documento descreve o contrato **pretendido**.
+> este documento descreve o contrato que o substituiu.
 >
 > **Documentos relacionados**: [`VALIDACAO.md`](VALIDACAO.md),
 > [`ERROS.md`](ERROS.md) e [`BANCO.md`](BANCO.md).

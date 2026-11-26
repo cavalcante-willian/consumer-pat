@@ -13,8 +13,8 @@
 >
 > **Nota sobre exemplos**: os trechos de código e configuração abaixo são
 > ilustrativos e **não foram executados** — a regra normativa é o texto
-> conceitual. O código atual ainda é o **legado do desafio**; este
-> documento descreve a postura pretendida (ver
+> conceitual. O **legado do desafio** saiu da árvore; este
+> documento descreve a postura que o substituiu (ver
 > [`ESTRUTURA.md`](../fundamentos/ESTRUTURA.md#este-documento-é-vivo)).
 
 Define a postura de segurança desta API de cartões de benefício: ausência
@@ -301,8 +301,8 @@ cabeçalho é mudar um dado, e o filtro, que não decide nada, não muda.
   conteúdo não é `message/http`. O filtro vale também para o despacho de erro,
   que um filtro comum ignora, e responde `405` sem corpo. Foi a bateria da
   seção 11 que o achou, no sistema novo.
-- **Não cobre as rotas fora de `/api/*`.** O legado serve as suas, em outros
-  caminhos, e sai com a remoção do legado.
+- **Não cobre as rotas fora de `/api/*`.** Hoje são o console do H2 e a
+  documentação da API (`springdoc`), e o perfil `prod` desliga os dois.
 - **HSTS não é enviado pela aplicação.** Ele só tem efeito sobre HTTPS, e o
   TLS é terminado fora (proxy/balanceador) — é lá que o
   `Strict-Transport-Security` é configurado (seção 9).
@@ -530,8 +530,9 @@ console numa máquina sem interface de rede, não é exposição e não derruba 
 teste. O dia em que uma mudança deixar passar um valor negativo,
 devolver uma pilha ou concatenar uma ordenação, ele falha, com a evidência na
 mensagem. Um endpoint ou campo novo entra na bateria junto com o PR que o cria. O
-`SegurancaDoLegadoDaArvoreTeste` só prova que a bateria roda contra o legado
-enquanto ele está na árvore, e sai com ele.
+`SegurancaDoLegadoDaArvoreTeste` só provava que a bateria roda contra o legado
+enquanto ele estava na árvore, e saiu com ele. Contra o original, a bateria segue
+rodando pelo roteiro, que o extrai do histórico.
 
 ### O que a bateria não cobre
 

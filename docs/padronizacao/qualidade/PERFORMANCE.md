@@ -14,8 +14,8 @@
 > exatos de tipo ou parâmetro. **Os valores numéricos de configuração
 > (timeouts, tamanhos de pool) são pontos de partida, não medições**: a
 > [seção 8](#8-medir-antes-de-otimizar) manda decidi-los com medição. O
-> código atual ainda é o **legado do desafio**; este documento descreve o
-> estado pretendido (ver
+> **legado do desafio** saiu da árvore; este documento descreve o
+> estado que o substituiu (ver
 > [`ESTRUTURA.md`](../fundamentos/ESTRUTURA.md#este-documento-é-vivo)).
 >
 > **Documentos relacionados**: [`BANCO.md`](BANCO.md),
@@ -390,14 +390,16 @@ meça de novo — e o ganho (ou a ausência dele) fica registrado no PR.
 **O primeiro número a capturar é o do legado, antes de mexer em qualquer
 código.** Com a aplicação legada ainda intacta, meça `GET
 /consumer/consumerList` contra uma base de ~50.000 consumidores — é a linha
-de base de todo o PR. Depois da refatoração, esse número não pode ser
-reconstruído.
+de base de todo o PR. Depois da refatoração o número não se reconstrói pela
+árvore, porque o legado sai dela. Aqui ele foi capturado antes, e o original
+também pode ser medido de novo, extraído do histórico, pelo roteiro do
+[comparativo](#comparativo-com-o-original--http-real).
 
 ### Linha de base do legado — medida
 
 Medida antes de qualquer mudança no código de produção, com 50.000
-consumidores gerados em código (`GeradorDeConsumidores`, só em `src/test`), em
-JDK 17, 12 CPUs, H2 em memória e `MockMvc`, **mediana de 10 chamadas depois de
+consumidores gerados em código (por um gerador que existia só em `src/test` e
+saiu com o legado), em JDK 17, 12 CPUs, H2 em memória e `MockMvc`, **mediana de 10 chamadas depois de
 3 de aquecimento**, em três execuções com JVM nova:
 
 | Caminho | Resultado | O que significa |
@@ -408,17 +410,14 @@ JDK 17, 12 CPUs, H2 em memória e `MockMvc`, **mediana de 10 chamadas depois de
 
 Estes números são a referência a comparar depois da refatoração. **Vale o
 relativo, não o absoluto**: o H2 em memória não tem latência de rede nem de
-disco, e a máquina de medição não é a de produção. Para repetir:
+disco, e a máquina de medição não é a de produção.
 
-```bash
-_JAVA_OPTIONS=-Xmx2g MEDICAO=1 ./gradlew test --tests '*LinhaDeBaseDoLegadoTeste'
-```
-
-O relatório sai em `build/medicao/linha-de-base-do-legado.txt`. O `-Xmx2g` é
-necessário porque o JVM de teste do Gradle tem 512 MB por padrão, e a medição
-(que carrega a base inteira e respostas de 23 MB) não cabe nele. A variável
-`_JAVA_OPTIONS` é usada porque tem precedência sobre o `-Xmx` que o próprio
-Gradle passa ao worker.
+**Esta medição não se repete mais.** Ela rodava num teste que usava as classes
+do legado dentro da JVM do teste, e esse teste saiu junto com elas. Para medir o
+original de novo, use o roteiro do comparativo abaixo, que o extrai do histórico
+e o mede como processo de verdade, por HTTP. Os números de lá são de outra
+natureza (rede e processo reais, e não `MockMvc`), e por isso não se comparam
+um a um com a tabela acima.
 
 ### Comparativo com o original — HTTP real
 
@@ -580,9 +579,9 @@ tudo. O relatório, com a tabela completa e o `p95` de cada chamada, sai em
 `build/medicao/comparativo.txt`. `QUANTIDADE` troca o tamanho da base, e
 `COMMIT_ORIGINAL`, o commit do original. Cada execução leva cerca de 2 minutos.
 
-O `LinhaDeBaseDoLegadoTeste` sai junto com o legado. O comparativo não
-depende dele: ele fala por HTTP com o original extraído do histórico, e continua
-rodando depois que o legado sair desta árvore.
+O `LinhaDeBaseDoLegadoTeste` saiu junto com o legado. O comparativo não
+dependia dele: ele fala por HTTP com o original extraído do histórico, e segue
+rodando sem o legado na árvore.
 
 **Regras:**
 
@@ -602,9 +601,9 @@ rodando depois que o legado sair desta árvore.
   várias execuções após descartar as primeiras. (O JMH seria a ferramenta
   correta, mas é dependência nova — proibida.)
 - **O dado de teste é construído no teste.** Um gerador **só em
-  `src/test`** (`GeradorDeConsumidores`) cria os 50.000 registros —
-  programaticamente, nunca carregados de arquivo — e **não entra na
-  aplicação**.
+  `src/test`** cria os 50.000 registros — programaticamente, nunca carregados
+  de arquivo — e **não entra na aplicação**. No comparativo, quem os cria é a
+  própria API do sistema medido.
 - **O número medido vai no PR, com o contexto honesto.** "De 840 ms para 95
   ms com 50.000 consumidores, mediana de 10 execuções" é revisável — e a
   nota "medido em H2 em memória; o ganho **relativo** vale, o absoluto

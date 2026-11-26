@@ -11,9 +11,9 @@
 >
 > **Nota sobre exemplos**: os trechos de código, nomes de coluna e
 > parâmetros abaixo são ilustrativos e **não foram executados** — a regra
-> normativa é o texto conceitual. O código atual ainda é o **legado do
-> desafio** (entidades `Consumer` e `Extract`, colunas em inglês, saldo em
-> `double`); este documento descreve o schema **pretendido** (ver
+> normativa é o texto conceitual. O **legado do desafio**, que saiu da
+> árvore, tinha as entidades `Consumer` e `Extract`, colunas em inglês e saldo
+> em `double`; este documento descreve o schema que o substituiu (ver
 > [`ESTRUTURA.md`](../fundamentos/ESTRUTURA.md#este-documento-é-vivo)).
 >
 > **Documento relacionado**: [`VALIDACAO.md`](VALIDACAO.md).

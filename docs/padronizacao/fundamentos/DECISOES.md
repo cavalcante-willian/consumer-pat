@@ -31,7 +31,7 @@ Detalhe em [`ESTRUTURA.md`](ESTRUTURA.md).
 | Direção de dependência imposta por teste de arquitetura, visibilidade de pacote e revisão | confiar na boa vontade | o módulo único não bloqueia `import` |
 | Domínio separado da entidade JPA, com mapeador por agregado | entidade JPA como modelo de domínio | o domínio fica puro e testável sem Spring |
 | Validação técnica por Bean Validation nas `Mensagem*`, sem pasta `validadores/` | classes validadoras em camada própria | o starter de validação já está no projeto |
-| Composição em `api.configuracao`; `ConsumerTestApplication` só inicia | composição manual em `main` | Spring Boot não tem ponto de entrada com DI manual |
+| Composição em `api.configuracao`; `InicializacaoDaAplicacao` só inicia | composição manual em `main` | Spring Boot não tem ponto de entrada com DI manual |
 | Multi-módulo e JPMS descartados por ora | adotá-los agora | complicam o `./gradlew bootRun` do desafio |
 
 ## Valores, Condicionais e Documentação de Código

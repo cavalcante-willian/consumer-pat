@@ -33,6 +33,27 @@ public final class CorposDaApi {
     }
 
     /**
+     * O corpo do cadastro de um consumidor com um cartão de cada tipo.
+     *
+     * @param documento   o documento, só dígitos
+     * @param alimentacao o número do cartão de alimentação, só dígitos
+     * @param combustivel o número do cartão de combustível, só dígitos
+     * @param farmacia    o número do cartão de farmácia, só dígitos
+     * @return o JSON do cadastro
+     */
+    public static String cadastroComTresCartoes(String documento, String alimentacao,
+            String combustivel, String farmacia) {
+        return """
+                {"dados":{"nome":"Consumidor de teste","documento":"%s",\
+                "dataNascimento":"1990-05-17","celular":"11999998888",\
+                "email":"consumidor@exemplo.com.br","rua":"Rua A","numero":"1",\
+                "cidade":"Recife","pais":"Brasil","cep":"50000000"},\
+                "numerosCartoes":{"%s":"%s","%s":"%s","%s":"%s"}}""".formatted(documento,
+                TipoCartao.ALIMENTACAO.name(), alimentacao, TipoCartao.COMBUSTIVEL.name(),
+                combustivel, TipoCartao.FARMACIA.name(), farmacia);
+    }
+
+    /**
      * O corpo do crédito num cartão.
      *
      * @param numero o número do cartão, só dígitos

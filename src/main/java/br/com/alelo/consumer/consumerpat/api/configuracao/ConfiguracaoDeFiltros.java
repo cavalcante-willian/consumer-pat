@@ -3,11 +3,16 @@ package br.com.alelo.consumer.consumerpat.api.configuracao;
 import br.com.alelo.consumer.consumerpat.api.comum.requisicao.FiltroDeCorrelacao;
 import br.com.alelo.consumer.consumerpat.api.comum.requisicao.FiltroDeLogDeConclusao;
 import br.com.alelo.consumer.consumerpat.api.comum.seguranca.FiltroDeCabecalhosDeSeguranca;
+import br.com.alelo.consumer.consumerpat.api.comum.seguranca.FiltroDeRejeicaoDeTrace;
 import br.com.alelo.consumer.consumerpat.dominio.log.SaidaDeLogPorta;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
+
+import javax.servlet.DispatcherType;
+
+import java.util.EnumSet;
 
 /**
  * Registra os filtros da requisição, na ordem do contrato.
@@ -15,7 +20,8 @@ import org.springframework.core.Ordered;
  * <p>
  * A ordem é parte do contrato, e menor número é mais externo: os cabeçalhos de segurança vêm
  * primeiro, para proteger toda resposta, inclusive as de erro; depois a correlação, e só então o
- * log de conclusão, que logo dentro dela ainda escreve com o id. Trocá-los é mudança revisada.
+ * log de conclusão, que logo dentro dela ainda escreve com o id; por último a recusa do
+ * {@code TRACE}, para o método recusado também sair no log. Trocá-los é mudança revisada.
  */
 @Configuration
 public class ConfiguracaoDeFiltros {
@@ -59,6 +65,25 @@ public class ConfiguracaoDeFiltros {
             SaidaDeLogPorta saida) {
         var registro = new FilterRegistrationBean<>(new FiltroDeLogDeConclusao(saida));
         registro.setOrder(Ordered.HIGHEST_PRECEDENCE + 2);
+        return registro;
+    }
+
+    /**
+     * Registra a recusa do {@code TRACE}, a etapa 4, para qualquer rota e também para o despacho de
+     * erro, que é onde o eco da requisição sai.
+     *
+     * <p>
+     * Vem depois da correlação e do log de conclusão, para o {@code TRACE} recusado sair no log com
+     * o id da requisição.
+     *
+     * @return o registro do filtro
+     */
+    @Bean
+    public FilterRegistrationBean<FiltroDeRejeicaoDeTrace> filtroDeRejeicaoDeTrace() {
+        var registro = new FilterRegistrationBean<>(new FiltroDeRejeicaoDeTrace());
+        registro.addUrlPatterns("/*");
+        registro.setDispatcherTypes(EnumSet.of(DispatcherType.REQUEST, DispatcherType.ERROR));
+        registro.setOrder(Ordered.HIGHEST_PRECEDENCE + 3);
         return registro;
     }
 }

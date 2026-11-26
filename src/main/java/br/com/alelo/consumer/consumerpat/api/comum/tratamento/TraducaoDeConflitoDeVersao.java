@@ -34,7 +34,8 @@ public interface TraducaoDeConflitoDeVersao extends ComSaidaDeLog {
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
     default ResponseEntity<Object> traduzirConflitoDeVersao(
             ObjectOptimisticLockingFailureException excecao, HttpServletRequest requisicao) {
-        saida().aviso("conflito.detectado", campo("operacao", OperacaoDaRequisicao.de(requisicao)),
+        saida().aviso("conflito.detectado", campo("metodo", requisicao.getMethod()),
+                campo("caminho", requisicao.getRequestURI()),
                 campo("entidade", excecao.getPersistentClassName()));
         return RespostaDeProblema.de(ProblemaDeBordaEmMensagem.montar(
                 ProblemaDeBorda.CONFLITO_DE_CONCORRENCIA,

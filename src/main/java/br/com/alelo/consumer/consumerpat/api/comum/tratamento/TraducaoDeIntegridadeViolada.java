@@ -35,7 +35,8 @@ public interface TraducaoDeIntegridadeViolada extends ComSaidaDeLog {
     @ExceptionHandler(DataIntegrityViolationException.class)
     default ResponseEntity<Object> traduzirIntegridadeViolada(
             DataIntegrityViolationException excecao, HttpServletRequest requisicao) {
-        saida().aviso("conflito.detectado", campo("operacao", OperacaoDaRequisicao.de(requisicao)),
+        saida().aviso("conflito.detectado", campo("metodo", requisicao.getMethod()),
+                campo("caminho", requisicao.getRequestURI()),
                 campo("restricao", NomeDaRestricao.de(excecao)));
         return RespostaDeProblema
                 .de(ProblemaDeBordaEmMensagem

@@ -370,10 +370,21 @@ ninguém lê ocupa rotação e tempo de leitura de quem investiga.
 | `cartao.creditado` | `informacao` | `cartao` (mascarado), `tipoCartao`, `valor` — o `Cartao` não conhece o consumidor, e por isso não há `consumidorId` |
 | `compra.registrada` | `informacao` | `cartao` (mascarado), `tipoCartao`, `valorCobrado` (o que saiu do saldo, e não o informado) |
 | `compra.recusada` | `informacao` (`aviso` se a taxa fugir do normal) | `cartao` (mascarado), `tipoCartao`, `motivo` (código do erro). A recusa de crédito não tem evento |
-| `conflito.detectado` | `aviso` | `operacao` e `codigo` (o erro de domínio: documento, número de cartão ou versão repetidos) **ou** `operacao` e `restricao` (violação de integridade: só o nome, **nunca** o valor duplicado) **ou** `operacao` e `entidade` (versão de linha divergente) |
-| `lock.timeout` | `aviso` | `operacao` (o tratador não sabe o tipo do cartão; ele fica no corpo da requisição, que o log não leva) |
-| `falha.inesperada` | `erro` | `operacao` e a pilha completa, **sem a mensagem** da exceção (`FalhaSemMensagem`), que pode trazer SQL ou um valor vinculado |
+| `conflito.detectado` | `aviso` | `operacao` e `codigo` (o erro de domínio, registrado pelo caso de uso: documento, número de cartão ou versão repetidos) **ou** `metodo`, `caminho` e `restricao` (violação de integridade, registrada pelo tratador: só o nome, **nunca** o valor duplicado) **ou** `metodo`, `caminho` e `entidade` (versão de linha divergente, idem) |
+| `lock.timeout` | `aviso` | `metodo` e `caminho` (o tratador não sabe o tipo do cartão; ele fica no corpo da requisição, que o log não leva) |
+| `falha.inesperada` | `erro` | `metodo`, `caminho` e a pilha completa, **sem a mensagem** da exceção (`FalhaSemMensagem`), que pode trazer SQL ou um valor vinculado |
 | `banco.indisponivel` | `critico` | `operacao`, `tipoDaFalha` e `estadoSql` (nunca a mensagem do driver); registrado no adaptador, onde a causa existe |
+
+**`operacao`, `metodo` e `caminho` são campos diferentes, e não se misturam.**
+`operacao` é o **nome lógico da operação de negócio**, em minúsculas e com
+hífen (`criar-consumidor`, `atualizar-consumidor`, `saude`), e só quem conhece a
+operação o grava: o caso de uso e o adaptador de saúde. `metodo` e `caminho`
+descrevem a **requisição** (`POST`, `/api/v1/consumidores`, sem a query), os
+mesmos campos do `requisicao.concluida`, e são o que o tratador da API grava,
+porque ele só conhece a requisição e a exceção, e não a operação. Um mesmo
+`conflito.detectado` pode então sair das duas camadas, com um campo de cada
+família, e a consulta por `evento` os reúne sem tratar dois formatos no mesmo
+campo.
 
 **Regras:**
 

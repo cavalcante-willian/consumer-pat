@@ -93,6 +93,7 @@ class ConsumidorDePontaAPontaTeste {
         // Agir e Verificar: o contexto inteiro, com a transação só de leitura e o banco real
         mvc.perform(get(ROTA + "?pagina=1&tamanhoPagina=1&ordenacao=id&direcao=desc"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.itens.length()").value(1))
+                .andExpect(jsonPath("$.itens[0].nome").value("Maria"))
                 .andExpect(jsonPath("$.itens[0].documento").doesNotExist())
                 .andExpect(jsonPath("$.total").isNumber())
                 .andExpect(jsonPath("$.totalPaginas").isNumber());

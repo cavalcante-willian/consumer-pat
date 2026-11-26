@@ -39,7 +39,8 @@ public interface TraducaoDeFalhaInesperada extends ComSaidaDeLog {
     default ResponseEntity<Object> traduzirFalhaInesperada(Exception excecao,
             HttpServletRequest requisicao) {
         saida().erroComCausa("falha.inesperada", new FalhaSemMensagem(excecao),
-                campo("operacao", OperacaoDaRequisicao.de(requisicao)));
+                campo("metodo", requisicao.getMethod()),
+                campo("caminho", requisicao.getRequestURI()));
         return RespostaDeProblema
                 .de(ProblemaDeBordaEmMensagem.montar(ProblemaDeBorda.FALHA_INESPERADA,
                         "Ocorreu uma falha inesperada.", requisicao.getRequestURI(), Map.of()));

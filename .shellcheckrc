@@ -1,0 +1,5 @@
+# Como o shellcheck é rodado neste repositório. Sem este arquivo, o resultado depende da
+# severidade que cada pessoa passa na linha de comando.
+shell=bash
+severity=warning
+external-sources=true

@@ -498,11 +498,29 @@ src/test/java/…consumerpat/                # espelha produção, pacote a paco
 │   │       └── ChamadasDaApi.java                    # prepara o cartão, chama a API e lê o saldo por ela
 │   └── consumidor/
 │       └── ConsumidorControllerContratoTeste.java
+├── medicao/                               # o comparativo com o original — só roda com MEDICAO=1
+│   ├── ComparativoComOLegadoTeste.java    # dispara os cenários nos dois sistemas e escreve o relatório
+│   ├── OperacoesDoAlvo.java               # papel: o que se pede a um sistema, sem saber como ele o chama
+│   ├── OperacoesDoLegado.java             # /consumer/* por HTTP, sem depender de classe do legado
+│   ├── OperacoesDoNovo.java               # /api/v1/* por HTTP
+│   ├── CenarioDe*.java                    # cadastro, listagem, crédito, compra, consulta, concorrência
+│   ├── MedidorDeTempo.java                # nanoTime, aquecimento descartado
+│   ├── AmostraDeTempos.java               # mediana, mínimo, máximo, p95
+│   ├── AmbienteDeMedicao.java             # a máquina em que o relatório foi gerado
+│   ├── RelatorioComparativo.java          # junta o legado e o novo, com a razão entre as medianas
+│   └── ClienteHttp.java, ServidorFalso.java   # o cliente do JDK, e o servidor falso dos testes
 └── arquitetura/
     ├── RegraDeDependenciaTeste.java       # varre imports: viola a tabela de camadas → falha
     ├── EntradaValidadaTeste.java          # @RequestBody sem @Valid, controller sem @Validated, String de entrada sem @Size → falha (qualidade/VALIDACAO.md §4)
     └── EstadoCompartilhadoTeste.java      # static mutável, campo não final em bean, synchronized/parallelStream/@Async → falha (runtime/CONCORRENCIA.md §4)
 ```
+
+Fora de `src/test`, a pasta **`scripts/`** guarda os roteiros versionados do
+projeto. Hoje há um, `medir-contra-o-original.sh`, que extrai o original do
+histórico, sobe os dois sistemas e roda o pacote `medicao`
+([`PERFORMANCE.md`](../qualidade/PERFORMANCE.md#comparativo-com-o-original--http-real)).
+A pasta `tools/`, ao contrário, guarda ferramentas locais e **não é
+versionada**: um roteiro que precise chegar ao repositório não mora lá.
 
 ---
 

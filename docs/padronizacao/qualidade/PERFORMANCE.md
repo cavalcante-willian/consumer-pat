@@ -420,6 +420,170 @@ necessário porque o JVM de teste do Gradle tem 512 MB por padrão, e a mediçã
 `_JAVA_OPTIONS` é usada porque tem precedência sobre o `-Xmx` que o próprio
 Gradle passa ao worker.
 
+### Comparativo com o original — HTTP real
+
+A linha de base acima mede o legado dentro da JVM do teste, com `MockMvc`. O
+comparativo mede **os dois sistemas como processos de verdade**, pela mesma
+rede e pelo mesmo cliente HTTP: o **original** (o commit `3b2388a`, o último
+antes da padronização, extraído do histórico e compilado à parte, com a
+configuração dele) e o sistema **novo** desta árvore.
+
+**Condições.** Os dois sistemas, cada um com **50.000 consumidores** (cada
+consumidor com um cartão de cada tipo, cadastrados pela própria API), H2 em
+memória, os dois processos com `-Xmx1g`, **um sistema medido por vez**, em
+**três execuções com JVMs novas**, na máquina abaixo.
+
+#### Ambiente em que os números foram medidos
+
+Um tempo só diz alguma coisa junto da máquina que o produziu. Esta é a que mediu
+os números deste capítulo:
+
+| | |
+|---|---|
+| Máquina | Alienware 16 Aurora (AC16250), um **notebook** |
+| Processador | Intel Core 5 210H: 8 núcleos, 12 threads, até 4,8 GHz, 12 MiB de cache L3 |
+| Frequência da CPU | governador `powersave`: o sistema varia a frequência com a carga e a temperatura, e ela não foi fixada |
+| Memória | 16 GiB: 2 × 8 GiB DDR5 SODIMM, a 5.200 MT/s; de 6 a 7 GiB disponíveis ao começar, porque a máquina também rodava o editor e o navegador |
+| Sistema | Arch Linux, kernel 7.3.6, x86_64 |
+| Java e build | OpenJDK 17.0.21.1, Gradle 7.6, Spring Boot 2.7.8 |
+| Memória dos sistemas medidos | `-Xmx1g` em cada processo |
+| Banco | H2 em memória, dentro de cada processo, sem rede e sem disco |
+
+**Em outra máquina**, o que esperar:
+
+- **Numa máquina mais fraca** (menos núcleos, clock menor, menos memória), os
+  tempos absolutos saem **maiores**; **numa mais forte, menores**. A ordem entre o
+  legado e o novo e as razões grandes, como a da listagem (21 MB contra 846
+  bytes), devem se manter, porque vêm de quanto dado cada um devolve e não da
+  velocidade da máquina.
+- **As razões pequenas se mexem.** Numa máquina mais rápida, as chamadas de 1 a
+  2 ms ficam mais perto do piso do próprio medidor, e a diferença entre os
+  sistemas encolhe. Numa mais lenta, ela cresce.
+- **A disputa depende do número de núcleos.** Com menos núcleos há menos
+  requisições realmente simultâneas, e o legado pode perder menos compras do que
+  aqui. Ele continua perdendo, porque o defeito é a falta de trava. Isto é
+  expectativa, e não foi medido.
+- **Num notebook em `powersave` a dispersão é maior** do que num servidor de
+  frequência fixa, e é por isso que o capítulo mostra a faixa das três execuções,
+  e não um número só.
+
+O relatório que o roteiro gera (`build/medicao/comparativo.txt`) traz, no
+cabeçalho, o ambiente de **quem rodou**: sistema, processador, governador de
+frequência, memória física, JDK e memória dos processos. Para comparar com os
+números daqui, compare as duas tabelas antes de comparar os tempos.
+
+**Como ler as tabelas.** Cada linha é uma chamada que um cliente faz, repetida 10
+vezes depois de 3 de aquecimento descartadas.
+
+- **Tempo** é quanto o cliente espera, do envio do pedido até receber a resposta
+  inteira, em **milissegundos (ms)**. **Menor é melhor.**
+- O número de cada chamada é a **mediana** das 10: o valor do meio, que uma
+  chamada lenta por coleta de lixo não arrasta.
+- Como houve três execuções, cada célula mostra a **menor e a maior** mediana
+  entre elas, como `1,3 a 2,1`.
+- A última coluna divide o tempo do legado pelo do novo, pela média das três
+  execuções: **"4 vezes" quer dizer que o novo respondeu em um quarto do tempo.**
+
+#### Tempo de cada chamada
+
+| O que o cliente pede | Tempo no legado (ms) | Tempo no novo (ms) | O novo é mais rápido em |
+|---|---|---|---|
+| Listar consumidores: no legado, **a tabela inteira** (50.000); no novo, **uma página de 20** | 126 a 129 | 1,3 a 2,1 | cerca de 80 vezes |
+| Listar a página do meio, de 20 | o legado não tem página | 1,9 a 2,9 | — |
+| Listar a última página, de 20 | o legado não tem página | 1,5 a 3,2 | — |
+| Listar uma página de 100 | o legado não tem página | 1,1 a 1,3 | — |
+| Consultar um consumidor pelo id | o legado não tem a consulta | 1,0 a 1,7 | — |
+| Creditar o cartão de farmácia | 3,4 a 4,3 | 1,8 a 2,1 | cerca de 2 vezes |
+| Creditar o cartão de alimentação | 5,5 a 9,4 | 1,8 a 2,2 | cerca de 4 vezes |
+| Creditar o cartão de combustível | 8,3 a 11,9 | 1,2 a 2,2 | cerca de 5 vezes |
+| Comprar (os três tipos de cartão) | 2,9 a 5,2 | 1,1 a 2,4 | cerca de 2 vezes |
+| Cadastrar um consumidor (o legado grava, mas responde `404`) | 1,0 | 0,7 | cerca de 1,5 vez |
+
+#### Tamanho da resposta da listagem
+
+O tamanho é o do corpo que o servidor devolveu, em bytes. É o que explica a
+primeira linha da tabela de tempo:
+
+| | Legado | Novo, 20 por página | Novo, 100 por página |
+|---|---|---|---|
+| Bytes devolvidos | **21.241.262** (21,2 MB), a tabela inteira | **846** | **3.967** |
+
+O crédito e a compra foram medidos no início, no meio e no fim da base, nos três
+tipos de cartão, e **não houve diferença visível entre as posições** em nenhum
+dos dois sistemas. O que separa os créditos do legado é o **tipo**: o código
+procura o número em três colunas em sequência, a farmácia na primeira busca e o
+combustível na terceira.
+
+#### A disputa simultânea: o saldo e o preço de acertá-lo
+
+Aqui o que se mede é a **correção** antes do tempo. Em cada rodada, um consumidor
+novo tem um cartão de farmácia com saldo de **1.000,00**, e **20 clientes
+compram 10,00 nesse cartão ao mesmo tempo**. Se nenhuma compra se perde, o saldo
+no fim é 1.000,00 − 20 × 10,00 = **800,00**. Foram 5 rodadas por execução, e três
+execuções.
+
+| | Saldo no fim das 5 rodadas (o certo é 800,00) | Rodadas com o saldo certo | Tempo até as 20 compras terminarem (ms) | Compras por segundo |
+|---|---|---|---|---|
+| Legado | 970, 950, 970, 930, 950 na execução 1; nas três execuções, entre 930 e 980 | **0 de 5**, em todas as execuções | 21 a 28 | 700 a 950 |
+| Novo | 800, 800, 800, 800, 800 | **5 de 5**, em todas as execuções | 66 a 71 | 280 a 305 |
+
+**O que isso quer dizer:**
+
+- **O legado perde compras.** Um saldo de 970 significa que só **3** das 20
+  compras ficaram registradas: as outras 17 leram o mesmo saldo antigo e o
+  sobrescreveram. Entre as três execuções o legado perdeu de **13 a 18** das 20
+  compras por rodada, e **respondeu `200` a todas**, como se tivessem dado certo.
+- **O novo termina exato** em todas as rodadas, nas três execuções.
+- **O novo é 2 a 3 vezes mais lento** nessa disputa (66 a 71 ms contra 21 a 28
+  ms, para as 20 compras). É o preço da trava do cartão, que faz as compras
+  esperarem umas pelas outras, mais a transação de cada compra e o log de cada
+  requisição. O preço é aceito de propósito (seção 7): o tempo menor do legado era
+  o de um saldo errado.
+
+#### Memória
+
+A memória que cada processo ocupava ao fim, com a base cheia e `-Xmx1g` (o que o
+sistema operacional mostra como memória residual): **legado de 811 a 885 MB,
+novo de 530 a 568 MB**.
+
+**O que este comparativo não diz:**
+
+- **Os números absolutos valem só no ambiente descrito acima**, que também
+  rodava o editor e o navegador. O H2 em memória não tem latência de rede nem de
+  disco. Vale a comparação entre as colunas.
+- **A linha de base de cima não é comparável com esta.** A mesma listagem do
+  legado deu 1.130 a 1.145 ms no `MockMvc` e deu 126 a 129 ms em HTTP real, com
+  uma resposta de 21,2 MB contra os 23 MB de então. A causa dessa diferença não
+  foi investigada. O que vale como referência para o ganho é este comparativo,
+  em que os dois sistemas são medidos do mesmo jeito.
+- **O novo registra uma linha de log por requisição**
+  ([`OBSERVABILIDADE.md`](../runtime/OBSERVABILIDADE.md)), e o legado não
+  registra nada. Essa diferença está incluída nos tempos do novo, e não foi
+  descontada.
+- **O legado responde `404` ao cadastro e ao crédito, apesar de gravar.** O
+  método é `void` num `@Controller` sem `@ResponseBody`, e o Spring tenta
+  resolver uma visão. O driver ignora esse status e confere o efeito.
+- **Com uma base pequena a ordem se inverte na compra.** Numa verificação do
+  roteiro com 300 consumidores, a compra do legado foi mais rápida (cerca de
+  2 ms contra 2,5 a 3 ms do novo): o legado cresce com a base, e o novo, que
+  usa o índice do número do cartão, fica onde está.
+
+Para repetir, com a base cheia:
+
+```bash
+JAVA_HOME=/usr/lib/jvm/java-17-openjdk MEMORIA=1g scripts/medir-contra-o-original.sh
+```
+
+O roteiro extrai o original, compila, sobe os dois sistemas em portas livres,
+roda o driver (`ComparativoComOLegadoTeste`, que só roda com `MEDICAO=1`) e para
+tudo. O relatório, com a tabela completa e o `p95` de cada chamada, sai em
+`build/medicao/comparativo.txt`. `QUANTIDADE` troca o tamanho da base, e
+`COMMIT_ORIGINAL`, o commit do original. Cada execução leva cerca de 2 minutos.
+
+O `LinhaDeBaseDoLegadoTeste` sai junto com o legado. O comparativo não
+depende dele: ele fala por HTTP com o original extraído do histórico, e continua
+rodando depois que o legado sair desta árvore.
+
 **Regras:**
 
 - **Duração é medida com relógio monotônico**: `System.nanoTime()`, nunca a

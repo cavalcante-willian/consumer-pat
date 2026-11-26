@@ -491,6 +491,7 @@ src/test/java/…consumerpat/                # espelha produção, pacote a paco
 ├── api/
 │   ├── cartao/
 │   │   ├── CartaoControllerContratoTeste.java   # status, serialização, corpo de erro
+│   │   ├── compra/CompraDePontaAPontaTeste.java # preço por tipo, saldos, cartões intactos e extrato, de ponta a ponta
 │   │   └── concorrencia/
 │   │       ├── ConcorrenciaDeCompraTeste.java        # 20 compras simultâneas, saldo final exato
 │   │       ├── ConcorrenciaDeCreditoTeste.java       # 20 créditos simultâneos, nenhum se perde

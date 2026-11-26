@@ -663,6 +663,7 @@ quem muda o que a coluna "Documento" descreve atualiza o teste no mesmo PR.
 | `deve_enviar_cabecalhos_de_seguranca_quando_responder` | [`SEGURANCA.md`](SEGURANCA.md#6-cabeçalhos-de-segurança) | os cabeçalhos aparecem em resposta de sucesso **e** de erro | Contrato |
 | `deve_enviar_no_store_quando_responder` | [`PERFORMANCE.md`](PERFORMANCE.md#5-cache-de-leitura--recusado-de-propósito) | `Cache-Control: no-store` em `/api/v1/**` | Contrato |
 | `deve_desabilitar_o_h2_console_quando_perfil_prod` | `SEGURANCA.md` §3 | com `@ActiveProfiles("prod")`, `/h2-console` não responde | Contrato |
+| `CompraDePontaAPontaTeste` | regra do enunciado (desconto de 10%, acréscimo de 35%) | o preço de cada tipo, o saldo que sobra, **os outros dois cartões intactos** e o extrato com o valor cobrado, pela API e pelo banco reais | E2E |
 | `ConcorrenciaDeCompraTeste` | `API.md` §11, `PERFORMANCE.md` §7 | compras simultâneas → saldo exato | Concorrência |
 | `ConcorrenciaDeCreditoTeste`, `ConcorrenciaDeCompraECreditoTeste` | [`CONCORRENCIA.md`](../runtime/CONCORRENCIA.md#8-testes-de-concorrência) §8 | créditos simultâneos somam; crédito e débito simultâneos não se apagam | Concorrência |
 | `ConcorrenciaDeCadastroTeste` | `ERROS.md` §3, `CONCORRENCIA.md` §8 | cadastros simultâneos do mesmo documento → um `201` e o resto `409` | Concorrência |

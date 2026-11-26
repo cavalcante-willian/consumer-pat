@@ -66,8 +66,6 @@ dependencies {
     // O BOM do Spring Boot não gerencia o springdoc, então a versão vem de gradle.properties,
     // num lugar só.
     implementation "org.springdoc:springdoc-openapi-ui:${springdocVersion}"
-    // Não parece usada: o projeto não usa Spring Data REST. Removê-la é decisão à parte.
-    implementation "org.springdoc:springdoc-openapi-data-rest:${springdocVersion}"
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }

@@ -4,6 +4,8 @@ import br.com.alelo.consumer.consumerpat.medicao.CartaoDeDisputa;
 import br.com.alelo.consumer.consumerpat.medicao.OperacoesDoAlvo;
 import br.com.alelo.consumer.consumerpat.medicao.RespostaHttp;
 
+import java.util.Optional;
+
 /**
  * O que a bateria sabe pedir a um sistema, sem saber como ele o chama.
  *
@@ -133,12 +135,22 @@ public interface SondaDeSeguranca {
     RespostaHttp preVooDeOrigemEstranha() throws Exception;
 
     /**
-     * Abre o console do H2.
+     * Abre o console do H2 pela própria máquina, por {@code localhost}: o sistema vê uma origem
+     * loopback.
      *
      * @return a resposta
      * @throws Exception se a chamada falha
      */
     RespostaHttp consoleDoH2() throws Exception;
+
+    /**
+     * Abre o console do H2 pelo endereço de uma interface de rede da máquina: o sistema vê uma
+     * origem que não é loopback, como a de quem vem de fora.
+     *
+     * @return a resposta, ou vazio se a máquina não tem nenhum endereço fora do loopback
+     * @throws Exception se a chamada falha
+     */
+    Optional<RespostaHttp> consoleDoH2DeFora() throws Exception;
 
     /**
      * Abre a página do Swagger.

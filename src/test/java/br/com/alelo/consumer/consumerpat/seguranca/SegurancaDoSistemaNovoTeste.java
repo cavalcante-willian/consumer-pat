@@ -22,12 +22,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 class SegurancaDoSistemaNovoTeste {
 
     /**
-     * Os riscos aceitos do perfil padrão, que o {@code SEGURANCA.md} registra: o console do H2 e a
-     * documentação ficam abertos porque o README do desafio os documenta, e nenhuma rota limita a
-     * taxa, porque isso exige dependência nova ou um proxy à frente.
+     * Os riscos aceitos do perfil padrão, que o {@code SEGURANCA.md} registra: a documentação fica
+     * aberta porque o README do desafio a documenta, e nenhuma rota limita a taxa, porque isso
+     * exige dependência nova ou um proxy à frente. O console do H2 não está aqui: de fora ele é
+     * recusado, e só a própria máquina o abre, por desenho.
      */
-    private static final Set<String> RISCOS_ACEITOS = Set.of("console-do-h2",
-            "documentacao-publica", "limite-de-taxa");
+    private static final Set<String> RISCOS_ACEITOS = Set.of("documentacao-publica",
+            "limite-de-taxa");
 
     @LocalServerPort
     private int porta;
@@ -38,9 +39,10 @@ class SegurancaDoSistemaNovoTeste {
         var sonda = new SondaDoNovo(new ClienteHttp("http://localhost:" + porta));
         var achados = BateriaDeSeguranca.executar(sonda);
 
-        // Verificar: a falha mostra o que foi observado
+        // Verificar: a falha mostra o que foi observado. Uma verificação que o ambiente não deixou
+        // fazer, como a do console numa máquina sem interface de rede, não é exposição, e não falha
         assertThat(achados).filteredOn(achado -> !RISCOS_ACEITOS.contains(achado.chave()))
-                .filteredOn(achado -> !achado.protegido())
+                .filteredOn(achado -> achado.veredito() == Veredito.EXPOSTO)
                 .extracting(achado -> achado.chave() + ": " + achado.evidencia()).isEmpty();
     }
 

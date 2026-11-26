@@ -43,6 +43,10 @@ final class SondaFalsa implements SondaDeSeguranca {
 
     RespostaHttp console = resposta(404, "");
 
+    Optional<RespostaHttp> consoleDeFora = Optional.of(resposta(200,
+            "<html>Sorry, remote connections ('webAllowOthers') are disabled on this "
+                    + "server.</html>"));
+
     RespostaHttp swagger = resposta(404, "");
 
     RespostaHttp especificacao = resposta(404, "");
@@ -156,6 +160,11 @@ final class SondaFalsa implements SondaDeSeguranca {
     @Override
     public RespostaHttp consoleDoH2() {
         return console;
+    }
+
+    @Override
+    public Optional<RespostaHttp> consoleDoH2DeFora() {
+        return consoleDeFora;
     }
 
     @Override

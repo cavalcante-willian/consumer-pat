@@ -13,6 +13,7 @@ import br.com.alelo.consumer.consumerpat.medicao.RespostaHttp;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Faz as tentativas da bateria contra o sistema novo, pelas rotas {@code /api/v1/*}.
@@ -131,6 +132,11 @@ public final class SondaDoNovo implements SondaDeSeguranca {
     @Override
     public RespostaHttp consoleDoH2() throws Exception {
         return http.get("/h2-console");
+    }
+
+    @Override
+    public Optional<RespostaHttp> consoleDoH2DeFora() throws Exception {
+        return PedidoPelaRede.get(http, "/h2-console/login.jsp");
     }
 
     @Override

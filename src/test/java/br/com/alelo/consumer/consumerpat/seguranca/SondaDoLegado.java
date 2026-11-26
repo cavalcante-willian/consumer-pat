@@ -12,6 +12,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -137,6 +138,11 @@ public final class SondaDoLegado implements SondaDeSeguranca {
     @Override
     public RespostaHttp consoleDoH2() throws Exception {
         return http.get("/h2-console");
+    }
+
+    @Override
+    public Optional<RespostaHttp> consoleDoH2DeFora() throws Exception {
+        return PedidoPelaRede.get(http, "/h2-console/login.jsp");
     }
 
     @Override

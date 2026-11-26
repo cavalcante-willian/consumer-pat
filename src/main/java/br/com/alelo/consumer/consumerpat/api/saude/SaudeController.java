@@ -1,6 +1,12 @@
 package br.com.alelo.consumer.consumerpat.api.saude;
 
+import br.com.alelo.consumer.consumerpat.api.comum.documentacao.TagsDaApi;
 import br.com.alelo.consumer.consumerpat.aplicacao.casosdeuso.saude.ConsultarSaudeCaso;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
  * o {@code Cache-Control: no-store} vem do filtro dos cabeçalhos de segurança, como o de toda
  * resposta da API.
  */
+@Tag(name = TagsDaApi.SAUDE)
 @RestController
 @RequestMapping("/api/v1/saude")
 public class SaudeController {
@@ -31,6 +38,16 @@ public class SaudeController {
      *
      * @return {@code 200} com {@code SAUDAVEL}, ou {@code 503} com {@code DEGRADADO}
      */
+    @Operation(summary = "Consulta a saúde da aplicação", description = """
+            Verifica as dependências críticas, hoje o banco. É público e o corpo não leva nada \
+            interno, só o estado geral e o de cada dependência.""")
+    @ApiResponse(responseCode = "200", description = "Tudo responde: o estado é `SAUDAVEL`.",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = MensagemSaude.class)))
+    @ApiResponse(responseCode = "503",
+            description = "Alguma dependência crítica não responde: o estado é `DEGRADADO`.",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = MensagemSaude.class)))
     @GetMapping
     public ResponseEntity<MensagemSaude> consultar() {
         var estado = caso.consultar();

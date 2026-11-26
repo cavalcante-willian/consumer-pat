@@ -238,7 +238,7 @@ só ganha handler junto com o consumidor, que é quem tem unicidade a violar.
 ResponseEntity<MensagemProblema> aoViolarIntegridade(DataIntegrityViolationException e, HttpServletRequest requisicao) {
     // a mensagem do banco traz o VALOR duplicado (documento, número de cartão):
     // logar só a restrição violada, nunca getMessage() nem a exceção (SEGURANCA.md §5)
-    log.warn("violação de integridade operacao={} restricao={}", requisicao.getRequestURI(), nomeDaRestricao(e));
+    log.warn("violação de integridade metodo={} caminho={} restricao={}", requisicao.getMethod(), requisicao.getRequestURI(), nomeDaRestricao(e));
     return ProblemaDeBorda.CONFLITO_DE_PERSISTENCIA.paraResposta(requisicao);
 }
 
@@ -281,7 +281,7 @@ descartada:
 
 ```java
 // CORRETO — a exceção vai como ÚLTIMO argumento: o Log4j2 registra a pilha completa
-log.error("falha inesperada operacao={} idRequisicao={}", operacao, idRequisicao, e);
+log.error("falha inesperada metodo={} caminho={} idRequisicao={}", metodo, caminho, idRequisicao, e);
 
 // ERRADO — só a mensagem; a pilha e a causa-raiz se perdem
 log.error("falha: " + e.getMessage());

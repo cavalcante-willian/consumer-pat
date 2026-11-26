@@ -1,6 +1,7 @@
 package br.com.alelo.consumer.consumerpat.medicao;
 
 import br.com.alelo.consumer.consumerpat.dominio.cartao.TipoCartao;
+import br.com.alelo.consumer.consumerpat.fabricas.JsonDeTeste;
 
 /**
  * Monta o JSON que o legado aceita no cadastro, e numera os consumidores e os cartões dele.
@@ -65,6 +66,34 @@ public final class CorposDoLegado {
      */
     public static String cadastroDeFarmacia(int documento, int farmacia, String saldo) {
         return cadastro(documento, 0, 0, farmacia, saldo);
+    }
+
+    /**
+     * O corpo do cadastro de um consumidor com o nome escolhido, que pode ser hostil.
+     *
+     * @param nome      o nome, qualquer texto: aspas, barras e caracteres de controle vão escapados
+     * @param documento o documento
+     * @param farmacia  o número do cartão de farmácia
+     * @return o JSON do cadastro
+     */
+    public static String cadastroComNome(String nome, int documento, int farmacia) {
+        return """
+                {"name":"%s","documentNumber":%d,"drugstoreNumber":%d}"""
+                .formatted(JsonDeTeste.escapar(nome), documento, farmacia);
+    }
+
+    /**
+     * O corpo da atualização do cadastro de um consumidor que já existe, mandando o saldo.
+     *
+     * @param id       o id do consumidor
+     * @param farmacia o número do cartão de farmácia
+     * @param saldo    o saldo que o atacante quer impor, como decimal com ponto
+     * @return o JSON da atualização
+     */
+    public static String atualizacaoComSaldo(int id, int farmacia, String saldo) {
+        return """
+                {"id":%d,"name":"Atualizado","drugstoreNumber":%d,"drugstoreCardBalance":%s}"""
+                .formatted(id, farmacia, saldo);
     }
 
     private static String cadastro(int documento, int alimentacao, int combustivel, int farmacia,

@@ -60,4 +60,48 @@ class ClienteHttpTeste {
             assertThat(resposta.localizacao()).isEmpty();
         }
     }
+
+    @Test
+    void deve_mandar_o_metodo_e_os_cabecalhos_escolhidos_quando_requisitar() throws Exception {
+        try (var servidor = new ServidorFalso(r -> Resposta.de(204, ""))) {
+            // Agir: um pré-voo de CORS, que o get e o post não alcançam
+            new ClienteHttp(servidor.url()).requisitar("OPTIONS", "/api/v1/consumidores", "",
+                    Map.of("Origin", "http://origem.exemplo", "Access-Control-Request-Method",
+                            "POST"));
+
+            // Verificar
+            assertThat(servidor.recebidas())
+                    .containsExactly(new Requisicao("OPTIONS", "/api/v1/consumidores", ""));
+            assertThat(servidor.cabecalhoDaUltima("Origin")).contains("http://origem.exemplo");
+            assertThat(servidor.cabecalhoDaUltima("access-control-request-method"))
+                    .contains("POST");
+        }
+    }
+
+    @Test
+    void deve_mandar_o_corpo_junto_do_metodo_quando_o_metodo_aceita_corpo() throws Exception {
+        try (var servidor = new ServidorFalso(r -> Resposta.de(200, ""))) {
+            // Agir
+            new ClienteHttp(servidor.url()).requisitar("PUT", "/x", "{\"a\":1}", Map.of());
+
+            // Verificar
+            assertThat(servidor.recebidas())
+                    .containsExactly(new Requisicao("PUT", "/x", "{\"a\":1}"));
+        }
+    }
+
+    @Test
+    void deve_devolver_os_cabecalhos_da_resposta_com_o_nome_em_minusculas_quando_responder()
+            throws Exception {
+        try (var servidor = new ServidorFalso(r -> new Resposta(200, "",
+                Map.of("X-Frame-Options", "DENY", "Cache-Control", "no-store")))) {
+            // Agir
+            var resposta = new ClienteHttp(servidor.url()).get("/qualquer");
+
+            // Verificar: a busca não distingue maiúsculas, e o ausente é vazio
+            assertThat(resposta.cabecalho("x-frame-options")).contains("DENY");
+            assertThat(resposta.cabecalho("Cache-Control")).contains("no-store");
+            assertThat(resposta.cabecalho("Content-Security-Policy")).isEmpty();
+        }
+    }
 }

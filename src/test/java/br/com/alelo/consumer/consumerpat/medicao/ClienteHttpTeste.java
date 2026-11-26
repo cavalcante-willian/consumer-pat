@@ -62,6 +62,22 @@ class ClienteHttpTeste {
     }
 
     @Test
+    void deve_manter_o_esquema_e_a_porta_e_trocar_so_o_endereco_quando_pedir_outro_endereco()
+            throws Exception {
+        try (var servidor = new ServidorFalso(r -> Resposta.de(200, "ali"))) {
+            // Preparar: o servidor falso escuta em localhost, numa porta livre
+            var porLocalhost = new ClienteHttp(servidor.url());
+
+            // Agir: o mesmo sistema, alcançado pelo endereço numérico do loopback
+            var resposta = porLocalhost.noEndereco("127.0.0.1").get("/rota");
+
+            // Verificar: chegou ao mesmo servidor, na mesma porta
+            assertThat(resposta.texto()).isEqualTo("ali");
+            assertThat(servidor.recebidas()).containsExactly(new Requisicao("GET", "/rota", ""));
+        }
+    }
+
+    @Test
     void deve_mandar_o_metodo_e_os_cabecalhos_escolhidos_quando_requisitar() throws Exception {
         try (var servidor = new ServidorFalso(r -> Resposta.de(204, ""))) {
             // Agir: um pré-voo de CORS, que o get e o post não alcançam

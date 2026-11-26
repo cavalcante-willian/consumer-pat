@@ -39,6 +39,23 @@ public final class ClienteHttp {
     }
 
     /**
+     * Um cliente do mesmo sistema, alcançado por outro endereço.
+     *
+     * <p>
+     * Mantém o esquema e a porta e troca o endereço. Serve para pedir a um sistema que roda na
+     * própria máquina pelo endereço de uma interface de rede, e não por {@code localhost}: o
+     * sistema passa a ver uma origem que não é loopback, e é assim que se vê o que ele faz com quem
+     * vem de fora.
+     *
+     * @param endereco o endereço novo, sem esquema nem porta
+     * @return um cliente sobre o mesmo esquema e a mesma porta
+     */
+    public ClienteHttp noEndereco(String endereco) {
+        var atual = URI.create(base);
+        return new ClienteHttp(atual.getScheme() + "://" + endereco + ":" + atual.getPort());
+    }
+
+    /**
      * Faz um {@code GET}.
      *
      * @param caminho o caminho, com a query se houver, começando por barra

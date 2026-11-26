@@ -33,8 +33,26 @@ class RelatorioDeSegurancaTeste {
                 List.of(achado("a", true, "x"), achado("b", true, "y"), achado("c", true, "z")));
 
         // Verificar
-        assertThat(linhas).last()
-                .isEqualTo("Protegido em 1 de 3 verificações no legado, e em 3 " + "de 3 no novo.");
+        assertThat(linhas).last().isEqualTo("Protegido em 1 de 3 verificações no legado "
+                + "(não verificadas: 0), e em 3 de 3 no novo (não verificadas: 0).");
+    }
+
+    @Test
+    void deve_dizer_nao_verificado_e_contar_a_parte_quando_o_ambiente_nao_deixou_verificar() {
+        // Preparar: o novo não pôde ser verificado numa das três
+        var naoVerificado = Achado.naoVerificado("c", "descrição de c",
+                "a máquina não tem interface de rede");
+
+        // Agir
+        var linhas = RelatorioDeSeguranca.montar(
+                List.of(achado("a", true, "x"), achado("b", false, "y"), achado("c", false, "z")),
+                List.of(achado("a", true, "x"), achado("b", true, "y"), naoVerificado));
+
+        // Verificar: nem protegido nem exposto, e a contagem não o esconde
+        assertThat(linhas)
+                .contains("  novo  : NÃO VERIFICADO — a máquina não tem interface de rede");
+        assertThat(linhas).last().isEqualTo("Protegido em 1 de 3 verificações no legado "
+                + "(não verificadas: 0), e em 2 de 3 no novo (não verificadas: 1).");
     }
 
     @Test

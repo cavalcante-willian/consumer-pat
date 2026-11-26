@@ -13,16 +13,13 @@ import java.util.stream.Collectors;
  *
  * <p>
  * Cada verificação vira um bloco com a linha do legado e a do novo, cada uma com o veredito e o que
- * foi observado. No fim, a contagem de verificações em que cada sistema se protegeu. Uma
- * verificação que um dos lados não fez aparece com um traço, e não é inventada. A ordem é a do
- * sistema novo.
+ * foi observado. No fim, a contagem de verificações em que cada sistema se protegeu, e de quantas
+ * não puderam ser feitas. Uma verificação que um dos lados não fez aparece com um traço, e não é
+ * inventada. A ordem é a do sistema novo.
  */
 public final class RelatorioDeSeguranca {
 
     private static final String SEM_ACHADO = "—";
-
-    private static final Map<Boolean, String> VEREDITO = Map.of(true, "PROTEGIDO", false,
-            "EXPOSTO  ");
 
     private RelatorioDeSeguranca() {
     }
@@ -51,8 +48,9 @@ public final class RelatorioDeSeguranca {
             linhas.add("");
         }
         linhas.add("Protegido em " + protegidos(legado) + " de " + legado.size()
-                + " verificações no legado, e em " + protegidos(novo) + " de " + novo.size()
-                + " no novo.");
+                + " verificações no legado (não verificadas: " + naoVerificados(legado) + "), e em "
+                + protegidos(novo) + " de " + novo.size() + " no novo (não " + "verificadas: "
+                + naoVerificados(novo) + ").");
         return linhas;
     }
 
@@ -64,8 +62,13 @@ public final class RelatorioDeSeguranca {
         return achados.stream().filter(Achado::protegido).count();
     }
 
+    private static long naoVerificados(List<Achado> achados) {
+        return achados.stream().filter(achado -> achado.veredito() == Veredito.NAO_VERIFICADO)
+                .count();
+    }
+
     private static String texto(Achado achado) {
-        return Optional.ofNullable(achado)
-                .map(a -> VEREDITO.get(a.protegido()) + " — " + a.evidencia()).orElse(SEM_ACHADO);
+        return Optional.ofNullable(achado).map(a -> a.veredito().rotulo() + " — " + a.evidencia())
+                .orElse(SEM_ACHADO);
     }
 }

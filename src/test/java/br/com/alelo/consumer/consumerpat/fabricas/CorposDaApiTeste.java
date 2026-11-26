@@ -20,6 +20,22 @@ class CorposDaApiTeste {
     }
 
     @Test
+    void deve_levar_um_cartao_de_cada_tipo_pelo_nome_quando_montar_o_cadastro_de_tres() {
+        // Agir
+        var corpo = CorposDaApi.cadastroComTresCartoes("70000000001", "7000000000000001",
+                "7000000000000002", "7000000000000003");
+
+        // Verificar
+        assertThat(JsonPath.<String>read(corpo, "$.dados.documento")).isEqualTo("70000000001");
+        assertThat(JsonPath.<String>read(corpo, "$.numerosCartoes.ALIMENTACAO"))
+                .isEqualTo("7000000000000001");
+        assertThat(JsonPath.<String>read(corpo, "$.numerosCartoes.COMBUSTIVEL"))
+                .isEqualTo("7000000000000002");
+        assertThat(JsonPath.<String>read(corpo, "$.numerosCartoes.FARMACIA"))
+                .isEqualTo("7000000000000003");
+    }
+
+    @Test
     void deve_levar_o_codigo_do_estabelecimento_e_o_valor_quando_montar_o_credito() {
         // Agir
         var corpo = CorposDaApi.credito("7000000000000001", TipoCartao.COMBUSTIVEL, "12.50");

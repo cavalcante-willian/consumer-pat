@@ -340,7 +340,6 @@ com um JDK padrão mais novo (como o 27) não roda este build sem o
 
    ```groovy
    implementation "org.springdoc:springdoc-openapi-ui:${springdocVersion}"
-   implementation "org.springdoc:springdoc-openapi-data-rest:${springdocVersion}"
    ```
 
 2. **Lock file versionado.** O *dependency locking* do Gradle é nativo:
@@ -439,6 +438,11 @@ em dois arquivos versionados e é conferida por uma terceira ferramenta, tudo
 - **`editorconfig-checker` confere o `.editorconfig` no CI e no pre-commit**,
   com **todas** as verificações ligadas, a indentação inclusive: largura de
   linha, indentação, espaço no fim da linha, fim de arquivo e quebra de linha.
+- **`shellcheck` confere os scripts de `scripts/`**, com a configuração do
+  `.shellcheckrc` versionado (dialeto `bash`, severidade `warning`), para o
+  resultado não depender do que cada pessoa passa na linha de comando. Hoje ele
+  roda **só na máquina de quem mexe no script**: nenhum workflow nem hook o
+  chama, e levá-lo ao CI é um passo à parte.
 - **Lacuna declarada:** o CI **não** confere o que só o perfil expressa, como a
   quebra de linha do Java, porque isso exigiria baixar o formatador. Quem usa o
   VS Code com as extensões recomendadas recebe isso pronto ao salvar; quem usa
@@ -558,7 +562,6 @@ dependencies {
     compileOnly 'org.projectlombok:lombok'
     runtimeOnly 'com.h2database:h2'
     implementation "org.springdoc:springdoc-openapi-ui:${springdocVersion}"
-    implementation "org.springdoc:springdoc-openapi-data-rest:${springdocVersion}"
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
@@ -578,9 +581,9 @@ tasks.named('check')       { dependsOn 'javadoc' }
 
 > **Nenhuma linha acima adiciona dependência.** Todas as bibliotecas já estão
 > no arquivo atual; o que muda é a configuração. *(A dependência
-> `springdoc-openapi-data-rest` não parece usada pelo projeto — sem Spring
-> Data REST —, mas **removê-la** é decisão à parte, fora deste conjunto de
-> mudanças.)*
+> `springdoc-openapi-data-rest` não era usada pelo projeto — sem Spring Data
+> REST — e foi removida junto com o legado, com o `gradle.lockfile`
+> regenerado.)*
 
 ---
 

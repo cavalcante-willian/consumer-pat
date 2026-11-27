@@ -4,7 +4,9 @@ spring:
     # LOCK_TIMEOUT é o teto, em ms, da espera por uma trava de cartão. É o mecanismo do H2: a dica
     # javax.persistence.lock.timeout é ignorada por ele em silêncio, e um teto que não dispara não é
     # teto. Tem de ser MENOR que a espera por conexão (hikari abaixo). Um teste prova que dispara.
-    url: jdbc:h2:mem:consumer-pat;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=3000
+    # DB_CLOSE_ON_EXIT=FALSE: sem ele o H2 se fecha no desligamento da JVM antes de o Hibernate
+    # (create-drop) apagar o schema, e todo desligamento registra "Database is already closed".
+    url: jdbc:h2:mem:consumer-pat;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=3000
     username: sa
     password: sa
     # Toda fronteira de I/O tem teto explícito. O padrão de 30 s só adia o esgotamento do pool.

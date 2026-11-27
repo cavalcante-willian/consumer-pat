@@ -402,8 +402,9 @@ CPT-<CATEGORIA>-<ÁREA>-<SEQUENCIAL>
 - **`<CATEGORIA>`** — 3 letras, a natureza da falha: `VAL` validação, `NEN`
   não encontrado, `REG` regra de negócio, `CNF` conflito, `BAN`
   banco/infraestrutura. **Lista de exemplo, não fechada.**
-- **`<ÁREA>`** — 3 letras, onde o erro nasce: `CSM` consumidor, `CRT`
-  cartão, `EXT` extrato, `SIS` sistema/borda quando não há área de domínio.
+- **`<ÁREA>`** — 3 letras, onde o erro nasce: `CON` consumidor, `CRT`
+  cartão, `DIN` dinheiro, `PAG` paginação, `GER` entrada genérica, `SIS`
+  sistema/borda quando não há área de domínio.
   **Também aberta** — conceito novo no domínio é área nova.
 - **`<SEQUENCIAL>`** — 3 dígitos, desambigua dois erros da mesma
   categoria+área. **Nunca reaproveitado**: se uma variante é removida, o

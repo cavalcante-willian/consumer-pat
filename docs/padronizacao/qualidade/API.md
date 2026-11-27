@@ -321,33 +321,28 @@ No Spring, "middleware" se divide em camadas com mecanismos distintos:
 | 9 | Tradução de erro | `@RestControllerAdvice` | envolve o controller: qualquer exceção lá dentro vira `MensagemProblema` |
 
 ```java
-// api/configuracao/ConfiguracaoDeFiltros.java — ordem = ordem do contrato
+// api/configuracao/OrdemDosFiltros.java — a ordem do contrato, num lugar só
 // (menor número = mais externo; só a composition root registra filtro)
+public final class OrdemDosFiltros {
+    public static final int CABECALHOS_DE_SEGURANCA = Ordered.HIGHEST_PRECEDENCE;
+    public static final int CORRELACAO = Ordered.HIGHEST_PRECEDENCE + 1;
+    public static final int LOG_DE_CONCLUSAO = Ordered.HIGHEST_PRECEDENCE + 2;
+    public static final int REJEICAO_DE_TRACE = Ordered.HIGHEST_PRECEDENCE + 3;
+}
+
+// api/configuracao/ConfiguracaoDoFiltroDeCabecalhosDeSeguranca.java — um filtro por configuração
 @Configuration
-public class ConfiguracaoDeFiltros {
+public class ConfiguracaoDoFiltroDeCabecalhosDeSeguranca {
 
     @Bean
     FilterRegistrationBean<FiltroDeCabecalhosDeSeguranca> filtroDeCabecalhosDeSeguranca() {
         var registro = new FilterRegistrationBean<>(new FiltroDeCabecalhosDeSeguranca());
         registro.addUrlPatterns("/api/*");          // não vale para /swagger-ui nem /h2-console
-        registro.setOrder(Ordered.HIGHEST_PRECEDENCE);
-        return registro;
-    }
-
-    @Bean
-    FilterRegistrationBean<FiltroDeCorrelacao> filtroDeCorrelacao() {
-        var registro = new FilterRegistrationBean<>(new FiltroDeCorrelacao());
-        registro.setOrder(Ordered.HIGHEST_PRECEDENCE + 1);
-        return registro;
-    }
-
-    @Bean
-    FilterRegistrationBean<FiltroDeLogDeConclusao> filtroDeLogDeConclusao(SaidaDeLogPorta saida) {
-        var registro = new FilterRegistrationBean<>(new FiltroDeLogDeConclusao(saida));
-        registro.setOrder(Ordered.HIGHEST_PRECEDENCE + 2);
+        registro.setOrder(OrdemDosFiltros.CABECALHOS_DE_SEGURANCA);
         return registro;
     }
 }
+// os outros filtros seguem o mesmo molde, cada um na sua própria configuração
 ```
 
 **Por quê o log de conclusão fica dentro da correlação e não fora:** um
@@ -824,7 +819,7 @@ Antes de abrir um PR que mexe em endpoint:
 - [ ] A mudança é aditiva ou mudou de versão? Se mudou formato/remoção/status: `/api/v{n+1}/` e justificativa no PR?
 - [ ] Escrita concorrente nova usa a estratégia certa (lock pessimista no saldo; versão no cadastro) e responde 409 em conflito?
 - [ ] `POST` novo tem semântica de retentativa documentada?
-- [ ] O filtro novo tem responsabilidade única, não lança exceção e está registrado na ordem certa em `ConfiguracaoDeFiltros`?
+- [ ] O filtro novo tem responsabilidade única, não lança exceção e tem a sua própria configuração, com a posição em `OrdemDosFiltros`?
 - [ ] O teste de contrato do endpoint foi atualizado no mesmo PR?
 - [ ] O PR lista como recomendação o que ficou fora de escopo (autenticação, idempotência)?
 - [ ] O README/contrato da API descreve o estado atual, não o de quando nasceu?

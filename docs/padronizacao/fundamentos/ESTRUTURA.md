@@ -419,10 +419,15 @@ api/                                       # composition root — único lugar q
 └── configuracao/                          # ÚNICO lugar com @Bean e que importa infraestrutura
     ├── ConfiguracaoDePortas.java          # importa os adaptadores concretos (@Import): só nomeia quais existem
     ├── ConfiguracaoDeRelogio.java         # o único Clock: de parede, em UTC
-    ├── ConfiguracaoDaDocumentacao.java    # a especificação OpenAPI e o customizador das respostas de erro
+    ├── ConfiguracaoDaEspecificacaoDaApi.java     # o cabeçalho e os grupos da especificação OpenAPI
+    ├── ConfiguracaoDasRespostasDeErroDaApi.java  # o customizador das respostas de erro da especificação
     ├── ConfiguracaoDeCasosDeUso.java      # instancia casos de uso com as portas injetadas e o Clock (Clock.systemUTC())
     ├── ConfiguracaoDeAuditoria.java       # @EnableJpaAuditing com o Clock do domínio (qualidade/BANCO.md §6)
-    ├── ConfiguracaoDeFiltros.java         # registra os filtros na ordem do contrato (qualidade/API.md §4)
+    ├── OrdemDosFiltros.java               # a ordem do contrato, num lugar só (qualidade/API.md §4)
+    ├── ConfiguracaoDoFiltroDeCabecalhosDeSeguranca.java  # um filtro por configuração; a posição vem de OrdemDosFiltros
+    ├── ConfiguracaoDoFiltroDeCorrelacao.java
+    ├── ConfiguracaoDoFiltroDeLogDeConclusao.java
+    ├── ConfiguracaoDoFiltroDeRejeicaoDeTrace.java
     └── ConfiguracaoDeWeb.java             # só quando houver cliente de navegador de origem conhecida: o CORS, hoje fechado por padrão (SEGURANCA.md §8)
 ```
 

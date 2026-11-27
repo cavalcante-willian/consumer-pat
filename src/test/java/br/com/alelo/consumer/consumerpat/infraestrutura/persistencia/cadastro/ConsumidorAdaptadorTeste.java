@@ -23,6 +23,7 @@ import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.Configuraca
 import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cartao.CartaoRepositorioJpa;
 // editorconfig-checker-disable-next-line
 import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.ConsumidorRepositorioJpa;
+import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.ConsumidoresDeTeste;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -115,8 +116,8 @@ class ConsumidorAdaptadorTeste {
         var linha = consumidores.findById(criado.id().valor()).orElseThrow();
 
         // Verificar
-        assertThat(linha.getTelefoneResidencial()).isNull();
-        assertThat(linha.getTelefone()).isNull();
+        assertThat(ConsumidoresDeTeste.telefoneResidencialDe(linha)).isNull();
+        assertThat(ConsumidoresDeTeste.telefoneDe(linha)).isNull();
         assertThat(criado.dados().contato().telefoneResidencial()).isEmpty();
     }
 
@@ -250,8 +251,9 @@ class ConsumidorAdaptadorTeste {
         var falha = assertInstanceOf(Falha.class, resultado);
         assertThat(falha.erro()).isEqualTo(new ErroVersaoDivergente(criado.id(), 7));
         gerenciador.clear();
-        assertThat(consumidores.findById(criado.id().valor()).orElseThrow().getDocumento())
-                .isEqualTo(FabricaDeConsumidores.DOCUMENTO_PADRAO);
+        assertThat(ConsumidoresDeTeste
+                .documentoDe(consumidores.findById(criado.id().valor()).orElseThrow()))
+                        .isEqualTo(FabricaDeConsumidores.DOCUMENTO_PADRAO);
     }
 
     @Test

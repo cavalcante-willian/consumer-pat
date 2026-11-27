@@ -53,8 +53,7 @@ class ListagemDeConsumidoresTeste {
     }
 
     private ConsumidorEntidade gravar(String nome) {
-        var linha = ConsumidoresDeTeste.linha();
-        linha.setNome(nome);
+        var linha = ConsumidoresDeTeste.comNome(ConsumidoresDeTeste.linha(), nome);
         return gerenciador.persistAndFlush(linha);
     }
 

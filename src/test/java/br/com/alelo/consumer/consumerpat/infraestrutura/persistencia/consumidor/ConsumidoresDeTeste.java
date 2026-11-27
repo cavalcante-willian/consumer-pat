@@ -47,4 +47,59 @@ public final class ConsumidoresDeTeste {
         entidade.setCep("01001000");
         return entidade;
     }
+
+    /**
+     * Lê o documento da linha. Os acessores da entidade são do pacote dela, e os testes de outros
+     * pacotes passam por aqui.
+     *
+     * @param linha a linha do consumidor
+     * @return o documento, só com dígitos
+     */
+    public static String documentoDe(ConsumidorEntidade linha) {
+        return linha.getDocumento();
+    }
+
+    /**
+     * Lê o telefone residencial da linha.
+     *
+     * @param linha a linha do consumidor
+     * @return o telefone residencial, ou nulo quando o cadastro não o trouxe
+     */
+    public static String telefoneResidencialDe(ConsumidorEntidade linha) {
+        return linha.getTelefoneResidencial();
+    }
+
+    /**
+     * Lê o telefone geral da linha.
+     *
+     * @param linha a linha do consumidor
+     * @return o telefone, ou nulo quando o cadastro não o trouxe
+     */
+    public static String telefoneDe(ConsumidorEntidade linha) {
+        return linha.getTelefone();
+    }
+
+    /**
+     * Troca o nome da linha.
+     *
+     * @param linha a linha do consumidor
+     * @param nome  o nome novo
+     * @return a mesma linha, com o nome trocado
+     */
+    public static ConsumidorEntidade comNome(ConsumidorEntidade linha, String nome) {
+        linha.setNome(nome);
+        return linha;
+    }
+
+    /**
+     * Troca a versão da linha, como se ela já tivesse sido atualizada algumas vezes.
+     *
+     * @param linha  a linha do consumidor
+     * @param versao a versão nova
+     * @return a mesma linha, com a versão trocada
+     */
+    public static ConsumidorEntidade comVersao(ConsumidorEntidade linha, long versao) {
+        linha.setVersao(versao);
+        return linha;
+    }
 }

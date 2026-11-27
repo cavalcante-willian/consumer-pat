@@ -75,7 +75,7 @@ class ExtratoAdaptadorTeste {
         assertThat(gravado.getValorInformado()).isEqualTo(new BigDecimal("33.330000"));
         assertThat(gravado.getValorCobrado()).isEqualTo(new BigDecimal("29.997000"));
         assertThat(gravado.getDataCompra()).isEqualTo(COMPRA);
-        assertThat(gravado.getCartao().getId()).isEqualTo(cartao.getId());
+        assertThat(CartoesDeTeste.idDe(gravado.getCartao())).isEqualTo(CartoesDeTeste.idDe(cartao));
     }
 
     @Test
@@ -129,7 +129,7 @@ class ExtratoAdaptadorTeste {
                         + "valor_informado, valor_cobrado, data_compra, data_criacao) "
                         + "values (999, 'a', 'b', 1, 1, current_timestamp, current_timestamp)")
                 .executeUpdate()).isInstanceOf(PersistenceException.class)
-                .hasStackTraceContaining("FK_EXTRATOS_CARTOES");
+                        .hasStackTraceContaining("FK_EXTRATOS_CARTOES");
     }
 
     @Test

@@ -87,9 +87,15 @@ As rotas `/consumer/*` do legado saíram com a remoção do legado.
   quem o escreve é o filtro dos cabeçalhos de segurança, como em toda resposta da API.
   O status vem de `StatusDaSaude`, um `EnumMap`: o domínio não conhece HTTP.
 - **`configuracao`** — liga o que as camadas de baixo declaram.
-  - `ConfiguracaoDaDocumentacao` compõe a especificação OpenAPI: o cabeçalho, os grupos
-    de operações e o customizador das respostas de erro. Só liga, e o conteúdo de cada
-    parte vive em `comum.documentacao`.
+  - **Uma classe, um `@Bean`**, e um teste impõe isso (`UmBeanPorConfiguracaoTeste`): uma
+    configuração com dois beans tem duas razões de mudar.
+  - `ConfiguracaoDaEspecificacaoDaApi` liga o cabeçalho e os grupos da especificação OpenAPI,
+    e `ConfiguracaoDasRespostasDeErroDaApi`, o customizador das respostas de erro. Só ligam,
+    e o conteúdo de cada parte vive em `comum.documentacao`.
+  - `OrdemDosFiltros` guarda a **ordem do contrato** num lugar só: menor número é mais
+    externo, e a ordem vai dos cabeçalhos de segurança à correlação, ao log de conclusão e à
+    recusa do `TRACE`. Cada filtro tem a sua `ConfiguracaoDoFiltroDe…`, que lê a posição
+    dali, e trocar a ordem é mudar um arquivo só.
   - `ConfiguracaoDeRelogio` escolhe o **único** `Clock` da aplicação: o de parede, em
     UTC. O domínio, os casos de uso e a auditoria do banco recebem este mesmo bean, de
     modo que um teste que o troque controla o tempo de ponta a ponta. Nenhum código
@@ -220,13 +226,18 @@ api
 │       ├── TraducaoDeRotaInexistente.java        # 404
 │       └── TraducaoDeTravaEsgotada.java          # 409
 ├── configuracao
-│   ├── ConfiguracaoDaDocumentacao.java           # a especificação OpenAPI e o customizador de erros
+│   ├── ConfiguracaoDaEspecificacaoDaApi.java     # o cabeçalho e os grupos da especificação OpenAPI
+│   ├── ConfiguracaoDasRespostasDeErroDaApi.java  # o customizador das respostas de erro
 │   ├── ConfiguracaoDeAuditoria.java              # @EnableJpaAuditing, com o instante do Clock
-│   ├── ConfiguracaoDeFiltros.java                # registra os filtros na ordem do contrato
 │   ├── ConfiguracaoDePortas.java                 # importa os adaptadores, um por porta
 │   ├── ConfiguracaoDeRelogio.java                # o único Clock: de parede, em UTC
 │   ├── ConfiguracaoDoCasoDeCreditarCartao.java
 │   ├── ConfiguracaoDoCasoDeRegistrarCompra.java
+│   ├── ConfiguracaoDoFiltroDeCabecalhosDeSeguranca.java  # um filtro por configuração
+│   ├── ConfiguracaoDoFiltroDeCorrelacao.java
+│   ├── ConfiguracaoDoFiltroDeLogDeConclusao.java
+│   ├── ConfiguracaoDoFiltroDeRejeicaoDeTrace.java
+│   ├── OrdemDosFiltros.java                      # a ordem do contrato, num lugar só
 │   └── package-info.java
 └── package-info.java
 ```
@@ -264,7 +275,9 @@ Os testes ficam em `src/test/java/.../api/` e espelham os pacotes.
 | `comum.seguranca.CabecalhosDeSegurancaTeste`, `FiltroDeCabecalhosDeSegurancaTeste` | os cinco valores e o que não está neles (HSTS); o filtro os escreve antes de a requisição seguir, mantém quando ela lança, substitui um `Cache-Control` que já existia, e não escreve nenhum cabeçalho fora do contrato |
 | `comum.seguranca.FiltroDeRejeicaoDeTraceTeste` | o filtro age só no `TRACE`, sem distinguir maiúsculas, vale também para o despacho de erro, responde `405` sem corpo e **não deixa a requisição seguir**, nem com cookie no pedido. O contrato inteiro, com o servidor de verdade, é provado pela bateria de segurança (`SegurancaDoSistemaNovoTeste`) |
 | `comum.seguranca.CabecalhosDeSegurancaDePontaAPontaTeste` | o contrato com o contexto inteiro: os cabeçalhos em `200`, `201`, `400`, `404`, `405`, `409`, `415` e `422`, com o `X-Request-Id`; a especificação, o Swagger e o console do H2 sem eles; nenhum cabeçalho de CORS, nem no pré-voo |
-| `comum.seguranca.SegurancaDoPerfilDeProducaoTeste`, `configuracao.ConfiguracaoDeFiltrosTeste` | o perfil `prod` sem o console do H2, o Swagger e a especificação, e com os cabeçalhos; o filtro de segurança como o mais externo e só em `/api/*` (a mutação que tira o `/api/*` derruba quatro testes) |
+| `comum.seguranca.SegurancaDoPerfilDeProducaoTeste` | o perfil `prod` sem o console do H2, o Swagger e a especificação, e com os cabeçalhos (a mutação que tira o `/api/*` derruba quatro testes) |
+| `configuracao.OrdemDosFiltrosTeste`, `ConfiguracaoDoFiltroDe*Teste` | a ordem do contrato (segurança, correlação, log de conclusão e `TRACE`, sem repetir posição) e que cada configuração a lê: o filtro de segurança só em `/api/*`, e a recusa do `TRACE` em toda rota e no despacho de erro. Provado por mutação: trocar a correlação e o log de conclusão derruba o teste da ordem e dois do pipeline real, que mostram a linha de conclusão sem o id |
+| `configuracao.UmBeanPorConfiguracaoTeste` | lê o código-fonte do pacote e exige no máximo um `@Bean` por classe. Um segundo bean numa configuração o derruba |
 | `comum.requisicao.PipelineDeRequisicaoTeste` | o contexto inteiro: o id em todo cabeçalho e em todo corpo de erro, e **na linha de conclusão do log** (a mutação que inverte a ordem dos filtros a derruba) |
 | `cartao.*.*DaMensagemTeste` | conversão em tipos do domínio e primeira falha |
 | `cartao.*.Comprovante*Teste` | número mascarado, escala completa, sem notação científica |
@@ -294,3 +307,4 @@ do controller que posta sem corpo faz o build quebrar se o Spring mudar o texto.
 | `#29` | Acrescenta o `FiltroDeRejeicaoDeTrace` a `comum.seguranca`: o `TRACE` passa a responder `405` sem corpo, em vez de ecoar a requisição inteira. O defeito estava no sistema novo, e foi a bateria de segurança que o achou. |
 | `#30` | Os eventos que o tratador de erros registra (`conflito.detectado`, `lock.timeout` e `falha.inesperada`) passam a gravar `metodo` e `caminho`, os mesmos campos do `requisicao.concluida`, no lugar de `operacao`, que ficava com o texto `POST /api/v1/consumidores` enquanto os casos de uso gravavam o nome lógico (`criar-consumidor`). `operacao` passa a ser só o nome da operação de negócio. `OperacaoDaRequisicao` sai, porque só o tratador a usava. |
 | `#31` | Remove o legado: o `ConsumerController`, as entidades `Consumer` e `Extract` e os dois repositórios saem, e as cinco rotas `/consumer/*` passam a responder `404`. O mapa das rotas antigas para as novas está no `API.md`. É a quebra de contrato do projeto, porque as rotas novas haviam entrado sem tirar nenhuma. A compra e o crédito ganham testes de HTTP para o tipo de estabelecimento desconhecido e para o valor zero ou negativo, os dois defeitos que o legado documentava. Reescreve a documentação da API: o `OpenApiConfig`, que logava no INFO e vivia no último pacote legado, vira `ConfiguracaoDaDocumentacao` e `comum.documentacao`, e cada controller passa a declarar o resumo, o sucesso e os erros. A especificação, que dizia `200` nos três `POST`, passa a dizer `201` e a documentar os erros `problem+json`, o `500` e o `X-Request-Id`. A classe de entrada passa de `ConsumerTestApplication` para `InicializacaoDaAplicacao`. |
+| `#33` | Divide as duas configurações que tinham mais de um `@Bean`: `ConfiguracaoDeFiltros`, com os quatro filtros, vira uma `ConfiguracaoDoFiltroDe…` por filtro mais a `OrdemDosFiltros`, que guarda a ordem do contrato num lugar só; e `ConfiguracaoDaDocumentacao`, com a especificação e o customizador, vira `ConfiguracaoDaEspecificacaoDaApi` e `ConfiguracaoDasRespostasDeErroDaApi`. O `UmBeanPorConfiguracaoTeste` passa a impor um `@Bean` por classe. Nada muda para quem chama a API: os beans mantêm os nomes. |

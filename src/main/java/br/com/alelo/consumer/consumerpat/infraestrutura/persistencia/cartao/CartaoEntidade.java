@@ -2,6 +2,7 @@ package br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.cartao;
 
 import br.com.alelo.consumer.consumerpat.dominio.cartao.TipoCartao;
 import br.com.alelo.consumer.consumerpat.infraestrutura.persistencia.consumidor.ConsumidorEntidade;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -54,38 +55,58 @@ import java.time.Instant;
                         columnNames = { "consumidor_id", "tipo" }) })
 @Check(constraints = "saldo >= 0")
 @EntityListeners(AuditingEntityListener.class)
-@Getter
-@Setter
-@NoArgsConstructor
+@Getter(AccessLevel.PACKAGE)
+@Setter(AccessLevel.PACKAGE)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class CartaoEntidade {
 
+    /** A chave da linha, gerada pelo banco. É nula até a primeira gravação. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /**
+     * O dono do cartão, obrigatório: a linha não existe sem ele, e a chave estrangeira não
+     * cascateia exclusão. É carregado sob demanda.
+     */
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "consumidor_id", nullable = false,
             foreignKey = @ForeignKey(name = "fk_cartoes_consumidores"))
     private ConsumidorEntidade consumidor;
 
+    /** O tipo do cartão, gravado pelo nome do enum, e nunca pela posição. */
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo", nullable = false, length = 20)
     private TipoCartao tipo;
 
+    /**
+     * O número, só com dígitos, obrigatório e único em toda a tabela, de qualquer tipo e de
+     * qualquer dono.
+     */
     @Column(name = "numero", nullable = false, length = 19)
     private String numero;
 
+    /**
+     * O saldo, decimal de ponto fixo com seis casas e nunca negativo: o banco recusa uma linha com
+     * saldo menor que zero, mesmo que uma regra do domínio falhe.
+     */
     @Column(name = "saldo", nullable = false, precision = 19, scale = 6)
     private BigDecimal saldo;
 
+    /**
+     * A versão da linha, que o JPA incrementa a cada gravação do saldo: é o que recusa uma gravação
+     * feita sobre uma leitura velha.
+     */
     @Version
     @Column(name = "versao", nullable = false)
     private Long versao;
 
+    /** O instante da criação, preenchido pela auditoria e nunca alterado. */
     @CreatedDate
     @Column(name = "data_criacao", nullable = false, updatable = false)
     private Instant dataCriacao;
 
+    /** O instante da última atualização, preenchido pela auditoria. */
     @LastModifiedDate
     @Column(name = "data_atualizacao", nullable = false)
     private Instant dataAtualizacao;

@@ -10,9 +10,9 @@
 > [Premissas de Concorrência](#premissas-de-concorrência).
 >
 > **Nota sobre exemplos**: os trechos de código abaixo são ilustrativos e
-> **não foram executados** — a regra normativa é o texto conceitual. O código
-> atual ainda é o **legado do desafio**, que **não tem proteção alguma**
-> contra concorrência: lê o saldo, soma em memória e grava (*lost update*).
+> **não foram executados** — a regra normativa é o texto conceitual. O
+> **legado do desafio**, que saiu da árvore, **não tinha proteção alguma**
+> contra concorrência: lia o saldo, somava em memória e gravava (*lost update*).
 >
 > **Documento relacionado**: [`OBSERVABILIDADE.md`](OBSERVABILIDADE.md).
 

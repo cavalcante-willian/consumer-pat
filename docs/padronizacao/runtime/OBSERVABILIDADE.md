@@ -402,7 +402,7 @@ campo.
   deve saber: o tratador registra o `conflito.detectado` de persistência, e
   as duas linhas aparecem com o mesmo `idRequisicao`.
 - **A inicialização é registrada pelo próprio Spring Boot** (`Started
-  ConsumerTestApplication in … seconds`, com o perfil ativo) e o **banner**
+  InicializacaoDaAplicacao in … seconds`, com o perfil ativo) e o **banner**
   traz a versão ([`BUILD.md`](../qualidade/BUILD.md#3-versão-de-build-rastreável)).
   Não há evento próprio: **não se escreve código para repetir o que o
   framework já diz**.

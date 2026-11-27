@@ -12,9 +12,9 @@
 > Ver [Mecanismo de Validação](#mecanismo-de-validação).
 >
 > **Nota sobre exemplos**: os trechos de código abaixo são ilustrativos e
-> **não foram executados** — a regra normativa é o texto conceitual. O código
-> atual ainda é o **legado do desafio**, que **não valida nada**: o
-> `ConsumerController` recebe a entidade JPA no `@RequestBody`, sem `@Valid`.
+> **não foram executados** — a regra normativa é o texto conceitual. O
+> **legado do desafio**, que saiu da árvore, **não validava nada**: o
+> `ConsumerController` recebia a entidade JPA no `@RequestBody`, sem `@Valid`.
 
 Define onde toda entrada externa é validada: inventário dos pontos de
 entrada, separação entre validação de borda, validação que só o domínio

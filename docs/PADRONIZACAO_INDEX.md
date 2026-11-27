@@ -8,8 +8,9 @@ escolhido e o que foi descartado.
 **Premissa do desafio:** é proibido adicionar dependência, e os contratos da API
 podem mudar. Várias regras existem por causa disso.
 
-> O código atual do repositório ainda é o **legado do desafio**. Os documentos
-> descrevem o estado **pretendido**, e a refatoração o aproxima.
+> Os documentos foram escritos **antes** do código, a partir do **legado do
+> desafio**, que já saiu da árvore. Onde um exemplo divergiu do que se
+> construiu, vale o texto conceitual, e o exemplo foi corrigido quando se notou.
 
 ## Fundamentos
 

@@ -75,8 +75,11 @@ git -C "$raiz" archive "$commit" | tar -x -C "$original"
 echo "== Compilando o original e o sistema novo"
 (cd "$original" && ./gradlew bootJar -x test --console=plain -q)
 (cd "$raiz" && ./gradlew bootJar -x test --console=plain -q)
-jar_legado="$(ls "$original"/build/libs/*.jar | head -n 1)"
-jar_novo="$(ls "$raiz"/build/libs/*.jar | grep -v -- '-plain' | head -n 1)"
+shopt -s extglob
+jars_legado=("$original"/build/libs/*.jar)
+jars_novo=("$raiz"/build/libs/!(*-plain).jar)
+jar_legado="${jars_legado[0]}"
+jar_novo="${jars_novo[0]}"
 
 echo "== Subindo o legado na porta $porta_legado e o novo na porta $porta_novo"
 "$JAVA_HOME/bin/java" "-Xmx$memoria" -jar "$jar_legado" "--server.port=$porta_legado" \

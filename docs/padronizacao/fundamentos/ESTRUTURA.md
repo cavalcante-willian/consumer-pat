@@ -12,10 +12,10 @@
 > **Nota sobre exemplos — e estado deste documento**: os trechos de código
 > e as árvores de diretório abaixo são **ilustrativos** — a regra
 > normativa é o texto conceitual, não os nomes exatos de arquivo/tipo
-> exibidos. Além disso, o código atual do projeto ainda é o **legado do
-> desafio** (um único controller, entidades no mesmo pacote): aqui as
-> árvores são a **estrutura pretendida** da refatoração, não um espelho do
-> que já existe. Ver [Este Documento É Vivo](#este-documento-é-vivo).
+> exibidos. Além disso, o documento foi escrito quando o código ainda era o
+> **legado do desafio** (um único controller, entidades no mesmo pacote): as
+> árvores nasceram como a **estrutura pretendida** da refatoração e foram
+> ajustadas ao que se construiu. Ver [Este Documento É Vivo](#este-documento-é-vivo).
 
 ---
 
@@ -397,6 +397,11 @@ api/                                       # composition root — único lugar q
 │   │   ├── TradutoresDoCorpo.java         # registro causa → tradutor (nível 7 de CONDICIONAIS.md)
 │   │   ├── TradutorDeCausa.java
 │   │   └── NomeDoCampoDoJackson.java
+│   ├── documentacao/                      # a especificação OpenAPI, em /v3/api-docs (o perfil prod a desliga)
+│   │   ├── InformacoesDaApi.java          # título, descrição do que vale para a API inteira e versão
+│   │   ├── VersaoDaAplicacao.java         # a versão, lida do MANIFEST.MF do JAR, e não repetida numa constante
+│   │   ├── TagsDaApi.java                 # os grupos por recurso: Consumidores, Cartões e Saúde
+│   │   └── RespostasDeErroDaApi.java      # corpo de erro, 500 e X-Request-Id em toda operação, uma vez só
 │   ├── tratamento/
 │   │   ├── FiltroDeProblemaDeApi.java     # @RestControllerAdvice: só declara os papéis
 │   │   └── TraducaoDe*.java               # um papel por exceção, com o @ExceptionHandler num default
@@ -414,13 +419,14 @@ api/                                       # composition root — único lugar q
 └── configuracao/                          # ÚNICO lugar com @Bean e que importa infraestrutura
     ├── ConfiguracaoDePortas.java          # importa os adaptadores concretos (@Import): só nomeia quais existem
     ├── ConfiguracaoDeRelogio.java         # o único Clock: de parede, em UTC
+    ├── ConfiguracaoDaDocumentacao.java    # a especificação OpenAPI e o customizador das respostas de erro
     ├── ConfiguracaoDeCasosDeUso.java      # instancia casos de uso com as portas injetadas e o Clock (Clock.systemUTC())
     ├── ConfiguracaoDeAuditoria.java       # @EnableJpaAuditing com o Clock do domínio (qualidade/BANCO.md §6)
     ├── ConfiguracaoDeFiltros.java         # registra os filtros na ordem do contrato (qualidade/API.md §4)
     └── ConfiguracaoDeWeb.java             # só quando houver cliente de navegador de origem conhecida: o CORS, hoje fechado por padrão (SEGURANCA.md §8)
 ```
 
-A classe `ConsumerTestApplication` (`@SpringBootApplication`) fica na raiz
+A classe `InicializacaoDaAplicacao` (`@SpringBootApplication`) fica na raiz
 `…consumerpat` e **só inicializa**, sem regra de negócio. O pacote herdado `…consumerpat.config` segue como está.
 
 ### Testes (`src/test/java`)
@@ -486,8 +492,7 @@ src/test/java/…consumerpat/                # espelha produção, pacote a paco
 │   └── persistencia/
 │       └── consumidor/
 │           ├── CartaoAdaptadorTeste.java  # @DataJpaTest contra H2: trava, unicidade
-│           ├── ListagemDeConsumidoresTeste.java  # conta comandos SQL da listagem — guarda contra N+1
-│           └── GeradorDeConsumidores.java        # 50 mil registros, só para medir — nunca em src/main
+│           └── ListagemDeConsumidoresTeste.java  # conta comandos SQL da listagem — guarda contra N+1
 ├── api/
 │   ├── cartao/
 │   │   ├── CartaoControllerContratoTeste.java   # status, serialização, corpo de erro
@@ -498,6 +503,13 @@ src/test/java/…consumerpat/                # espelha produção, pacote a paco
 │   │       ├── ConcorrenciaDeCompraECreditoTeste.java  # débito e crédito na mesma linha, saldo intacto
 │   │       ├── ConcorrenciaDeCadastroTeste.java      # mesmo documento 20 vezes: um 201, o resto 409
 │   │       └── ChamadasDaApi.java                    # prepara o cartão, chama a API e lê o saldo por ela
+│   ├── comum/
+│   │   └── documentacao/
+│   │       ├── EspecificacaoDaApiTeste.java          # /v3/api-docs com o contexto inteiro: 201, erros, 500, X-Request-Id
+│   │       ├── InformacoesDaApiTeste.java            # título, versão, descrição; sem contato nem licença
+│   │       ├── RespostasDeErroDaApiTeste.java        # o customizador, com uma especificação montada à mão
+│   │       ├── TagsDaApiTeste.java                   # os três grupos, na ordem e descritos
+│   │       └── VersaoDaAplicacaoTeste.java           # a versão do manifesto, e o texto que diz que não há
 │   └── consumidor/
 │       └── ConsumidorControllerContratoTeste.java
 ├── medicao/                               # o comparativo com o original — só roda com MEDICAO=1
@@ -514,7 +526,6 @@ src/test/java/…consumerpat/                # espelha produção, pacote a paco
 ├── seguranca/                             # a bateria de segurança — qualidade/SEGURANCA.md §11
 │   ├── BateriaDeSegurancaComOLegadoTeste.java # o legado e o novo lado a lado; só roda com SEGURANCA=1
 │   ├── SegurancaDoSistemaNovoTeste.java   # o novo na suíte normal: se protege em tudo, menos nos riscos aceitos
-│   ├── SegurancaDoLegadoDaArvoreTeste.java # só prova que a bateria roda contra o legado; sai com ele
 │   ├── SondaDeSeguranca.java              # papel: o que se tenta num sistema, sem saber como ele o chama
 │   ├── SondaDoLegado.java                 # /consumer/* por HTTP
 │   ├── SondaDoNovo.java                   # /api/v1/* por HTTP
@@ -803,7 +814,7 @@ dominio/
   erros/        ErroDominio.java, regradenegocio/ErroSaldoInsuficiente.java
   portas/       CartaoPorta.java, ConsumidorPorta.java
 
-// ERRADO — organizado por tipo técnico (anátema) — é o que o legado faz
+// ERRADO — organizado por tipo técnico (anátema) — é o que o legado fazia
 consumerpat/
   controller/   ConsumerController.java
   entity/       Consumer.java, Extract.java
@@ -1004,7 +1015,7 @@ Regras decorrentes, que diferem do uso comum de Spring:
   pelo framework e geradas em runtime — não há classe nossa para anotar.
 - **Injeção por construtor**, nunca `@Autowired` em campo.
 
-A classe `ConsumerTestApplication` **não tem regra de negócio** — só
+A classe `InicializacaoDaAplicacao` **não tem regra de negócio** — só
 inicializa a aplicação. Tipo de domínio ou caso de uso declarado dentro
 dela ou de uma classe de configuração é anti-padrão (ver
 [princípio 9](#9-anti-padrão-responsabilidade-misturada-na-composition-root)).
@@ -1038,7 +1049,7 @@ saldo (ver `API.md`).
 ### 9. Anti-Padrão: Responsabilidade Misturada na Composition Root
 
 **Nunca** defina tipos de domínio, casos de uso ou validadores dentro de
-`ConsumerTestApplication`, de classes `@Configuration`, de adaptadores ou
+`InicializacaoDaAplicacao`, de classes `@Configuration`, de adaptadores ou
 de controllers.
 
 ```java
@@ -1155,7 +1166,7 @@ Este projeto é um módulo único de um desafio técnico. As escolhas abaixo sã
 | Organização de `infraestrutura` | por conceito, em pacotes sem ciclo, com entidade e repositório públicos e a barreira num teste | princípio 2; as FKs exigem que as entidades se vejam, e o teste esconde a JPA do resto do código |
 | Log | SLF4J/Logback, já presentes | proibido adicionar dependência no desafio |
 | Banco | só H2 em memória | é o que o desafio usa; sem fila nem armazenamento externo |
-| Composição | `ConsumerTestApplication` só inicia; composição em `api.configuracao` | Spring Boot não tem ponto de entrada com DI manual |
+| Composição | `InicializacaoDaAplicacao` só inicia; composição em `api.configuracao` | Spring Boot não tem ponto de entrada com DI manual |
 
 ---
 

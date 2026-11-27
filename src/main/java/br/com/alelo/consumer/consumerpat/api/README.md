@@ -30,6 +30,16 @@ As rotas `/consumer/*` do legado saíram com a remoção do legado.
     O texto das bibliotecas cita classes do projeto e o valor rejeitado, e nada disso
     vai ao cliente. O registro causa → tradutor é um `Map` (`TradutoresDoCorpo`) e a
     consulta sobe a hierarquia de classes, então a ordem não importa.
+  - `documentacao`: a especificação OpenAPI em `/v3/api-docs`, que o perfil `prod`
+    desliga. `InformacoesDaApi` traz o título e a descrição do que vale para a API
+    inteira (o formato RFC 7807 dos erros, o dinheiro como texto decimal e o
+    `X-Request-Id`), `VersaoDaAplicacao` lê a versão do `MANIFEST.MF` do JAR, e fora dele
+    diz `sem versão (fora do JAR)` em vez de inventar uma, e `TagsDaApi` agrupa as
+    operações por recurso, e não uma por classe. `RespostasDeErroDaApi` completa, em toda
+    operação, o que seria repetido em cada controller: o corpo `application/problem+json`
+    dos erros, o `500` e o cabeçalho `X-Request-Id`. Cada controller declara só o que é
+    dele, o resumo, o sucesso e os erros, com as anotações do Swagger. Não há contato nem
+    licença, porque a API é um desafio técnico e não um produto.
   - `tratamento`: `FiltroDeProblemaDeApi`, o `@RestControllerAdvice`, que só declara os
     papéis `TraducaoDe*`. Cada papel tem o seu `@ExceptionHandler` num método
     `default`, e o único que captura `Exception` é o da falha inesperada. Os quatro
@@ -77,6 +87,9 @@ As rotas `/consumer/*` do legado saíram com a remoção do legado.
   quem o escreve é o filtro dos cabeçalhos de segurança, como em toda resposta da API.
   O status vem de `StatusDaSaude`, um `EnumMap`: o domínio não conhece HTTP.
 - **`configuracao`** — liga o que as camadas de baixo declaram.
+  - `ConfiguracaoDaDocumentacao` compõe a especificação OpenAPI: o cabeçalho, os grupos
+    de operações e o customizador das respostas de erro. Só liga, e o conteúdo de cada
+    parte vive em `comum.documentacao`.
   - `ConfiguracaoDeRelogio` escolhe o **único** `Clock` da aplicação: o de parede, em
     UTC. O domínio, os casos de uso e a auditoria do banco recebem este mesmo bean, de
     modo que um teste que o troque controla o tempo de ponta a ponta. Nenhum código
@@ -162,6 +175,12 @@ api
 │   │   ├── package-info.java
 │   │   ├── TradutorDeCausa.java
 │   │   └── TradutoresDoCorpo.java                # registro causa → tradutor
+│   ├── documentacao
+│   │   ├── InformacoesDaApi.java                 # título, descrição e versão da especificação
+│   │   ├── package-info.java
+│   │   ├── RespostasDeErroDaApi.java             # corpo de erro, 500 e X-Request-Id em toda operação
+│   │   ├── TagsDaApi.java                        # os grupos: Consumidores, Cartões e Saúde
+│   │   └── VersaoDaAplicacao.java                # a versão, lida do MANIFEST.MF do JAR
 │   ├── package-info.java
 │   ├── problema
 │   │   ├── MensagemProblema.java                 # o corpo RFC 7807
@@ -201,6 +220,7 @@ api
 │       ├── TraducaoDeRotaInexistente.java        # 404
 │       └── TraducaoDeTravaEsgotada.java          # 409
 ├── configuracao
+│   ├── ConfiguracaoDaDocumentacao.java           # a especificação OpenAPI e o customizador de erros
 │   ├── ConfiguracaoDeAuditoria.java              # @EnableJpaAuditing, com o instante do Clock
 │   ├── ConfiguracaoDeFiltros.java                # registra os filtros na ordem do contrato
 │   ├── ConfiguracaoDePortas.java                 # importa os adaptadores, um por porta
@@ -214,8 +234,9 @@ api
 ## Dependências externas
 
 Spring MVC (controllers e tratador), Bean Validation (já no build), Jackson (leitura
-do corpo e as exceções que a tradução reconhece), Spring Data (a auditoria). Nenhuma
-dependência nova no build.
+do corpo e as exceções que a tradução reconhece), Spring Data (a auditoria) e o
+springdoc, que já estava no build, com as anotações e o modelo do Swagger que descrevem
+a especificação OpenAPI. Nenhuma dependência nova no build.
 
 A configuração de `application.yml` que esta camada pressupõe: `open-in-view`
 desligado; Jackson estrito (`fail-on-unknown-properties`), em UTC e sem notação
@@ -229,6 +250,7 @@ Os testes ficam em `src/test/java/.../api/` e espelham os pacotes.
 
 | Teste | O que prova |
 |---|---|
+| `comum.documentacao.*Teste` | a versão do manifesto, e o texto que diz que não há versão fora do JAR; o cabeçalho sem contato nem licença; os três grupos, cada um descrito; o customizador com uma especificação montada à mão (corpo de problema só onde falta, `500` acrescentado sem pisar no do controller, `X-Request-Id` em toda resposta, esquema registrado). `EspecificacaoDaApiTeste` lê `/v3/api-docs` com o contexto inteiro: toda operação com resumo e em um grupo só, `201` e nunca `200` nos três `POST`, `problem+json` em todo erro, `500` e `X-Request-Id` em toda operação, e os esquemas de resposta presentes. Provado por mutação: trocar o `201` da compra por `200` derruba só o teste do `201`, e desligar o customizador derruba os quatro do corpo de erro, do `500`, do cabeçalho e do esquema |
 | `comum.problema.*Teste` | títulos de categoria distintos; códigos de borda únicos e no formato; corpo montado do enum e do erro de domínio, sem número inteiro |
 | `comum.resposta.*Teste` | status e tipo de mídia, no sucesso e em cada categoria de falha; a conversão da mensagem não roda numa falha |
 | `consumidor.*.*ControllerTeste` | `@WebMvcTest` sobre fakes: `201` com `Location` que aponta o id certo, documento e número nunca inteiros, `400` com todos os campos inválidos de uma vez (documento, CEP, tipo e número do cartão), saldo recusado no cadastro e na atualização, `409` de documento e de versão, `404`, id que não é positivo ou número, e `405` |
@@ -271,4 +293,4 @@ do controller que posta sem corpo faz o build quebrar se o Spring mudar o texto.
 | `#26` | Acrescenta `comum.seguranca`: o `FiltroDeCabecalhosDeSeguranca`, o filtro mais externo, só em `/api/*`, que escreve os cinco cabeçalhos de segurança em toda resposta, inclusive as de erro. O `Cache-Control: no-store` passa a vir dele, e o `SaudeController` deixa de escrevê-lo. O perfil `prod` desliga o console do H2, o Swagger e a especificação. |
 | `#29` | Acrescenta o `FiltroDeRejeicaoDeTrace` a `comum.seguranca`: o `TRACE` passa a responder `405` sem corpo, em vez de ecoar a requisição inteira. O defeito estava no sistema novo, e foi a bateria de segurança que o achou. |
 | `#30` | Os eventos que o tratador de erros registra (`conflito.detectado`, `lock.timeout` e `falha.inesperada`) passam a gravar `metodo` e `caminho`, os mesmos campos do `requisicao.concluida`, no lugar de `operacao`, que ficava com o texto `POST /api/v1/consumidores` enquanto os casos de uso gravavam o nome lógico (`criar-consumidor`). `operacao` passa a ser só o nome da operação de negócio. `OperacaoDaRequisicao` sai, porque só o tratador a usava. |
-| `#31` | Remove o legado: o `ConsumerController`, as entidades `Consumer` e `Extract` e os dois repositórios saem, e as cinco rotas `/consumer/*` passam a responder `404`. O mapa das rotas antigas para as novas está no `API.md`. É a quebra de contrato do projeto, porque as rotas novas haviam entrado sem tirar nenhuma. A compra e o crédito ganham testes de HTTP para o tipo de estabelecimento desconhecido e para o valor zero ou negativo, os dois defeitos que o legado documentava. |
+| `#31` | Remove o legado: o `ConsumerController`, as entidades `Consumer` e `Extract` e os dois repositórios saem, e as cinco rotas `/consumer/*` passam a responder `404`. O mapa das rotas antigas para as novas está no `API.md`. É a quebra de contrato do projeto, porque as rotas novas haviam entrado sem tirar nenhuma. A compra e o crédito ganham testes de HTTP para o tipo de estabelecimento desconhecido e para o valor zero ou negativo, os dois defeitos que o legado documentava. Reescreve a documentação da API: o `OpenApiConfig`, que logava no INFO e vivia no último pacote legado, vira `ConfiguracaoDaDocumentacao` e `comum.documentacao`, e cada controller passa a declarar o resumo, o sucesso e os erros. A especificação, que dizia `200` nos três `POST`, passa a dizer `201` e a documentar os erros `problem+json`, o `500` e o `X-Request-Id`. A classe de entrada passa de `ConsumerTestApplication` para `InicializacaoDaAplicacao`. |

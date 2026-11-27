@@ -644,7 +644,7 @@ declarados — o padrão da ferramenta não é aceito por omissão.
 # application.yml — pontos de partida; decidir com medição (seção 8)
 spring:
   datasource:
-    url: jdbc:h2:mem:consumer-pat;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=3000   # ms — MENOR que a espera por conexão
+    url: jdbc:h2:mem:consumer-pat;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=3000   # ms — MENOR que a espera por conexão
     hikari:
       connection-timeout: 5000        # ms — o padrão de 30 s só adia o esgotamento do pool
       maximum-pool-size: 10

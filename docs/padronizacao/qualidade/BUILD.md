@@ -36,7 +36,7 @@ build falhar.
 | Alvos de plataforma | **um só JAR**, portável |
 | Lock file | **`gradle.lockfile`** (*dependency locking*, nativo) |
 | Fonte única de versões | **BOM do Spring Boot** + `gradle.properties` (versão do springdoc) |
-| Warnings como erro | `-Xlint:all -Werror` (e `-Xdoclint:missing` só no código de produção) |
+| Warnings como erro | `-Xlint:all,-processing -Werror` (e `-Xdoclint:missing/public` só no código de produção) |
 | Supressão pontual | `@SuppressWarnings("…")` na linha/método |
 | Análise estática / formatação | **`.editorconfig`** + javac lint + **testes de arquitetura** (Checkstyle/PMD/Spotless exigiriam artefatos novos) |
 | Repositório local de dependências | `mavenLocal()` **sai** do build (seção 4) |
@@ -237,11 +237,11 @@ limpo é pré-requisito para build.
 tasks.withType(JavaCompile).configureEach {            // código E testes
     options.encoding = 'UTF-8'
     options.release  = 17
-    options.compilerArgs += ['-Xlint:all', '-Werror']
+    options.compilerArgs += ['-Xlint:all,-processing', '-Werror']
 }
 
 tasks.named('compileJava') {                           // só o código de produção
-    options.compilerArgs += ['-Xdoclint:missing']      // membro público sem Javadoc = erro
+    options.compilerArgs += ['-Xdoclint:missing/public']   // membro público sem Javadoc = erro
 }
 
 tasks.named('javadoc') {
@@ -255,17 +255,29 @@ tasks.named('check') { dependsOn 'javadoc' }           // `build` passa a falhar
 
 - **Aviso do `javac`** (`-Xlint:all`): `unchecked`, `rawtypes`, `deprecation`,
   `serial`, `fallthrough`, `try`, `overrides`…
-- **Documentação ausente** em membro público (`-Xdoclint:missing`) —
+- **Documentação ausente** em membro público (`-Xdoclint:missing/public`) —
   equivalente do `CS1591`; **só em `compileJava`**, não nos testes (um método
-  de teste não tem Javadoc a exigir).
+  de teste não tem Javadoc a exigir). **O `/public` é necessário**: sem o
+  qualificador de acesso, o `javac` exige comentário também em campo e
+  construtor **privados**, e o código de produção acusou 99 avisos que não eram
+  de membro público.
+- **O Lombok conta.** O `javac` roda o Lombok antes de checar a documentação, e
+  um `getter` ou `setter` público gerado sem Javadoc é um aviso, na linha do
+  campo. Como o Lombok copia o Javadoc do campo para o que gera, mas não
+  acrescenta `@return` nem `@param`, a saída é **não gerar acessor público**:
+  nas entidades, os acessores gerados são de pacote (`AccessLevel.PACKAGE`), e
+  só os que outro pacote usa de fato são escritos à mão, com Javadoc de
+  contrato. Isso também reduz o que a entidade expõe.
 - **Javadoc inválido** (`-Xwerror` na tarefa `javadoc`) — e a tarefa **entra
   no `check`**: por padrão o `build` do Gradle **não** executa `javadoc`, e
   sem essa linha "doc inválida" não quebraria nada.
 
-> **O legado já falha nesta regra.** A compilação de `Consumer` emite
-> *"Not generating hashCode: One of equals or hashCode exists"* (Lombok
-> `@Data` junto de `equals` manual). Com `-Werror`, o legado **não compila**
-> até esse defeito ser corrigido — o que é o comportamento desejado.
+> **O legado falhava nesta regra, e por isso ela só entrou depois dele.** A
+> compilação de `Consumer` emitia *"Not generating hashCode: One of equals or
+> hashCode exists"* (Lombok `@Data` junto de `equals` manual), e com `-Werror`
+> o legado **não compilaria**. Removido o legado, o `-Xlint:all` sobre o
+> código novo achou um aviso próprio, um `cast` redundante num teste, corrigido,
+> e o do `processing`, tratado abaixo.
 
 ### Supressão: pontual e justificada
 
@@ -281,8 +293,17 @@ tasks.named('check') { dependsOn 'javadoc' }           // `build` passa a falhar
 > supressão global admitida é **excluir essa categoria**, **nominalmente**, no
 > próprio `build.gradle`, **com o comentário que prova o ruído**. Excluir
 > categoria por incômodo é a supressão global que esta seção proíbe.
-> *(Ponto a validar ao aplicar: ainda não foi executado `-Xlint:all -Werror`
-> sobre o código novo.)*
+>
+> **Foi o que aconteceu, e é a única exclusão do projeto.** Com o Lombok no
+> processamento de anotações, o `javac` emite um único aviso, *"No processor
+> claimed any of these annotations"*, que lista as anotações do Spring, do JPA
+> e do Bean Validation, como `@RestController` e `@Column`, que nenhum
+> processador deveria reivindicar. Não há o que corrigir no código, e o
+> `build.gradle` exclui o `processing` pelo nome, com o comentário que diz isso.
+>
+> **O `@SuppressWarnings("doclint")` não funciona**: o `javac` não o honra, e os
+> avisos de Javadoc continuam. Foi testado, e por isso a supressão pontual da
+> tabela acima vale para as categorias do `-Xlint`, e não para a documentação.
 
 **Por quê:** warning é o compilador pagando para te contar algo. Build que
 passa com warning treinou todo mundo a ignorar o compilador — e, no próximo
@@ -590,9 +611,9 @@ tasks.named('test') { useJUnitPlatform() }
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
     options.release  = 17
-    options.compilerArgs += ['-Xlint:all', '-Werror']
+    options.compilerArgs += ['-Xlint:all,-processing', '-Werror']
 }
-tasks.named('compileJava') { options.compilerArgs += ['-Xdoclint:missing'] }
+tasks.named('compileJava') { options.compilerArgs += ['-Xdoclint:missing/public'] }
 tasks.named('javadoc')     { options.addBooleanOption('Xwerror', true) }
 tasks.named('check')       { dependsOn 'javadoc' }
 ```

@@ -140,13 +140,29 @@ isso, sem o runtime embutido.
 
 **Fonte única da versão:** a linha `version = '0.0.1'` do `build.gradle`.
 Dali a versão chega ao nome do JAR, ao `MANIFEST.MF`
-(`Implementation-Version`, escrito pelo plugin do Spring Boot) e ao
-**banner** de inicialização:
+(`Implementation-Version`), ao **banner** de inicialização e à versão da
+**especificação OpenAPI**:
+
+```groovy
+// build.gradle
+tasks.named('bootJar') {
+    manifest {
+        attributes 'Implementation-Title': project.name,
+                'Implementation-Version': project.version
+    }
+}
+```
 
 ```text
-# src/main/resources/banner.txt  (já existe)
-... :: consumer-pat ${application.version} ::
+# src/main/resources/banner.txt
+ > API...............: consumer-pat ${application.version}
 ```
+
+**O plugin do Spring Boot para o Gradle não escreve o `Implementation-Version`**
+— o do Maven escreve. Sem o bloco acima, o JAR sai sem a versão, o banner a
+imprime vazia e a especificação OpenAPI não tem de onde lê-la. A classe
+`VersaoDaAplicacao`, da camada `api`, lê o manifesto do JAR em execução, e é
+dele que a versão da especificação sai.
 
 **Regras:**
 
@@ -155,7 +171,9 @@ Dali a versão chega ao nome do JAR, ao `MANIFEST.MF`
   uma delas mente.
 - **Padrão `X.Y.Z` obrigatório** (semver): `1.2` ou `1` não são versões.
 - **`${application.version}` só existe quando se executa o JAR** (vem do
-  `MANIFEST.MF`); em `bootRun`/IDE aparece vazio. É esperado, não defeito.
+  `MANIFEST.MF`); em `bootRun`/IDE aparece vazio, e a especificação OpenAPI
+  diz `sem versão (fora do JAR)`. É esperado, não defeito: o texto diz a
+  verdade em vez de repetir uma versão que ninguém conferiu.
 - **Hash de commit: não adotado.** Exigiria um trecho `exec` no
   `build.gradle` (ou plugin externo) e não há pipeline de release.
   **Se** o projeto sair do desafio, adota-se com `springBoot { buildInfo() }`

@@ -95,7 +95,7 @@ public final class OperacoesDoNovo implements OperacoesDoAlvo {
     public List<Pedido> consultas(int total) throws Exception {
         var meio = Math.max(1, (total + ITENS_DA_PAGINA - 1) / ITENS_DA_PAGINA / 2);
         var corpo = http.get(CONSUMIDORES + "?pagina=" + meio + "&tamanhoPagina=1").texto();
-        var id = String.valueOf((Object) JsonPath.read(corpo, "$.itens[0].id"));
+        var id = String.valueOf(JsonPath.<Object>read(corpo, "$.itens[0].id"));
         return List.of(new Pedido("consulta-por-id",
                 "GET " + CONSUMIDORES + "/{id}: um consumidor do meio da base, com os cartões",
                 () -> http.get(CONSUMIDORES + "/" + id)));

@@ -367,7 +367,7 @@ Duas estratégias, **uma por tipo de dado** — e a escolha pelo lock pessimista
 1. cliente lê   → GET /api/v1/consumidores/{id}      (resposta inclui versao: 3)
 2. cliente edita e reenvia → PUT ... { ..., versao: 3 }
 3. adaptador compara versao enviada × versao atual:
-     diferente → ErroVersaoDivergente (CPT-CNF-CSM-002) → 409           ← porta 1 (ERROS.md)
+     diferente → ErroVersaoDivergente (CPT-CNF-CON-002) → 409           ← porta 1 (ERROS.md)
      igual     → grava; o Hibernate incrementa a versao
 4. rede de segurança: duas gravações simultâneas passam pela comparação;
    o @Version faz a segunda falhar → ObjectOptimisticLockingFailureException → 409   ← porta 2

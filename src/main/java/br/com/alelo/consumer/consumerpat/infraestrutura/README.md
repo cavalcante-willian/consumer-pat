@@ -96,6 +96,13 @@ ou um repositório, e os quatro pacotes só dependem uns dos outros no sentido a
 sai da persistência são os três adaptadores, e quem os instancia é a composition root,
 por `@Import` da classe.
 
+**Os acessores das entidades são de pacote**, porque o que um pacote vizinho precisa de uma
+entidade é quase nada. O mapeador de cada entidade mora no mesmo pacote e lê e escreve
+os campos à vontade. De fora, a `ConsumidorEntidade` mostra só o `getId()` e o `getVersao()`,
+escritos à mão para terem Javadoc de contrato, e o seu construtor é público porque o
+`cadastro` a cria. A `CartaoEntidade` não mostra nenhum acessor, e o seu construtor é
+`protected`, que o JPA aceita.
+
 Os `import` que passam de 100 colunas levam a diretiva
 `editorconfig-checker-disable-next-line` na linha de cima, porque um `import` não se
 quebra e nenhum nome de peça cabe depois de um prefixo de 74 colunas.
@@ -196,6 +203,7 @@ teste que falharia sem ela, e a tabela abaixo é o inventário.
 | `ExtratoAdaptador`, `RegistroDeExtratoNoBanco`, `EntidadeDeExtrato`, `ExtratoEntidade` | `ExtratoAdaptadorTeste` (valores e instante, auditoria, cartão ausente, FK, sem cascata) |
 | `CartaoEntidade` (schema) | `SchemaDoCartaoTeste` (`CHECK` de saldo, número único, enum como texto, escala, auditoria, o dono obrigatório, um cartão de cada tipo por consumidor, a FK sem cascata) |
 | `ConsumidorEntidade` (schema) | `SchemaDoConsumidorTeste` (documento único, telefones nulos, tamanhos das colunas, índice por nome e id, versão, a corrida pega pela versão de linha, auditoria) |
+| `CartaoEntidade`, `ConsumidorEntidade` (o que mostram) | `AcessoDasEntidadesTeste` (o consumidor só mostra `getId` e `getVersao`, e o cartão nenhum método público; o construtor do cartão é `protected` e o do consumidor, público). Provado por mutação: acrescentar um getter público ao consumidor, ou abrir o construtor do cartão, derruba o teste certo |
 | `ListagemDeConsumidoresNoBanco`, `OrdenacaoNoBanco`, `ResumoDeConsumidorLinha` | `ListagemDeConsumidoresTeste` (H2 real: ordem, desempate, corte sem pular nem repetir, página vazia, contagem de comandos SQL) e `OrdenacaoNoBancoTeste` |
 | `ConsumidorAdaptador`, os papéis do `cadastro`, `ConsumidorDasLinhas` | `ConsumidorAdaptadorTeste` (criar com e sem cartões, documento e número repetidos sem gravar, buscar com os cartões ordenados, atualizar só os dados, versão velha, documento de outro) |
 | `ConsumidorDeEntidade`, `AtualizadorDeEntidadeDeConsumidor` | `ConsumidorDeEntidadeTeste` e `AtualizadorDeEntidadeDeConsumidorTeste` (telefones nulos e preenchidos, o que não muda na atualização, dado inválido que lança) |
@@ -225,3 +233,4 @@ Peças sem teste próprio, cobertas junto de quem as torna observáveis:
 | `#18` | Acrescenta a persistência do consumidor: a tabela `consumidores`, o `consumidor_id` não nulo e `uk_cartoes_consumidor_tipo` no cartão, e o `ConsumidorAdaptador` (busca, criação e atualização, com o conflito conferido antes de gravar). A persistência passa a quatro pacotes por conceito (`consumidor`, `cartao`, `extrato` e `cadastro`), e entidades e repositórios passam de pacote-privados a públicos, com a barreira em `RegraDeDependenciaDaPersistenciaTeste`. Nenhum código do legado depende ainda dela. |
 | `#21` | Acrescenta `infraestrutura.log`: o `SaidaDeLogAdaptador`, a única classe do projeto com SLF4J, que mascara o dado sensível pelo nome do campo e marca o crítico. O padrão de linha e o perfil `prod` vêm do `application.yml` e do `application-prod.yml`. |
 | `#23` | Acrescenta `infraestrutura.saude`: o `SaudeDoBancoAdaptador`, que verifica o banco pelo pool e registra `banco.indisponivel` com o tipo e o estado SQL da falha. |
+| `#32` | As duas entidades públicas, `CartaoEntidade` e `ConsumidorEntidade`, passam a ter os acessores do Lombok **de pacote**: só o que outro pacote usa de fato é público, e escrito à mão, com Javadoc. O `getId()` e o `getVersao()` do consumidor são os únicos, e o construtor do cartão passa a `protected`. Cada campo ganha o Javadoc da restrição que a coluna garante, que o Lombok copia para os acessores. A mudança veio do `-Xdoclint:missing/public`, que cobra Javadoc dos acessores gerados. Os testes de outros pacotes leem e trocam campos pelos fixtures `ConsumidoresDeTeste` e `CartoesDeTeste`. |

@@ -490,6 +490,7 @@ src/test/java/…consumerpat/                # espelha produção, pacote a paco
 │   └── DisputaSimultanea.java             # largada comum, prazo em toda espera, resultados na ordem
 ├── infraestrutura/
 │   └── persistencia/
+│       ├── AcessoDasEntidadesTeste.java   # as entidades só mostram o que outro pacote usa: getId e getVersao
 │       └── consumidor/
 │           ├── CartaoAdaptadorTeste.java  # @DataJpaTest contra H2: trava, unicidade
 │           └── ListagemDeConsumidoresTeste.java  # conta comandos SQL da listagem — guarda contra N+1

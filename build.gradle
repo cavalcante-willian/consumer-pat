@@ -90,4 +90,27 @@ tasks.withType(JavaCompile).configureEach {
     // Não se usa toolchain: ela não corrige a JVM que roda o próprio Gradle, que é onde o
     // problema aparece.
     options.release = 17
+    // Todo aviso do compilador quebra o build, no código e nos testes. A única categoria
+    // excluída é "processing", e pelo nome: com o Lombok no processamento de anotações, o javac
+    // avisa de toda anotação que nenhum processador reivindica, e lista as do Spring, do JPA e do
+    // Bean Validation, como @RestController e @Column, que nenhum processador deveria reivindicar.
+    // É um único aviso, sem nada a corrigir no código.
+    options.compilerArgs += ['-Xlint:all,-processing', '-Werror']
+}
+
+tasks.named('compileJava') {
+    // Membro público sem Javadoc quebra o build, só no código de produção. O "/public" é
+    // necessário: sem ele o javac exige comentário também em campo e construtor privados.
+    options.compilerArgs += ['-Xdoclint:missing/public']
+}
+
+tasks.named('javadoc') {
+    // HTML inválido e @param incoerente quebram o build.
+    options.addBooleanOption('Xwerror', true)
+}
+
+// Por padrão o "build" do Gradle não gera o Javadoc, e sem esta linha uma documentação inválida
+// não quebraria nada.
+tasks.named('check') {
+    dependsOn 'javadoc'
 }

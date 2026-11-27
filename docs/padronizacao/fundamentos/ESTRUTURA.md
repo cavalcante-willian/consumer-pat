@@ -397,6 +397,11 @@ api/                                       # composition root — único lugar q
 │   │   ├── TradutoresDoCorpo.java         # registro causa → tradutor (nível 7 de CONDICIONAIS.md)
 │   │   ├── TradutorDeCausa.java
 │   │   └── NomeDoCampoDoJackson.java
+│   ├── documentacao/                      # a especificação OpenAPI, em /v3/api-docs (o perfil prod a desliga)
+│   │   ├── InformacoesDaApi.java          # título, descrição do que vale para a API inteira e versão
+│   │   ├── VersaoDaAplicacao.java         # a versão, lida do MANIFEST.MF do JAR, e não repetida numa constante
+│   │   ├── TagsDaApi.java                 # os grupos por recurso: Consumidores, Cartões e Saúde
+│   │   └── RespostasDeErroDaApi.java      # corpo de erro, 500 e X-Request-Id em toda operação, uma vez só
 │   ├── tratamento/
 │   │   ├── FiltroDeProblemaDeApi.java     # @RestControllerAdvice: só declara os papéis
 │   │   └── TraducaoDe*.java               # um papel por exceção, com o @ExceptionHandler num default
@@ -414,6 +419,7 @@ api/                                       # composition root — único lugar q
 └── configuracao/                          # ÚNICO lugar com @Bean e que importa infraestrutura
     ├── ConfiguracaoDePortas.java          # importa os adaptadores concretos (@Import): só nomeia quais existem
     ├── ConfiguracaoDeRelogio.java         # o único Clock: de parede, em UTC
+    ├── ConfiguracaoDaDocumentacao.java    # a especificação OpenAPI e o customizador das respostas de erro
     ├── ConfiguracaoDeCasosDeUso.java      # instancia casos de uso com as portas injetadas e o Clock (Clock.systemUTC())
     ├── ConfiguracaoDeAuditoria.java       # @EnableJpaAuditing com o Clock do domínio (qualidade/BANCO.md §6)
     ├── ConfiguracaoDeFiltros.java         # registra os filtros na ordem do contrato (qualidade/API.md §4)
@@ -497,6 +503,13 @@ src/test/java/…consumerpat/                # espelha produção, pacote a paco
 │   │       ├── ConcorrenciaDeCompraECreditoTeste.java  # débito e crédito na mesma linha, saldo intacto
 │   │       ├── ConcorrenciaDeCadastroTeste.java      # mesmo documento 20 vezes: um 201, o resto 409
 │   │       └── ChamadasDaApi.java                    # prepara o cartão, chama a API e lê o saldo por ela
+│   ├── comum/
+│   │   └── documentacao/
+│   │       ├── EspecificacaoDaApiTeste.java          # /v3/api-docs com o contexto inteiro: 201, erros, 500, X-Request-Id
+│   │       ├── InformacoesDaApiTeste.java            # título, versão, descrição; sem contato nem licença
+│   │       ├── RespostasDeErroDaApiTeste.java        # o customizador, com uma especificação montada à mão
+│   │       ├── TagsDaApiTeste.java                   # os três grupos, na ordem e descritos
+│   │       └── VersaoDaAplicacaoTeste.java           # a versão do manifesto, e o texto que diz que não há
 │   └── consumidor/
 │       └── ConsumidorControllerContratoTeste.java
 ├── medicao/                               # o comparativo com o original — só roda com MEDICAO=1

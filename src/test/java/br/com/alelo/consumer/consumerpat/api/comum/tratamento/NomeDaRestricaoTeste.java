@@ -31,8 +31,8 @@ class NomeDaRestricaoTeste {
         // Preparar
         var primeira = ConsumidoresDeTeste.linha();
         gerenciador.persistAndFlush(primeira);
-        var repetida = ConsumidoresDeTeste.linha();
-        repetida.setDocumento(primeira.getDocumento());
+        var repetida = ConsumidoresDeTeste
+                .linhaComDocumento(ConsumidoresDeTeste.documentoDe(primeira));
 
         // Agir
         var excecao = catchThrowable(() -> gerenciador.persistAndFlush(repetida));
@@ -41,8 +41,8 @@ class NomeDaRestricaoTeste {
         var nome = NomeDaRestricao.de(excecao);
         assertThat(excecao).isInstanceOf(javax.persistence.PersistenceException.class);
         assertThat(nome).containsIgnoringCase("UK_CONSUMIDORES_DOCUMENTO");
-        assertThat(nome).doesNotContain(primeira.getDocumento()).doesNotContain("VALUES")
-                .doesNotContainAnyWhitespaces().doesNotContain("'");
+        assertThat(nome).doesNotContain(ConsumidoresDeTeste.documentoDe(primeira))
+                .doesNotContain("VALUES").doesNotContainAnyWhitespaces().doesNotContain("'");
     }
 
     @Test

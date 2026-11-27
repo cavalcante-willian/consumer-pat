@@ -18,8 +18,7 @@ class VersaoDaLinhaConfirmadaTeste {
     @Test
     void deve_ser_sucesso_com_a_mesma_linha_quando_a_versao_e_a_da_linha() {
         // Preparar
-        var linha = ConsumidoresDeTeste.linha();
-        linha.setVersao(3L);
+        var linha = ConsumidoresDeTeste.comVersao(ConsumidoresDeTeste.linha(), 3L);
 
         // Agir
         var resultado = VersaoDaLinhaConfirmada.exigir(linha,
@@ -34,8 +33,7 @@ class VersaoDaLinhaConfirmadaTeste {
     @ValueSource(longs = { 0, 2, 4, 100 })
     void deve_ser_falha_de_versao_divergente_quando_a_versao_nao_e_a_da_linha(long informada) {
         // Preparar
-        var linha = ConsumidoresDeTeste.linha();
-        linha.setVersao(3L);
+        var linha = ConsumidoresDeTeste.comVersao(ConsumidoresDeTeste.linha(), 3L);
 
         // Agir
         var resultado = VersaoDaLinhaConfirmada.exigir(linha,
@@ -50,8 +48,7 @@ class VersaoDaLinhaConfirmadaTeste {
     @Test
     void deve_aceitar_a_versao_zero_quando_a_linha_acabou_de_ser_gravada() {
         // Preparar
-        var linha = ConsumidoresDeTeste.linha();
-        linha.setVersao(0L);
+        var linha = ConsumidoresDeTeste.comVersao(ConsumidoresDeTeste.linha(), 0L);
 
         // Agir
         var resultado = VersaoDaLinhaConfirmada.exigir(linha,

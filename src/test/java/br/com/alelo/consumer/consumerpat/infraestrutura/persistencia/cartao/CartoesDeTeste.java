@@ -77,4 +77,15 @@ public final class CartoesDeTeste {
         entidade.setSaldo(new BigDecimal(saldo));
         return entidade;
     }
+
+    /**
+     * Lê a chave da linha do cartão. Os acessores da entidade são do pacote dela, e os testes de
+     * outros pacotes passam por aqui.
+     *
+     * @param cartao a linha do cartão
+     * @return a chave gerada pelo banco, ou nula se a linha ainda não foi gravada
+     */
+    public static Long idDe(CartaoEntidade cartao) {
+        return cartao.getId();
+    }
 }
